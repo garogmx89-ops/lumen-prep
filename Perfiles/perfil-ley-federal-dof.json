@@ -1,0 +1,183 @@
+{
+  "_lumenprep_perfil": true,
+  "_version": "1.0",
+  "_descripcion": "Perfil base para leyes federales publicadas en el Diario Oficial de la Federación. Probado con: Ley de Vivienda, Ley General de Asentamientos Humanos OTDU, Ley de Obras Públicas y Servicios Relacionados con las Mismas.",
+  "_generado": "2026-04-10",
+  "nombre": "Ley Federal — DOF",
+  "ambito": "Federal",
+  "origen": "DOF",
+  "notas": "Perfil base para leyes federales del DOF. Cubre estructura estándar: encabezado, decreto presidencial, cuerpo de la ley, notas de reforma, transitorios originales y decretos de reforma acumulados al final. Ajustar ruido según la ley específica.",
+  "patronArticulo": "mayusculas",
+  "artRegexCustom": "",
+  "tipoFraccion": "romanos",
+  "tipoInciso": "minusculas",
+  "transitorios": [
+    "TRANSITORIOS",
+    "Transitorios",
+    "TRANSITORIO",
+    "Transitorio"
+  ],
+  "ruido": [
+    "TEXTO VIGENTE",
+    "Al margen un sello con el Escudo Nacional, que dice: Estados Unidos Mexicanos.- Presidencia de la República."
+  ],
+  "categorias": [
+    { "nombre": "Encabezado DOF",        "color": "#06b6d4" },
+    { "nombre": "Vigencia",              "color": "#8b5cf6" },
+    { "nombre": "Decreto presidencial",  "color": "#f97316" },
+    { "nombre": "Artículo de expedición","color": "#eab308" },
+    { "nombre": "Nombre de la ley",      "color": "#3b82f6" },
+    { "nombre": "Título",                "color": "#4f8ef7" },
+    { "nombre": "Capítulo",              "color": "#34c98a" },
+    { "nombre": "Nota de reforma",       "color": "#9aa3b0" },
+    { "nombre": "Transitorio original",  "color": "#f87171" },
+    { "nombre": "Decreto de reforma",    "color": "#ec4899" },
+    { "nombre": "Artículo de decreto",   "color": "#f59e0b" },
+    { "nombre": "Transitorio de decreto","color": "#fb923c" },
+    { "nombre": "Firma Congreso",        "color": "#a78bfa" },
+    { "nombre": "Firma Ejecutivo",       "color": "#7c3aed" }
+  ],
+  "reglas": [
+    {
+      "nombre": "Encabezado DOF — publicación",
+      "tipo": "encabezado_publicacion",
+      "metodo": "inicio",
+      "patron": "Nueva Ley publicada en el Diario Oficial",
+      "color": "#06b6d4",
+      "categoriaPersonalizada": "Encabezado DOF",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Encabezado DOF — última reforma",
+      "tipo": "encabezado_publicacion",
+      "metodo": "inicio",
+      "patron": "Última reforma publicada DOF",
+      "color": "#06b6d4",
+      "categoriaPersonalizada": "Vigencia",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Decreto presidencial — fórmula de promulgación",
+      "tipo": "decreto",
+      "metodo": "contiene",
+      "patron": "Presidente de los Estados Unidos Mexicanos, a sus habitantes sabed",
+      "color": "#f97316",
+      "categoriaPersonalizada": "Decreto presidencial",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Decreto — EL CONGRESO DECRETA",
+      "tipo": "decreto",
+      "metodo": "contiene",
+      "patron": "EL CONGRESO GENERAL DE LOS ESTADOS UNIDOS MEXICANOS",
+      "color": "#f97316",
+      "categoriaPersonalizada": "Decreto presidencial",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Nota de reforma DOF — párrafo reformado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Párrafo reformado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Nota de reforma DOF — artículo reformado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Artículo reformado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Nota de reforma DOF — fracción derogada",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Fracción derogada DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Nota de reforma DOF — artículo derogado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Artículo derogado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Nota de reforma DOF — párrafo adicionado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Párrafo adicionado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Nota de reforma DOF — artículo adicionado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Artículo adicionado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Decreto de reforma — encabezado",
+      "tipo": "decreto_reforma",
+      "metodo": "inicio",
+      "patron": "DECRETO por el que se reform",
+      "color": "#ec4899",
+      "categoriaPersonalizada": "Decreto de reforma",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Decreto de reforma — publicación DOF",
+      "tipo": "decreto_reforma",
+      "metodo": "inicio",
+      "patron": "Publicado en el Diario Oficial de la Federación el",
+      "color": "#ec4899",
+      "categoriaPersonalizada": "Decreto de reforma",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Firma del Congreso",
+      "tipo": "firma",
+      "metodo": "inicio",
+      "patron": "Ciudad de México, a",
+      "color": "#a78bfa",
+      "categoriaPersonalizada": "Firma Congreso",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    },
+    {
+      "nombre": "Firma del Ejecutivo — promulgación",
+      "tipo": "firma",
+      "metodo": "contiene",
+      "patron": "En cumplimiento de lo dispuesto por la fracción I del Artículo 89",
+      "color": "#7c3aed",
+      "categoriaPersonalizada": "Firma Ejecutivo",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
+      "fecha": "2026-04-10"
+    }
+  ],
+  "creadoEn": "2026-04-10T00:00:00.000Z"
+}

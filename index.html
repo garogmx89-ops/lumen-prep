@@ -448,6 +448,14 @@ textarea:focus{border-color:var(--accent);}
         <button class="btn btn-ghost"  onclick="switchTab('validacion')">🛡 Validar y exportar</button>
         <button class="btn btn-danger" onclick="limpiarTodo()">🗑 Limpiar todo</button>
       </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;">Biblioteca de perfiles</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button class="btn btn-ghost" onclick="abrirImportarPerfil()" style="font-size:11px;">📥 Importar perfil (.json)</button>
+          <button class="btn btn-ghost" id="btn-exportar-perfil" onclick="exportarPerfilActual()" style="font-size:11px;display:none;">📤 Exportar perfil activo</button>
+        </div>
+      </div>
+      <input type="file" id="importar-perfil-input" accept=".json" style="display:none;" onchange="procesarImportarPerfil(event)">
     </div>
     <div class="panel-section">
       <div class="pst">Leyenda</div>
@@ -749,7 +757,132 @@ function seleccionarPerfil(){
   document.getElementById('btn-editar-perfil').style.display='';
   document.getElementById('btn-borrar-perfil').style.display='';
   renderLeyenda();toast(`Perfil: ${p.nombre}`,'success');
+  // Mostrar/ocultar botón exportar
+  document.getElementById('btn-exportar-perfil').style.display=p?'':'none';
 }
+
+// ══ IMPORTAR / EXPORTAR PERFIL ════════════════════════════════════
+
+function abrirImportarPerfil(){
+  document.getElementById('importar-perfil-input').value='';
+  document.getElementById('importar-perfil-input').click();
+}
+
+async function procesarImportarPerfil(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  try{
+    const texto=await file.text();
+    const datos=JSON.parse(texto);
+
+    // Validar que sea un perfil de Lumen Prep
+    if(!datos._lumenprep_perfil&&!datos.nombre){
+      toast('El archivo no es un perfil válido de Lumen Prep','error');return;
+    }
+
+    // Limpiar campos internos del JSON antes de guardar
+    const perfil={
+      nombre:       datos.nombre       || 'Perfil importado',
+      ambito:       datos.ambito       || '',
+      origen:       datos.origen       || '',
+      notas:        datos.notas        || '',
+      ruido:        datos.ruido        || [],
+      transitorios: datos.transitorios || ['TRANSITORIOS','Transitorios'],
+      patronArticulo: datos.patronArticulo || 'standard',
+      artRegexCustom: datos.artRegexCustom || '',
+      tipoFraccion:   datos.tipoFraccion   || 'romanos',
+      tipoInciso:     datos.tipoInciso     || 'minusculas',
+      categorias:     datos.categorias     || [],
+      reglas:         datos.reglas         || [],
+      creadoEn:       new Date().toISOString(),
+      importadoDe:    file.name
+    };
+
+    // Verificar si ya existe un perfil con ese nombre
+    const existe=state.perfiles.find(p=>p.nombre===perfil.nombre);
+    if(existe){
+      const confirmar=confirm(
+        `Ya existe un perfil llamado "${perfil.nombre}".\n\n¿Deseas reemplazarlo o crear uno nuevo?\n\nAceptar = Reemplazar\nCancelar = Crear nuevo (se le añadirá " (importado)")`
+      );
+      if(confirmar){
+        // Reemplazar
+        await window._updateDoc(window._doc(window._db,'lumenprep_perfiles',existe.id),perfil);
+        logOk('Perfil reemplazado',`"${perfil.nombre}" actualizado desde ${file.name}`,'📥');
+        toast(`Perfil "${perfil.nombre}" actualizado`,'success');
+      } else {
+        // Crear nuevo con nombre diferente
+        perfil.nombre=perfil.nombre+' (importado)';
+        await window._addDoc(window._collection(window._db,'lumenprep_perfiles'),perfil);
+        logOk('Perfil importado',`"${perfil.nombre}" creado desde ${file.name}`,'📥');
+        toast(`Perfil "${perfil.nombre}" importado`,'success');
+      }
+    } else {
+      await window._addDoc(window._collection(window._db,'lumenprep_perfiles'),perfil);
+      logOk('Perfil importado',`"${perfil.nombre}" creado desde ${file.name}`,'📥');
+      toast(`Perfil "${perfil.nombre}" importado`,'success');
+    }
+
+    await cargarPerfilesFirestore();
+
+    // Mostrar resumen de lo importado
+    const nReglas=(perfil.reglas||[]).length;
+    const nCats=(perfil.categorias||[]).length;
+    setTimeout(()=>{
+      alert(
+        `✅ Perfil importado correctamente:\n\n`+
+        `Nombre: ${perfil.nombre}\n`+
+        `Ámbito: ${perfil.ambito||'—'}\n`+
+        `Origen: ${perfil.origen||'—'}\n`+
+        `Categorías personalizadas: ${nCats}\n`+
+        `Reglas aprendidas: ${nReglas}\n\n`+
+        `Selecciónalo en el selector de perfil para usarlo.`
+      );
+    },300);
+
+  }catch(e){
+    toast('Error al importar: '+e.message,'error');
+    console.error(e);
+  }
+}
+
+function exportarPerfilActual(){
+  if(!state.perfilActivo){toast('Selecciona un perfil primero','error');return;}
+  const p=state.perfilActivo;
+
+  // Armar JSON exportable con metadatos
+  const exportable={
+    _lumenprep_perfil:  true,
+    _version:           '1.0',
+    _exportadoEn:       new Date().toISOString(),
+    _descripcion:       `Perfil exportado desde Lumen Prep: ${p.nombre}`,
+    nombre:             p.nombre,
+    ambito:             p.ambito        || '',
+    origen:             p.origen        || '',
+    notas:              p.notas         || '',
+    patronArticulo:     p.patronArticulo|| 'standard',
+    artRegexCustom:     p.artRegexCustom|| '',
+    tipoFraccion:       p.tipoFraccion  || 'romanos',
+    tipoInciso:         p.tipoInciso    || 'minusculas',
+    transitorios:       p.transitorios  || ['TRANSITORIOS','Transitorios'],
+    ruido:              p.ruido         || [],
+    categorias:         p.categorias    || [],
+    reglas:             p.reglas        || [],
+    creadoEn:           p.creadoEn      || new Date().toISOString()
+  };
+
+  const json=JSON.stringify(exportable,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  const nombreArchivo='lumenprep-perfil-'
+    +p.nombre.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
+    +'.json';
+  a.href=URL.createObjectURL(blob);
+  a.download=nombreArchivo;
+  a.click();
+  logOk('Perfil exportado',`"${p.nombre}" → ${nombreArchivo}`,'📤');
+  toast(`Perfil exportado: ${nombreArchivo}`,'success');
+}
+
 async function guardarPerfil(){
   const nombre=document.getElementById('fp-nombre').value.trim();
   if(!nombre){toast('Nombre obligatorio','error');return;}
