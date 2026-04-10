@@ -1727,8 +1727,20 @@ function renderArtCard(item,idx){
       </div>
       <div class="art-header-actions">
         <span style="color:var(--text-faint);font-size:11px;">${tf?tf+' fracc. ':''}</span>
-        <button class="art-edit-btn" id="btn-edit-${idx}" onclick="toggleEditArt(${idx},event)">✏ Editar</button>
-        <span style="color:var(--text-faint);font-size:11px;cursor:pointer;" onclick="toggleArtBody(${idx})">▾</span>
+        <!-- Botones modo normal -->
+        <div id="art-actions-normal-${idx}" style="display:flex;gap:5px;align-items:center;">
+          <button class="art-edit-btn" onclick="toggleEditArt(${idx},event)">✏ Editar</button>
+          <button class="art-edit-btn" onclick="moverArt(${idx},-1)" title="Subir">↑</button>
+          <button class="art-edit-btn" onclick="moverArt(${idx},1)"  title="Bajar">↓</button>
+          <span style="color:var(--text-faint);font-size:11px;cursor:pointer;padding:3px 5px;" onclick="toggleArtBody(${idx})">▾</span>
+        </div>
+        <!-- Botones modo edición — siempre visibles en el header -->
+        <div id="art-actions-edit-${idx}" style="display:none;gap:5px;align-items:center;flex-wrap:wrap;">
+          <button class="art-edit-btn" onclick="agregarFraccionManual(${idx})" title="Agregar fracción">+ Fracc.</button>
+          <button class="art-edit-btn" style="color:#f87171;border-color:#f8717144;" onclick="eliminarArt(${idx})" title="Eliminar artículo">🗑</button>
+          <button class="art-edit-btn active" onclick="guardarEdicionArt(${idx})" style="background:var(--ok);color:#fff;border-color:var(--ok);">✓ Guardar</button>
+          <button class="art-edit-btn" onclick="cancelarEdicionArt(${idx})" style="color:var(--text-faint);">✕ Cancelar</button>
+        </div>
       </div>
     </div>
     <div class="art-body" id="art-body-${idx}">
@@ -1736,15 +1748,9 @@ function renderArtCard(item,idx){
       ${tf?renderFracciones(item,idx):
         `<div class="art-content-view" data-art-idx="${idx}" id="art-content-view-${idx}">${escHtml(item.contenido||'')}</div>
          <textarea class="art-content-edit" id="art-content-edit-${idx}" style="display:none;"
-           onchange="state.estructura[${idx}].contenido=this.value;renderJSON();">${escHtml(item.contenido||'')}</textarea>`
+           rows="6"
+           oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';">${escHtml(item.contenido||'')}</textarea>`
       }
-      <div class="art-edit-toolbar" id="art-toolbar-${idx}" style="display:none;">
-        <button class="btn btn-ghost btn-sm" onclick="moverArt(${idx},-1)">↑ Subir</button>
-        <button class="btn btn-ghost btn-sm" onclick="moverArt(${idx},1)">↓ Bajar</button>
-        <button class="btn btn-ghost btn-sm" onclick="agregarFraccionManual(${idx})">+ Fracción</button>
-        <button class="btn btn-danger btn-sm" onclick="eliminarArt(${idx})">🗑 Eliminar</button>
-        <button class="btn btn-success btn-sm" onclick="guardarEdicionArt(${idx})">✓ Guardar</button>
-      </div>
     </div>
   </div>`;
 }
@@ -1773,54 +1779,88 @@ function toggleArtBody(idx){
 function toggleEditArt(idx,event){
   event?.stopPropagation();
   const card=document.getElementById(`art-card-${idx}`);
+  if(!card)return;
+  const isEditing=card.classList.contains('editing');
+  if(isEditing){guardarEdicionArt(idx);}
+  else{activarEdicionArt(idx);}
+}
+
+function activarEdicionArt(idx){
+  const card=document.getElementById(`art-card-${idx}`);
+  if(!card)return;
+
+  // Mostrar inputs
   const titleView=document.getElementById(`art-title-view-${idx}`);
   const titleEdit=document.getElementById(`art-title-edit-${idx}`);
   const contentView=document.getElementById(`art-content-view-${idx}`);
   const contentEdit=document.getElementById(`art-content-edit-${idx}`);
-  const toolbar=document.getElementById(`art-toolbar-${idx}`);
-  const btn=document.getElementById(`btn-edit-${idx}`);
 
-  const isEditing=card?.classList.contains('editing');
-  if(isEditing){
-    guardarEdicionArt(idx);
-  } else {
-    card?.classList.add('editing');
-    btn?.classList.add('active');
-    btn.textContent='✓ Listo';
-    if(titleView)titleView.style.display='none';
-    if(titleEdit)titleEdit.style.display='';
-    if(contentView)contentView.style.display='none';
-    if(contentEdit)contentEdit.style.display='';
-    if(toolbar)toolbar.style.display='flex';
-    // Asegurar que el body esté visible
-    const body=document.getElementById(`art-body-${idx}`);
-    if(body)body.style.display='';
+  if(titleView)titleView.style.display='none';
+  if(titleEdit){titleEdit.style.display='';titleEdit.value=state.estructura[idx]?.articulo||'';}
+  if(contentView)contentView.style.display='none';
+  if(contentEdit){
+    contentEdit.style.display='';
+    contentEdit.value=state.estructura[idx]?.contenido||'';
+    // Auto-altura
+    setTimeout(()=>{contentEdit.style.height='auto';contentEdit.style.height=contentEdit.scrollHeight+'px';},10);
   }
+
+  // Cambiar botones del header
+  const normal=document.getElementById(`art-actions-normal-${idx}`);
+  const edit  =document.getElementById(`art-actions-edit-${idx}`);
+  if(normal)normal.style.display='none';
+  if(edit)  edit.style.display='flex';
+
+  // Marcar card y mostrar body
+  card.classList.add('editing');
+  const body=document.getElementById(`art-body-${idx}`);
+  if(body)body.style.display='';
 }
 
 function guardarEdicionArt(idx){
   const card=document.getElementById(`art-card-${idx}`);
-  const titleView=document.getElementById(`art-title-view-${idx}`);
-  const titleEdit=document.getElementById(`art-title-edit-${idx}`);
-  const contentView=document.getElementById(`art-content-view-${idx}`);
+  const titleEdit  =document.getElementById(`art-title-edit-${idx}`);
+  const titleView  =document.getElementById(`art-title-view-${idx}`);
   const contentEdit=document.getElementById(`art-content-edit-${idx}`);
-  const toolbar=document.getElementById(`art-toolbar-${idx}`);
-  const btn=document.getElementById(`btn-edit-${idx}`);
+  const contentView=document.getElementById(`art-content-view-${idx}`);
+  const normal=document.getElementById(`art-actions-normal-${idx}`);
+  const edit  =document.getElementById(`art-actions-edit-${idx}`);
 
-  // Guardar cambios
-  if(titleEdit&&state.estructura[idx])state.estructura[idx].articulo=titleEdit.value;
+  // Guardar valores al estado
+  if(titleEdit  &&state.estructura[idx])state.estructura[idx].articulo =titleEdit.value.trim()||state.estructura[idx].articulo;
   if(contentEdit&&state.estructura[idx])state.estructura[idx].contenido=contentEdit.value;
 
-  card?.classList.remove('editing');
-  if(btn){btn.classList.remove('active');btn.textContent='✏ Editar';}
-  if(titleView){titleView.textContent=state.estructura[idx]?.articulo||'';titleView.style.display='';}
-  if(titleEdit)titleEdit.style.display='none';
+  // Restaurar vista
+  if(titleView)  {titleView.textContent  =state.estructura[idx]?.articulo||'';  titleView.style.display='';}
+  if(titleEdit)   titleEdit.style.display='none';
   if(contentView){contentView.textContent=state.estructura[idx]?.contenido||'';contentView.style.display='';}
-  if(contentEdit)contentEdit.style.display='none';
-  if(toolbar)toolbar.style.display='none';
+  if(contentEdit) contentEdit.style.display='none';
+  if(normal)normal.style.display='flex';
+  if(edit)  edit.style.display='none';
+  card?.classList.remove('editing');
 
   renderJSON();
   toast('Cambios guardados','success');
+}
+
+function cancelarEdicionArt(idx){
+  const card=document.getElementById(`art-card-${idx}`);
+  const titleEdit  =document.getElementById(`art-title-edit-${idx}`);
+  const titleView  =document.getElementById(`art-title-view-${idx}`);
+  const contentEdit=document.getElementById(`art-content-edit-${idx}`);
+  const contentView=document.getElementById(`art-content-view-${idx}`);
+  const normal=document.getElementById(`art-actions-normal-${idx}`);
+  const edit  =document.getElementById(`art-actions-edit-${idx}`);
+
+  // Restaurar sin guardar
+  if(titleView)  titleView.style.display='';
+  if(titleEdit)  titleEdit.style.display='none';
+  if(contentView)contentView.style.display='';
+  if(contentEdit)contentEdit.style.display='none';
+  if(normal)normal.style.display='flex';
+  if(edit)  edit.style.display='none';
+  card?.classList.remove('editing');
+  toast('Edición cancelada','success');
 }
 
 function moverArt(idx,dir){
@@ -1844,8 +1884,8 @@ function agregarFraccionManual(idx){
   const item=state.estructura[idx];if(!item)return;
   if(!item.fracciones)item.fracciones=[];
   item.fracciones.push({fraccion:`${toRomano(item.fracciones.length+1)}.`,contenido:'[Nuevo contenido]'});
-  guardarEdicionArt(idx);
-  setTimeout(()=>{toggleEditArt(idx);},50);
+  renderEstructura();renderJSON();
+  setTimeout(()=>activarEdicionArt(idx),50);
 }
 
 function toRomano(n){
