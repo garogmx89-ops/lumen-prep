@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumen Prep — Estructurador de Normativa</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+<style>
+  /* ─── VARIABLES ─────────────────────────────────────────────── */
+  :root {
+    --bg:         #0e1117;
+    --surface:    #161b27;
+    --surface2:   #1e2535;
+    --border:     #2a3348;
+    --border2:    #3a4560;
+
+    --text:       #e8eaf0;
+    --text-dim:   #8892a4;
+    --text-faint: #4a5568;
+
+    --accent:     #4f8ef7;
+    --accent-dim: #1e3a6e;
+
+    --art:        #4f8ef7;   /* artículo   — azul  */
+    --frac:       #34c98a;   /* fracción   — verde */
+    --inc:        #f7c94f;   /* inciso     — ámbar */
+    --intro:      #a78bfa;   /* intro      — violeta */
+    --trans:      #f87171;   /* transitorio— rojo  */
+    --basura:     #f87171;   /* basura     — rojo  */
+
+    --radius: 6px;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --display: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── HEADER ─────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--display);
+    font-size: 18px; font-weight: 800; letter-spacing: -0.5px;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .logo span { color: var(--text-dim); font-weight: 400; font-size: 13px; margin-left: 4px; }
+
+  .header-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── LAYOUT ─────────────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    flex: 1;
+    height: calc(100vh - 53px);
+  }
+
+  /* ─── PANEL IZQUIERDO ────────────────────────────────────────── */
+  .panel-left {
+    grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-section-title {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+
+  /* ─── DROP ZONE ──────────────────────────────────────────────── */
+  .drop-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .drop-zone-icon {
+    font-size: 28px; margin-bottom: 8px;
+  }
+
+  .drop-zone p {
+    font-size: 12px; color: var(--text-dim); line-height: 1.5;
+  }
+
+  .drop-zone strong { color: var(--accent); }
+
+  #file-input { display: none; }
+
+  /* ─── TEXTAREA ───────────────────────────────────────────────── */
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 12px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+
+  /* ─── BOTONES ────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    width: 100%;
+    justify-content: center;
+    padding: 10px;
+  }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-danger {
+    background: transparent;
+    border: 1px solid #f8717144;
+    color: #f87171;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn-danger:hover { background: #f8717122; }
+
+  .btn-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  /* ─── LEYENDA ────────────────────────────────────────────────── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px;
+  }
+
+  /* ─── STATS ──────────────────────────────────────────────────── */
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+
+  .stat-value {
+    font-family: var(--display);
+    font-size: 22px; font-weight: 700;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 10px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-top: 2px;
+  }
+
+  /* ─── PANEL DERECHO — VISUALIZADOR ───────────────────────────── */
+  .panel-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    gap: 12px;
+  }
+
+  .tab-group {
+    display: flex; gap: 2px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 5px 14px;
+    border-radius: 4px;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer;
+    color: var(--text-dim);
+    border: none; background: transparent;
+    transition: all 0.15s;
+  }
+
+  .tab.active {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .panel-main {
+    overflow-y: auto;
+    padding: 24px;
+    flex: 1;
+  }
+
+  /* ─── VIEWER ─────────────────────────────────────────────────── */
+  #viewer {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ─── HIGHLIGHTS ─────────────────────────────────────────────── */
+  .hl-articulo   { color: var(--art);   font-weight: 700; }
+  .hl-fraccion   { color: var(--frac);  font-weight: 600; }
+  .hl-inciso     { color: var(--inc);   font-weight: 600; }
+  .hl-intro      { color: var(--intro); }
+  .hl-transitorio{ color: var(--trans); font-weight: 700; }
+
+  .hl-basura {
+    background: #f8717122;
+    border-bottom: 1px dashed #f87171;
+    cursor: pointer;
+    border-radius: 2px;
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+
+  .hl-basura:hover { opacity: 0.8; }
+
+  /* ─── JSON VIEW ──────────────────────────────────────────────── */
+  #json-view {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre;
+    color: var(--text-dim);
+    overflow-x: auto;
+  }
+
+  .json-key    { color: #a78bfa; }
+  .json-string { color: #34c98a; }
+  .json-number { color: #f7c94f; }
+  .json-bool   { color: #4f8ef7; }
+
+  /* ─── ESTRUCTURA VIEW ─────────────────────────────────────────── */
+  #estructura-view { display: flex; flex-direction: column; gap: 12px; }
+
+  .art-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--art);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .art-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .art-title {
+    font-family: var(--display);
+    font-weight: 700; font-size: 13px;
+    color: var(--art);
+  }
+
+  .art-body { padding: 0 14px 12px; }
+
+  .art-intro {
+    font-size: 12px; color: var(--text-dim);
+    margin-bottom: 8px; font-style: italic;
+    border-left: 2px solid var(--intro);
+    padding-left: 8px;
+  }
+
+  .frac-item {
+    display: flex; gap: 10px;
+    padding: 4px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .frac-label {
+    color: var(--frac); font-weight: 600;
+    min-width: 28px; font-family: var(--mono);
+  }
+
+  .frac-text { color: var(--text-dim); flex: 1; }
+
+  .inc-item {
+    display: flex; gap: 8px;
+    padding: 2px 0 2px 16px;
+    font-size: 11px;
+  }
+
+  .inc-label { color: var(--inc); font-weight: 600; min-width: 20px; font-family: var(--mono); }
+  .inc-text  { color: var(--text-faint); }
+
+  /* ─── EMPTY STATE ────────────────────────────────────────────── */
+  .empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%;
+    color: var(--text-faint);
+    text-align: center;
+    gap: 12px;
+    padding: 40px;
+  }
+
+  .empty-state-icon { font-size: 48px; opacity: 0.3; }
+
+  .empty-state p { font-size: 13px; line-height: 1.6; max-width: 320px; }
+
+  /* ─── TOAST ──────────────────────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 10px 18px;
+    font-size: 13px;
+    color: var(--text);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    max-width: 320px;
+  }
+
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--frac); }
+  #toast.error   { border-color: var(--basura); }
+
+  /* ─── SCROLLBAR ──────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ─── LOADING ────────────────────────────────────────────────── */
+  .loading-bar {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    background-size: 200% 100%;
+    animation: loading 1.2s infinite;
+    display: none;
+  }
+
+  .loading-bar.active { display: block; }
+
+  @keyframes loading {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* ─── AI BADGE ───────────────────────────────────────────────── */
+  .ai-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px; color: var(--accent);
+    font-family: var(--mono);
+  }
+
+  .problem-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #f8717122;
+    border: 1px solid #f87171;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px; color: #f87171;
+    font-family: var(--mono);
+  }
+
+  /* ─── PROBLEMAS LIST ─────────────────────────────────────────── */
+  .problem-item {
+    background: #f8717111;
+    border: 1px solid #f8717133;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .problem-item strong { color: #f87171; display: block; margin-bottom: 4px; }
+  .problem-item span   { color: var(--text-dim); }
+</style>
+</head>
+
+<body>
+
+<!-- ─── HEADER ─────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    LUMEN <span>PREP</span>
+  </div>
+  <div class="header-status" id="header-status">Sin documento cargado</div>
+</header>
+
+<div class="loading-bar" id="loading-bar"></div>
+
+<!-- ─── APP ───────────────────────────────────────────────────── -->
+<div class="app">
+
+  <!-- ── PANEL IZQUIERDO ───────────────────────────────────────── -->
+  <aside class="panel-left">
+
+    <!-- Carga -->
+    <div class="panel-section">
+      <div class="panel-section-title">Documento</div>
+
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="drop-zone-icon">📄</div>
+        <p><strong>Haz clic o arrastra</strong><br>PDF · Word · TXT</p>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.docx,.txt">
+
+      <div style="text-align:center; color:var(--text-faint); font-size:11px; margin:10px 0;">— o pega texto —</div>
+
+      <textarea id="raw-input" rows="6" placeholder="Pega aquí el texto del documento..."></textarea>
+
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-primary" id="btn-procesar" onclick="procesarDocumento()">
+          ⚡ Procesar documento
+        </button>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="panel-section">
+      <div class="panel-section-title">Acciones</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="btn btn-ghost" onclick="corregirConIA()" id="btn-ia">
+          🤖 Corregir con IA
+        </button>
+        <button class="btn btn-ghost" onclick="exportarJSON()">
+          ⬇ Exportar JSON
+        </button>
+        <button class="btn btn-danger" onclick="limpiarTodo()">
+          🗑 Limpiar todo
+        </button>
+      </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="panel-section">
+      <div class="panel-section-title">Leyenda</div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--art)"></div> Artículo
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--frac)"></div> Fracción
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--inc)"></div> Inciso
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--intro)"></div> Introducción
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--trans)"></div> Transitorio
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--basura); opacity:0.6"></div> Basura
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="panel-section" id="stats-section" style="display:none;">
+      <div class="panel-section-title">Estadísticas</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-articulos">0</div>
+          <div class="stat-label">Artículos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-fracciones">0</div>
+          <div class="stat-label">Fracciones</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-incisos">0</div>
+          <div class="stat-label">Incisos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-problemas">0</div>
+          <div class="stat-label">Problemas</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── PANEL DERECHO ──────────────────────────────────────────── -->
+  <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+    <div class="panel-top">
+      <div class="tab-group">
+        <button class="tab active" onclick="switchTab('vista')"    id="tab-vista">Vista</button>
+        <button class="tab"        onclick="switchTab('estructura')" id="tab-estructura">Estructura</button>
+        <button class="tab"        onclick="switchTab('json')"     id="tab-json">JSON</button>
+        <button class="tab"        onclick="switchTab('problemas')" id="tab-problemas">Problemas</button>
+      </div>
+      <div id="panel-badges" style="display:flex; gap:8px;"></div>
+    </div>
+
+    <div class="panel-main" id="panel-main">
+
+      <!-- Vista -->
+      <div id="pane-vista">
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <p>Carga un documento o pega texto para comenzar.<br>
+          Aquí verás el texto con colores según su tipo.</p>
+        </div>
+      </div>
+
+      <!-- Estructura -->
+      <div id="pane-estructura" style="display:none;">
+        <div class="empty-state">
+          <div class="empty-state-icon">🏗</div>
+          <p>La estructura jerárquica del documento aparecerá aquí después de procesar.</p>
+        </div>
+      </div>
+
+      <!-- JSON -->
+      <div id="pane-json" style="display:none;">
+        <div class="empty-state">
+          <div class="empty-state-icon">{ }</div>
+          <p>El JSON estructurado listo para importar a Lumen aparecerá aquí.</p>
+        </div>
+      </div>
+
+      <!-- Problemas -->
+      <div id="pane-problemas" style="display:none;">
+        <div class="empty-state">
+          <div class="empty-state-icon">✅</div>
+          <p>Sin problemas detectados.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOAST ──────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<!-- JAVASCRIPT                                                       -->
+<!-- ─────────────────────────────────────────────────────────────── -->
+<script>
+
+// ── Estado global ──────────────────────────────────────────────────
+let state = {
+  textoOriginal: '',
+  textoLimpio:   '',
+  estructura:    [],
+  problemas:     [],
+  tabActiva:     'vista'
+};
+
+// ── PDF.js worker ──────────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+
+// ══════════════════════════════════════════════════════════════════
+// 1. CARGA DE ARCHIVOS
+// ══════════════════════════════════════════════════════════════════
+
+document.getElementById('file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  await cargarArchivo(file);
+});
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover',  (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) await cargarArchivo(file);
+});
+
+async function cargarArchivo(file) {
+  setLoading(true);
+  mostrarEstado(`Cargando: ${file.name}`);
+
+  try {
+    let texto = '';
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'pdf') {
+      texto = await extraerTextoPDF(file);
+    } else if (ext === 'docx') {
+      texto = await extraerTextoDocx(file);
+    } else {
+      texto = await file.text();
+    }
+
+    document.getElementById('raw-input').value = texto;
+    state.textoOriginal = texto;
+    mostrarEstado(`${file.name} — ${texto.length.toLocaleString()} caracteres`);
+    toast(`Archivo cargado: ${file.name}`, 'success');
+  } catch (err) {
+    toast(`Error al cargar: ${err.message}`, 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function extraerTextoPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let texto = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    texto += pageText + '\n\n';
+  }
+  return texto;
+}
+
+async function extraerTextoDocx(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 2. LIMPIEZA
+// ══════════════════════════════════════════════════════════════════
+
+function limpiarTexto(texto) {
+
+  // Sellos digitales (cadenas alfanuméricas largas)
+  texto = texto.replace(/[A-Za-z0-9+/]{40,}={0,2}/g, '');
+
+  // Encabezados de periódico oficial (estatal)
+  texto = texto.replace(/SUPLEMENTO AL PERI[ÓO]DICO OFICIAL.*?(?=Artículo|\n\n)/gis, '');
+  texto = texto.replace(/PERI[ÓO]DICO OFICIAL.*?\n/gi, '');
+  texto = texto.replace(/Gobierno del Estado de Zacatecas\s*/gi, '');
+  texto = texto.replace(/Órgano de Difusión Oficial.*?\n/gi, '');
+
+  // Números de página solos
+  texto = texto.replace(/^\s*\d{1,4}\s*$/gm, '');
+
+  // Caracteres extraños repetidos (ruido OCR)
+  texto = texto.replace(/([^a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s.,;:()\-\d])\1{3,}/g, '');
+
+  // Múltiples espacios → uno
+  texto = texto.replace(/[ \t]{2,}/g, ' ');
+
+  // Salto de línea en medio de frase (sin punto antes) → espacio
+  // Pero respeta dobles saltos (separadores de párrafo)
+  texto = texto.replace(/([^.\n])\n(?!\n)/g, '$1 ');
+
+  // Más de 2 saltos de línea → 2
+  texto = texto.replace(/\n{3,}/g, '\n\n');
+
+  return texto.trim();
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 3. PARSER LEGAL
+// ══════════════════════════════════════════════════════════════════
+
+function parsear(texto) {
+  const estructura = [];
+
+  // ── Separar secciones especiales al final ─────────────────────
+  let textoNorma   = texto;
+  let textoTrans   = '';
+  let textoClauses = '';
+
+  const matchTrans = texto.match(/\b(TRANSITORIOS?|Transitorios?)\b/);
+  if (matchTrans) {
+    textoTrans  = texto.slice(matchTrans.index);
+    textoNorma  = texto.slice(0, matchTrans.index);
+  }
+
+  // ── Introducción global ───────────────────────────────────────
+  const primerArt = textoNorma.search(/Artículo\s+\d+/i);
+  if (primerArt > 0) {
+    const intro = textoNorma.slice(0, primerArt).trim();
+    if (intro.length > 10) {
+      estructura.push({ tipo: 'introduccion', contenido: intro });
+    }
+  }
+
+  // ── Artículos ─────────────────────────────────────────────────
+  const regexArt = /(?=Artículo\s+\d+[°º.]?)/gi;
+  const partes   = textoNorma.split(regexArt).filter(Boolean);
+
+  for (const parte of partes) {
+    if (!parte.trim()) continue;
+
+    // Extraer título del artículo
+    const matchTitulo = parte.match(/^(Artículo\s+\d+[°º.]?\.?[^\n]*)/i);
+    if (!matchTitulo) continue;
+
+    const titulo = matchTitulo[1].trim();
+    const resto  = parte.slice(matchTitulo[0].length).trim();
+
+    const item = {
+      tipo:     'articulo',
+      articulo: titulo,
+    };
+
+    // Detectar fracciones romanas
+    const regexFrac = /(?:^|\n)\s*([IVXLCDM]{1,6})[.)]\s+/gm;
+    const matchsFrac = [...resto.matchAll(regexFrac)];
+
+    if (matchsFrac.length > 0) {
+      const introArt = resto.slice(0, matchsFrac[0].index).trim();
+      if (introArt) item.introduccion = introArt;
+
+      item.fracciones = [];
+      for (let j = 0; j < matchsFrac.length; j++) {
+        const etiqueta = matchsFrac[j][1] + '.';
+        const inicio   = matchsFrac[j].index + matchsFrac[j][0].length;
+        const fin      = j + 1 < matchsFrac.length ? matchsFrac[j+1].index : resto.length;
+        const contenidoFrac = resto.slice(inicio, fin).trim();
+
+        const fracItem = { fraccion: etiqueta, contenido: contenidoFrac };
+
+        // Detectar incisos dentro de la fracción
+        const regexInc = /(?:^|\n)\s*([a-z])\)\s+/gm;
+        const matchsInc = [...contenidoFrac.matchAll(regexInc)];
+        if (matchsInc.length > 0) {
+          const introFrac = contenidoFrac.slice(0, matchsInc[0].index).trim();
+          if (introFrac) fracItem.introduccion = introFrac;
+          fracItem.incisos = [];
+          for (let k = 0; k < matchsInc.length; k++) {
+            const etqInc  = matchsInc[k][1] + ')';
+            const iniInc  = matchsInc[k].index + matchsInc[k][0].length;
+            const finInc  = k + 1 < matchsInc.length ? matchsInc[k+1].index : contenidoFrac.length;
+            fracItem.incisos.push({
+              inciso:    etqInc,
+              contenido: contenidoFrac.slice(iniInc, finInc).trim()
+            });
+          }
+          delete fracItem.contenido;
+        }
+        item.fracciones.push(fracItem);
+      }
+    } else {
+      item.contenido = resto;
+    }
+
+    estructura.push(item);
+  }
+
+  // ── Transitorios ──────────────────────────────────────────────
+  if (textoTrans) {
+    estructura.push({ tipo: 'transitorio', contenido: textoTrans.trim() });
+  }
+
+  return estructura;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 4. VALIDACIÓN
+// ══════════════════════════════════════════════════════════════════
+
+function detectarProblemas(estructura) {
+  const problemas = [];
+
+  for (const item of estructura) {
+    if (item.tipo !== 'articulo') continue;
+
+    // Artículo largo sin fracciones
+    if (!item.fracciones && (item.contenido || '').length > 300) {
+      problemas.push({
+        articulo: item.articulo,
+        problema: 'Artículo largo sin estructura detectada — posible fracción no identificada',
+        sugerencia: 'Usar corrección IA'
+      });
+    }
+
+    // Artículo vacío
+    if (!item.contenido && !item.fracciones && !item.introduccion) {
+      problemas.push({
+        articulo: item.articulo,
+        problema: 'Artículo sin contenido detectado',
+        sugerencia: 'Revisar texto original'
+      });
+    }
+  }
+
+  return problemas;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 5. ORQUESTADOR PRINCIPAL
+// ══════════════════════════════════════════════════════════════════
+
+function procesarDocumento() {
+  const texto = document.getElementById('raw-input').value.trim();
+  if (!texto) { toast('Pega o carga un documento primero', 'error'); return; }
+
+  setLoading(true);
+
+  setTimeout(() => {
+    try {
+      state.textoOriginal = texto;
+      state.textoLimpio   = limpiarTexto(texto);
+      state.estructura    = parsear(state.textoLimpio);
+      state.problemas     = detectarProblemas(state.estructura);
+
+      actualizarStats();
+      renderVista();
+      renderEstructura();
+      renderJSON();
+      renderProblemas();
+
+      mostrarEstado(`Procesado — ${state.estructura.filter(e=>e.tipo==='articulo').length} artículos`);
+      toast('Documento procesado correctamente', 'success');
+      document.getElementById('stats-section').style.display = 'block';
+
+    } catch(err) {
+      toast('Error al procesar: ' + err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, 50);
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 6. RENDER — VISTA CON COLORES
+// ══════════════════════════════════════════════════════════════════
+
+function renderVista() {
+  let texto = state.textoLimpio;
+
+  // Orden importante: de más específico a más general
+  // Transitorios
+  texto = texto.replace(
+    /\b(TRANSITORIOS?|Transitorios?)\b/g,
+    '<span class="hl-transitorio">$1</span>'
+  );
+  // Artículos
+  texto = texto.replace(
+    /(Artículo\s+\d+[°º.]?\.?[^\n]*)/gi,
+    '<span class="hl-articulo">$1</span>'
+  );
+  // Fracciones romanas
+  texto = texto.replace(
+    /(?:^|\n)(\s*)([IVXLCDM]{1,6})[.)]\s+/gm,
+    '\n$1<span class="hl-fraccion">$2.</span> '
+  );
+  // Incisos
+  texto = texto.replace(
+    /(?:^|\n)(\s*)([a-z])\)\s+/gm,
+    '\n$1<span class="hl-inciso">$2)</span> '
+  );
+
+  document.getElementById('pane-vista').innerHTML =
+    `<div id="viewer">${texto}</div>`;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 7. RENDER — ESTRUCTURA JERÁRQUICA
+// ══════════════════════════════════════════════════════════════════
+
+function renderEstructura() {
+  const el = document.getElementById('pane-estructura');
+  if (!state.estructura.length) return;
+
+  let html = '<div id="estructura-view">';
+
+  for (const item of state.estructura) {
+
+    if (item.tipo === 'introduccion') {
+      html += `<div style="
+        background:var(--surface); border:1px solid var(--border);
+        border-left:3px solid var(--intro); border-radius:var(--radius);
+        padding:12px 14px; font-size:12px; color:var(--text-dim);
+        font-style:italic;
+      ">
+        <div style="font-size:10px; color:var(--intro); font-weight:700;
+          text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">
+          Introducción
+        </div>
+        ${escHtml(item.contenido)}
+      </div>`;
+      continue;
+    }
+
+    if (item.tipo === 'transitorio') {
+      html += `<div style="
+        background:#f8717111; border:1px solid #f8717133;
+        border-left:3px solid var(--trans); border-radius:var(--radius);
+        padding:12px 14px; font-size:12px; color:var(--text-dim);
+      ">
+        <div style="font-size:10px; color:var(--trans); font-weight:700;
+          text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">
+          Transitorios
+        </div>
+        ${escHtml(item.contenido)}
+      </div>`;
+      continue;
+    }
+
+    if (item.tipo === 'articulo') {
+      const tieneFracciones = item.fracciones && item.fracciones.length > 0;
+      html += `<div class="art-card">
+        <div class="art-header" onclick="toggleArt(this)">
+          <span class="art-title">${escHtml(item.articulo)}</span>
+          <span style="color:var(--text-faint); font-size:11px;">
+            ${tieneFracciones ? item.fracciones.length + ' fracciones' : ''}
+            ▾
+          </span>
+        </div>
+        <div class="art-body">`;
+
+      if (item.introduccion) {
+        html += `<div class="art-intro">${escHtml(item.introduccion)}</div>`;
+      }
+
+      if (tieneFracciones) {
+        for (const frac of item.fracciones) {
+          html += `<div class="frac-item">
+            <span class="frac-label">${escHtml(frac.fraccion)}</span>
+            <div class="frac-text">`;
+
+          if (frac.introduccion) {
+            html += `<div style="margin-bottom:4px;">${escHtml(frac.introduccion)}</div>`;
+          }
+
+          if (frac.incisos && frac.incisos.length) {
+            for (const inc of frac.incisos) {
+              html += `<div class="inc-item">
+                <span class="inc-label">${escHtml(inc.inciso)}</span>
+                <span class="inc-text">${escHtml(inc.contenido)}</span>
+              </div>`;
+            }
+          } else {
+            html += escHtml(frac.contenido || '');
+          }
+
+          html += `</div></div>`;
+        }
+      } else if (item.contenido) {
+        html += `<div style="font-size:12px; color:var(--text-dim);">${escHtml(item.contenido)}</div>`;
+      }
+
+      html += `</div></div>`;
+    }
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function toggleArt(header) {
+  const body = header.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 8. RENDER — JSON
+// ══════════════════════════════════════════════════════════════════
+
+function renderJSON() {
+  const json = JSON.stringify(state.estructura, null, 2);
+  const coloreado = json
+    .replace(/("[\w\sáéíóúüñÁÉÍÓÚÜÑ]+")(\s*:)/g,
+      '<span class="json-key">$1</span>$2')
+    .replace(/:\s*(".*?")/g,
+      ': <span class="json-string">$1</span>')
+    .replace(/:\s*(\d+)/g,
+      ': <span class="json-number">$1</span>')
+    .replace(/:\s*(true|false)/g,
+      ': <span class="json-bool">$1</span>');
+
+  document.getElementById('pane-json').innerHTML =
+    `<pre id="json-view">${coloreado}</pre>`;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 9. RENDER — PROBLEMAS
+// ══════════════════════════════════════════════════════════════════
+
+function renderProblemas() {
+  const el = document.getElementById('pane-problemas');
+
+  if (!state.problemas.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">✅</div>
+      <p>No se detectaron problemas estructurales.</p>
+    </div>`;
+    return;
+  }
+
+  let html = `<div style="margin-bottom:16px; font-size:13px; color:var(--text-dim);">
+    Se detectaron <strong style="color:#f87171;">${state.problemas.length} problema(s)</strong>
+    que podrían requerir corrección manual o IA.
+  </div>`;
+
+  for (const p of state.problemas) {
+    html += `<div class="problem-item">
+      <strong>${escHtml(p.articulo)}</strong>
+      <span>${escHtml(p.problema)}</span>
+      ${p.sugerencia ? `<div style="margin-top:6px; font-size:11px; color:var(--accent);">
+        💡 ${escHtml(p.sugerencia)}
+      </div>` : ''}
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 10. CORRECCIÓN CON IA (ANTHROPIC)
+// ══════════════════════════════════════════════════════════════════
+
+async function corregirConIA() {
+  if (!state.estructura.length) {
+    toast('Primero procesa un documento', 'error'); return;
+  }
+
+  const articulosProblema = state.problemas
+    .filter(p => p.sugerencia === 'Usar corrección IA')
+    .map(p => p.articulo);
+
+  if (!articulosProblema.length) {
+    toast('No hay artículos que requieran corrección IA', 'success'); return;
+  }
+
+  setLoading(true);
+  const btn = document.getElementById('btn-ia');
+  btn.disabled = true;
+  btn.textContent = '⏳ Consultando IA...';
+
+  // Armar fragmentos a corregir
+  const fragmentos = state.estructura
+    .filter(e => e.tipo === 'articulo' && articulosProblema.includes(e.articulo))
+    .map(e => `${e.articulo}:\n${e.contenido || ''}`)
+    .join('\n\n---\n\n');
+
+  const prompt = `Eres un experto en estructuración de normativa legal mexicana.
+Analiza los siguientes artículos de ley y devuelve ÚNICAMENTE un JSON válido (sin markdown, sin explicaciones) con esta estructura para cada artículo:
+
+[
+  {
+    "tipo": "articulo",
+    "articulo": "Artículo X",
+    "introduccion": "texto introductorio si existe",
+    "fracciones": [
+      {
+        "fraccion": "I.",
+        "contenido": "texto de la fracción",
+        "incisos": [
+          { "inciso": "a)", "contenido": "texto del inciso" }
+        ]
+      }
+    ]
+  }
+]
+
+Si el artículo no tiene fracciones, usa "contenido" directamente.
+Los campos "introduccion" e "incisos" son opcionales.
+
+Artículos a estructurar:
+
+${fragmentos}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const texto = data.content?.[0]?.text || '';
+    const limpio = texto.replace(/```json|```/g, '').trim();
+    const corregidos = JSON.parse(limpio);
+
+    // Reemplazar en estructura
+    for (const corregido of corregidos) {
+      const idx = state.estructura.findIndex(
+        e => e.tipo === 'articulo' && e.articulo === corregido.articulo
+      );
+      if (idx !== -1) state.estructura[idx] = corregido;
+    }
+
+    // Re-validar
+    state.problemas = detectarProblemas(state.estructura);
+    actualizarStats();
+    renderEstructura();
+    renderJSON();
+    renderProblemas();
+
+    // Badge IA
+    const badges = document.getElementById('panel-badges');
+    if (!badges.querySelector('.ai-badge')) {
+      badges.innerHTML += `<span class="ai-badge">🤖 IA aplicada</span>`;
+    }
+
+    toast(`IA corrigió ${corregidos.length} artículo(s)`, 'success');
+
+  } catch(err) {
+    toast('Error en IA: ' + err.message, 'error');
+  } finally {
+    setLoading(false);
+    btn.disabled = false;
+    btn.textContent = '🤖 Corregir con IA';
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// 11. EXPORTAR JSON
+// ══════════════════════════════════════════════════════════════════
+
+function exportarJSON() {
+  if (!state.estructura.length) { toast('Nada que exportar', 'error'); return; }
+
+  const json = JSON.stringify(state.estructura, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'lumen-prep-export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('JSON exportado', 'success');
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════════════════════════════════
+
+function switchTab(tab) {
+  state.tabActiva = tab;
+  ['vista','estructura','json','problemas'].forEach(t => {
+    document.getElementById(`pane-${t}`).style.display = t === tab ? '' : 'none';
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+}
+
+function actualizarStats() {
+  const arts  = state.estructura.filter(e => e.tipo === 'articulo');
+  const fracs = arts.reduce((n,a) => n + (a.fracciones?.length || 0), 0);
+  const incs  = arts.reduce((n,a) =>
+    n + (a.fracciones?.reduce((m,f) => m + (f.incisos?.length || 0), 0) || 0), 0);
+
+  document.getElementById('stat-articulos').textContent  = arts.length;
+  document.getElementById('stat-fracciones').textContent = fracs;
+  document.getElementById('stat-incisos').textContent    = incs;
+  document.getElementById('stat-problemas').textContent  = state.problemas.length;
+
+  const badges = document.getElementById('panel-badges');
+  const oldBadge = badges.querySelector('.problem-badge');
+  if (oldBadge) oldBadge.remove();
+  if (state.problemas.length > 0) {
+    badges.innerHTML = `<span class="problem-badge">⚠ ${state.problemas.length} problema(s)</span>` + badges.innerHTML;
+  }
+}
+
+function limpiarTodo() {
+  state = { textoOriginal:'', textoLimpio:'', estructura:[], problemas:[], tabActiva:'vista' };
+  document.getElementById('raw-input').value = '';
+  document.getElementById('pane-vista').innerHTML = `<div class="empty-state">
+    <div class="empty-state-icon">📋</div>
+    <p>Carga un documento o pega texto para comenzar.</p>
+  </div>`;
+  document.getElementById('pane-estructura').innerHTML = `<div class="empty-state">
+    <div class="empty-state-icon">🏗</div>
+    <p>La estructura jerárquica aparecerá aquí.</p>
+  </div>`;
+  document.getElementById('pane-json').innerHTML = `<div class="empty-state">
+    <div class="empty-state-icon">{ }</div>
+    <p>El JSON estructurado aparecerá aquí.</p>
+  </div>`;
+  document.getElementById('pane-problemas').innerHTML = `<div class="empty-state">
+    <div class="empty-state-icon">✅</div>
+    <p>Sin problemas detectados.</p>
+  </div>`;
+  document.getElementById('stats-section').style.display = 'none';
+  document.getElementById('panel-badges').innerHTML = '';
+  mostrarEstado('Sin documento cargado');
+  toast('Todo limpiado', 'success');
+}
+
+function setLoading(on) {
+  document.getElementById('loading-bar').classList.toggle('active', on);
+  document.getElementById('btn-procesar').disabled = on;
+}
+
+function mostrarEstado(msg) {
+  document.getElementById('header-status').textContent = msg;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let toastTimer;
+function toast(msg, tipo = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${tipo}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+</script>
+</body>
+</html>
