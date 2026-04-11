@@ -744,7 +744,6 @@ let state={
   tokensRestaurados:new Set(),log:[],hashActual:'',aprobado:false,
   banco:[],
   introSubsecciones:[],
-  nombreArchivo:'',
   temasGenerados:[],
   hashActual:'',
   aprobado:false
@@ -1365,13 +1364,13 @@ async function cargarArchivo(file){
     if(ext==='pdf')      txt=await extraerTextoPDF(file);
     else if(ext==='docx')txt=await extraerTextoDocx(file);
     else                 txt=await file.text();
-    // Guardar nombre del archivo para referencia
-    state.nombreArchivo = file.name;
+    document.getElementById('raw-input').value=txt;
+    state.textoOriginal=txt;
     logInfo('Archivo cargado',file.name,`${txt.length.toLocaleString()} chars`);
     mostrarEstado(`${file.name} — ${txt.length.toLocaleString()} chars`);
-    // Mostrar vista previa de ruido ANTES de pasar al textarea
-    mostrarRevisionPrevia(txt, file.name);
-  }catch(e){toast('Error: '+e.message,'error');setLoading(false);}
+    toast(`Cargado: ${file.name}`,'success');
+  }catch(e){toast('Error: '+e.message,'error');}
+  finally{setLoading(false);}
 }
 async function extraerTextoPDF(file){
   const buf=await file.arrayBuffer();
@@ -1696,19 +1695,12 @@ async function procesarDocumento(){
   state.resaltados=[];diffTokens=[];state.tokensRestaurados=new Set();
   state.log=[];state.aprobado=false;state.banco=[];state.introSubsecciones=[];
   state.temasGenerados=[];
-  setTimeout(async()=>{
+  setTimeout(()=>{
     try{
       logInfo('Inicio',`Perfil: ${state.perfilActivo?.nombre||'Genérico'}`,new Date().toLocaleTimeString());
       state.textoOriginal=texto;
-      // Etapa 1 ya se aplicó al cargar el archivo.
-      // Aquí solo ejecutamos la normalización de formato (Etapa 2).
-      logInfo('Normalización','Etapa 2 — normalización de formato iniciada','');
-      const resultado2 = etapa2_NormalizacionFormato(texto);
-      resultado2.cambios.forEach(c=>{
-        if(c.tipo==='ok') logOk('Formato: '+c.msg,c.detalle,'');
-        else logWarn('Formato: '+c.msg,c.detalle,'');
-      });
-      await finalizarProcesado(resultado2.texto);
+      // Mostrar preview ANTES de ejecutar la limpieza
+      mostrarPreviewEtapa1(texto, state.perfilActivo);
     }catch(e){toast('Error: '+e.message,'error');logErr('Error',e.message);setLoading(false);}
   },50);
 }
@@ -2424,89 +2416,27 @@ function etapa2_NormalizacionFormato(texto){
 
 let etapaState = {textoPost1:'', cambios1:[], cambios2:[]};
 
-// ══ REVISIÓN PREVIA AL PROCESADO ════════════════════════════════
-// Se activa al cargar un archivo. Muestra el texto crudo con
-// el ruido marcado para que el usuario lo revise ANTES de parsear.
-
+// Registro de fragmentos protegidos por el usuario
 let fragmentosProtegidos = new Set();
 
-/**
- * Muestra la vista de revisión previa del texto crudo recién extraído.
- * Detecta ruido del perfil y lo marca en rojo. El usuario puede proteger
- * fragmentos antes de confirmar. Al aprobar, el texto limpio pasa al
- * textarea y queda listo para "⚡ Procesar".
- */
-function mostrarRevisionPrevia(textoCrudo, nombreArchivo){
-  const resultado = etapa1_LimpiezaEstructural(textoCrudo, state.perfilActivo);
-  etapaState.textoPost1 = resultado.texto;
-  etapaState.cambios1 = resultado.cambios;
-  etapaState.textoOriginalEtapa1 = textoCrudo;
-  fragmentosProtegidos = new Set();
-
-  // Actualizar título del modal
-  const titulo = document.getElementById('etapa1-titulo');
-  if(titulo) titulo.textContent = nombreArchivo || 'Texto cargado';
-
-  // Stats
-  const statsEl = document.getElementById('etapa1-stats');
-  const eliminaciones = resultado.cambios.filter(c=>c.tipo==='ok').length;
-  const warns = resultado.cambios.filter(c=>c.tipo==='warn').length;
-  const pOrig = contarPalabras(textoCrudo);
-  const pLimp = contarPalabras(resultado.texto);
-  if(statsEl) statsEl.innerHTML =
-    `<span style="color:var(--diff-del-text);">🔴 ${eliminaciones} operación(es) de limpieza</span>` +
-    (warns>0
-      ? `<span style="color:#f7c94f;">⚠️ ${warns} advertencia(s)</span>`
-      : `<span style="color:var(--ok);">✅ Sin advertencias</span>`) +
-    `<span style="color:var(--text-faint);">${pOrig.toLocaleString()} → ${pLimp.toLocaleString()} palabras</span>`;
-
-  // Advertencia artículos
-  const warnArt = resultado.cambios.find(c=>c.tipo==='warn');
-  const warnEl = document.getElementById('etapa1-warn');
-  if(warnEl){
-    if(warnArt){warnEl.textContent='⚠ '+warnArt.msg+': '+warnArt.detalle;warnEl.classList.add('visible');}
-    else warnEl.classList.remove('visible');
-  }
-
-  // Lista de cambios
-  const lista = document.getElementById('etapa1-cambios');
-  if(lista) lista.innerHTML = resultado.cambios.map(c=>
-    `<div class="etapa-cambio-item ${c.tipo}">
-      <span class="etapa-cambio-icon">${c.tipo==='ok'?'✅':'⚠️'}</span>
-      <div class="etapa-cambio-txt"><strong>${escHtml(c.msg)}</strong>
-        <div style="font-size:11px;margin-top:2px;">${escHtml(c.detalle)}</div>
-      </div>
-    </div>`).join('');
-
-  // Vista marcada del texto crudo
-  renderDocumentoMarcado(textoCrudo, resultado.texto);
-  switchVistaEtapa('marcada');
-  document.getElementById('modal-etapa1').classList.remove('hidden');
-  setLoading(false);
-}
-
-// Compatibilidad: mostrarEtapa1 ya no se usa desde procesarDocumento,
-// pero la dejamos como alias por si algo la referencia
-function mostrarEtapa1(texto, perfil){
-  mostrarRevisionPrevia(texto, 'documento');
-}
-  const resultado = etapa1_LimpiezaEstructural(texto, perfil);
-  etapaState.textoPost1 = resultado.texto;
-  etapaState.cambios1 = resultado.cambios;
-  etapaState.textoOriginalEtapa1 = texto; // guardar original para vista marcada
+function mostrarPreviewEtapa1(texto, perfil){
+  // Calcular preview: qué líneas se van a eliminar, SIN ejecutar la limpieza todavía
+  const preview = calcularPreviewEtapa1(texto, perfil);
+  etapaState.textoOriginalEtapa1 = texto;
+  etapaState.previewLineasEliminar = preview.lineasEliminar; // Set de líneas a eliminar
+  etapaState.previewCambios = preview.cambios;
   fragmentosProtegidos = new Set();
 
   // ── Stats bar ──────────────────────────────────────────────
-  const eliminados = resultado.cambios.filter(c=>c.tipo==='ok'&&c.msg.includes('eliminad')||c.msg.includes('Ruido')||c.msg.includes('Sello')||c.msg.includes('número')).length;
-  const warns = resultado.cambios.filter(c=>c.tipo==='warn').length;
+  const warns = preview.cambios.filter(c=>c.tipo==='warn').length;
   const statsEl = document.getElementById('etapa1-stats');
   if(statsEl) statsEl.innerHTML =
-    `<span style="color:var(--diff-del-text);">🔴 ${resultado.cambios.filter(c=>c.tipo==='ok').length} operación(es) de limpieza</span>` +
+    `<span style="color:var(--diff-del-text);">🔴 ${preview.lineasEliminar.size} línea(s) a eliminar</span>` +
     (warns>0 ? `<span style="color:#f7c94f;">⚠️ ${warns} advertencia(s)</span>` : '<span style="color:var(--ok);">✅ Sin advertencias</span>') +
-    `<span style="color:var(--text-faint);">${contarPalabras(texto).toLocaleString()} → ${contarPalabras(resultado.texto).toLocaleString()} palabras</span>`;
+    `<span style="color:var(--text-faint);">${contarPalabras(texto).toLocaleString()} palabras en el original</span>`;
 
   // ── Advertencia artículos ───────────────────────────────────
-  const warnArt = resultado.cambios.find(c=>c.tipo==='warn');
+  const warnArt = preview.cambios.find(c=>c.tipo==='warn');
   const warnEl = document.getElementById('etapa1-warn');
   if(warnEl){
     if(warnArt){warnEl.textContent='⚠ '+warnArt.msg+': '+warnArt.detalle;warnEl.classList.add('visible');}
@@ -2515,18 +2445,130 @@ function mostrarEtapa1(texto, perfil){
 
   // ── Vista lista ─────────────────────────────────────────────
   const lista = document.getElementById('etapa1-cambios');
-  if(lista) lista.innerHTML = resultado.cambios.map(c =>
+  if(lista) lista.innerHTML = preview.cambios.map(c =>
     `<div class="etapa-cambio-item ${c.tipo}">
       <span class="etapa-cambio-icon">${c.tipo==='ok'?'✅':'⚠️'}</span>
       <div class="etapa-cambio-txt"><strong>${escHtml(c.msg)}</strong><div style="font-size:11px;margin-top:2px;">${escHtml(c.detalle)}</div></div>
     </div>`).join('');
 
-  // ── Vista marcada ────────────────────────────────────────────
-  renderDocumentoMarcado(texto, resultado.texto);
+  // ── Vista marcada (usa el original + set de líneas a eliminar) ──
+  renderDocumentoMarcadoDesdePreview(texto, preview.lineasEliminar);
 
   // Mostrar vista marcada por defecto
   switchVistaEtapa('marcada');
   document.getElementById('modal-etapa1').classList.remove('hidden');
+}
+
+// Calcula qué líneas serán eliminadas sin modificar el texto todavía
+function calcularPreviewEtapa1(texto, perfil){
+  const cambios = [];
+  const lineasEliminar = new Set(); // índices de líneas a eliminar
+  const lineas = texto.split('\n');
+
+  // Sellos digitales
+  let sellosCount = 0;
+  lineas.forEach((linea, idx) => {
+    if(/[A-Za-z0-9+/]{40,}={0,2}/.test(linea)){
+      lineasEliminar.add(idx);
+      sellosCount++;
+    }
+  });
+  if(sellosCount > 0)
+    cambios.push({tipo:'ok', msg:`${sellosCount} sello(s) digital(es) a eliminar`, detalle:'Líneas con firmas digitales'});
+
+  // Números de página solos
+  let numPags = 0;
+  lineas.forEach((linea, idx) => {
+    if(!lineasEliminar.has(idx) && /^\s*\d{1,4}\s*$/.test(linea) && linea.trim() !== ''){
+      lineasEliminar.add(idx);
+      numPags++;
+    }
+  });
+  if(numPags > 0)
+    cambios.push({tipo:'ok', msg:`${numPags} número(s) de página a eliminar`, detalle:'Líneas que solo contienen un número'});
+
+  // Ruido del perfil
+  if(perfil?.ruido?.length){
+    for(const p of perfil.ruido){
+      try{
+        const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('^\\s*' + escaped + '\\s*$', 'i');
+        let count = 0;
+        lineas.forEach((linea, idx) => {
+          if(!lineasEliminar.has(idx) && re.test(linea)){
+            lineasEliminar.add(idx);
+            count++;
+          }
+        });
+        if(count > 0)
+          cambios.push({tipo:'ok', msg:`Ruido: "${p.slice(0,40)}"`, detalle:`${count} línea(s)`});
+      }catch(e){}
+    }
+  }
+
+  // Reglas tipo pie_pagina
+  if(perfil?.reglas?.length){
+    for(const regla of perfil.reglas){
+      if(regla.tipo !== 'pie_pagina') continue;
+      try{
+        const esc = regla.patron.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const ctx = regla.contextoAplicacion || 'linea_sola';
+        let re;
+        if(ctx === 'linea_sola')       re = new RegExp('^\\s*' + esc + '.*$', 'i');
+        else if(ctx === 'inicio_linea') re = new RegExp('^\\s*' + esc, 'i');
+        else                            re = new RegExp(esc, 'i');
+        let count = 0;
+        lineas.forEach((linea, idx) => {
+          if(!lineasEliminar.has(idx) && re.test(linea)){
+            lineasEliminar.add(idx);
+            count++;
+          }
+        });
+        if(count > 0)
+          cambios.push({tipo:'ok', msg:`Regla: "${regla.nombre}"`, detalle:`ctx:${ctx} · ${count} línea(s)`});
+      }catch(e){}
+    }
+  }
+
+  // Verificar artículos en el preview
+  const re_art = /Artículo\s+(\d+)/gi;
+  const numsOrig = [...texto.matchAll(re_art)].map(m => parseInt(m[1]));
+  const textoSinEliminar = lineas.filter((_,idx) => !lineasEliminar.has(idx)).join('\n');
+  const numsPost = [...textoSinEliminar.matchAll(re_art)].map(m => parseInt(m[1]));
+  const setO = new Set(numsOrig), setP = new Set(numsPost);
+  const faltantes = [...setO].filter(n => !setP.has(n));
+  if(faltantes.length > 0)
+    cambios.push({tipo:'warn', msg:'Artículos posiblemente afectados', detalle:`Revisar: ${faltantes.slice(0,5).join(', ')}`});
+  else
+    cambios.push({tipo:'ok', msg:'Integridad de artículos: OK', detalle:`${setP.size} artículos presentes tras limpieza`});
+
+  return { lineasEliminar, cambios };
+}
+
+// Renderiza el documento original marcando las líneas que SE VAN A eliminar
+function renderDocumentoMarcadoDesdePreview(original, lineasEliminar){
+  const el = document.getElementById('etapa1-doc-marcado');
+  if(!el) return;
+
+  const lineas = original.split('\n');
+  let html = '';
+  let fragmentoIdx = 0;
+
+  lineas.forEach((linea, idx) => {
+    const lineaTrim = linea.trim();
+    if(!lineaTrim){ html += '\n'; return; }
+
+    if(lineasEliminar.has(idx)){
+      const fid = 'frag_' + fragmentoIdx++;
+      const esProtegido = fragmentosProtegidos.has(fid);
+      html += `<span class="marca-eliminar ${esProtegido?'protegido':''}" data-fid="${fid}" data-idx="${idx}" onclick="toggleProteger('${fid}',this)">${escHtml(linea)}</span>\n`;
+    } else {
+      html += escHtml(linea) + '\n';
+    }
+  });
+
+  el.innerHTML = html;
+  actualizarContadorProtegidos();
 }
 
 function renderDocumentoMarcado(original, limpio){
@@ -2552,8 +2594,7 @@ function renderDocumentoMarcado(original, limpio){
 `;
     } else {
       // Línea conservada — texto normal
-      html += escHtml(linea) + '
-';
+      html += escHtml(linea) + '\n';
     }
   }
 
@@ -2602,11 +2643,7 @@ function switchVistaEtapa(modo){
 function cancelarEtapa1(){
   document.getElementById('modal-etapa1').classList.add('hidden');
   setLoading(false);
-  // Limpiar el textarea si el usuario cancela la revisión
-  document.getElementById('raw-input').value = '';
-  state.textoOriginal = '';
-  mostrarEstado('Sin documento cargado');
-  toast('Carga cancelada','success');
+  toast('Proceso cancelado','success');
 }
 
 function ajustarReglasDesdeEtapa1(){
@@ -2619,36 +2656,108 @@ function ajustarReglasDesdeEtapa1(){
 async function aprobarEtapa1(){
   document.getElementById('modal-etapa1').classList.add('hidden');
 
-  // Construir texto aprobado respetando fragmentos protegidos
-  let textoAprobado = etapaState.textoPost1;
-  if(fragmentosProtegidos.size > 0){
-    const spans = document.querySelectorAll('.marca-eliminar.protegido');
-    let extra = '';
-    spans.forEach(span => {
-      const lineaOriginal = span.dataset.linea || '';
-      if(lineaOriginal) extra += lineaOriginal + '\n';
-    });
-    if(extra) textoAprobado = extra + textoAprobado;
-    logOk('Fragmentos protegidos restaurados',
-      `${fragmentosProtegidos.size} linea(s) conservadas`, `x${fragmentosProtegidos.size}`);
-  }
+  // Recopilar índices de líneas que el usuario protegió
+  const indicesProtegidos = new Set();
+  document.querySelectorAll('.marca-eliminar.protegido').forEach(span => {
+    const idx = parseInt(span.dataset.idx);
+    if(!isNaN(idx)) indicesProtegidos.add(idx);
+  });
 
-  // Pasar texto pre-limpio al textarea
-  document.getElementById('raw-input').value = textoAprobado;
-  state.textoOriginal = textoAprobado;
-  logOk('Revision previa aprobada',
-    `${etapaState.cambios1.length} operacion(es) aceptadas`, 'checkmark');
+  // Ejecutar la limpieza real AHORA, excluyendo líneas protegidas
+  const texto = etapaState.textoOriginalEtapa1;
+  const resultado1 = etapa1_LimpiezaEstructuralConProteccion(texto, state.perfilActivo, indicesProtegidos);
+  etapaState.textoPost1 = resultado1.texto;
+  etapaState.cambios1 = resultado1.cambios;
 
-  // Indicador visual en boton Procesar
-  const btn = document.getElementById('btn-procesar');
-  if(btn){
-    btn.style.background = 'var(--ok)';
-    btn.textContent = 'Revisado — Procesar';
-    setTimeout(()=>{ btn.style.background=''; btn.textContent='Procesar documento'; }, 5000);
-  }
-  mostrarEstado(`${state.nombreArchivo||'Documento'} revisado`);
-  toast('Revision aprobada. Haz clic en Procesar para continuar', 'success');
+  if(indicesProtegidos.size > 0)
+    logOk('Fragmentos protegidos conservados', `${indicesProtegidos.size} línea(s) mantenidas por el usuario`, `🛡${indicesProtegidos.size}`);
+
+  logOk('Etapa 1 aprobada', `${resultado1.cambios.filter(c=>c.tipo==='ok').length} operaciones aplicadas`, '✓');
+
+  const resultado2 = etapa2_NormalizacionFormato(etapaState.textoPost1);
+  etapaState.cambios2 = resultado2.cambios;
+  resultado2.cambios.forEach(c => {
+    if(c.tipo==='ok') logOk('Etapa 2: '+c.msg, c.detalle, '');
+    else logWarn('Etapa 2: '+c.msg, c.detalle, '');
+  });
+  await finalizarProcesado(resultado2.texto);
 }
+
+// Versión de etapa1 que respeta líneas protegidas por índice
+function etapa1_LimpiezaEstructuralConProteccion(texto, perfil, indicesProtegidos){
+  const cambios = [];
+  const lineas = texto.split('\n');
+
+  // Calcular qué líneas eliminar (igual que calcularPreviewEtapa1)
+  const lineasEliminar = new Set();
+
+  lineas.forEach((linea, idx) => {
+    if(indicesProtegidos.has(idx)) return; // protegida por el usuario
+    if(/[A-Za-z0-9+/]{40,}={0,2}/.test(linea)) lineasEliminar.add(idx);
+  });
+  const sellos = lineasEliminar.size;
+  if(sellos > 0) cambios.push({tipo:'ok', msg:`${sellos} sello(s) digital(es) eliminado(s)`, detalle:`-${sellos} líneas`});
+
+  lineas.forEach((linea, idx) => {
+    if(indicesProtegidos.has(idx) || lineasEliminar.has(idx)) return;
+    if(/^\s*\d{1,4}\s*$/.test(linea) && linea.trim() !== '') lineasEliminar.add(idx);
+  });
+  const pags = lineasEliminar.size - sellos;
+  if(pags > 0) cambios.push({tipo:'ok', msg:`${pags} número(s) de página eliminado(s)`, detalle:'Líneas solo con número'});
+
+  if(perfil?.ruido?.length){
+    for(const p of perfil.ruido){
+      try{
+        const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('^\\s*' + escaped + '\\s*$', 'i');
+        let count = 0;
+        lineas.forEach((linea, idx) => {
+          if(indicesProtegidos.has(idx) || lineasEliminar.has(idx)) return;
+          if(re.test(linea)){ lineasEliminar.add(idx); count++; }
+        });
+        if(count > 0) cambios.push({tipo:'ok', msg:`Ruido: "${p.slice(0,40)}"`, detalle:`-${count} línea(s)`});
+      }catch(e){}
+    }
+  }
+
+  if(perfil?.reglas?.length){
+    for(const regla of perfil.reglas){
+      if(regla.tipo !== 'pie_pagina') continue;
+      try{
+        const esc = regla.patron.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const ctx = regla.contextoAplicacion || 'linea_sola';
+        let re;
+        if(ctx === 'linea_sola')       re = new RegExp('^\\s*' + esc + '.*$', 'i');
+        else if(ctx === 'inicio_linea') re = new RegExp('^\\s*' + esc, 'i');
+        else                            re = new RegExp(esc, 'i');
+        let count = 0;
+        lineas.forEach((linea, idx) => {
+          if(indicesProtegidos.has(idx) || lineasEliminar.has(idx)) return;
+          if(re.test(linea)){ lineasEliminar.add(idx); count++; }
+        });
+        if(count > 0) cambios.push({tipo:'ok', msg:`Regla: "${regla.nombre}"`, detalle:`ctx:${ctx} -${count} línea(s)`});
+      }catch(e){}
+    }
+  }
+
+  // Reconstruir texto sin las líneas eliminadas
+  let t = lineas.filter((_,idx) => !lineasEliminar.has(idx)).join('\n');
+  t = t.replace(/\n\n\n+/g, '\n\n');
+
+  // Verificar artículos
+  const re_art = /Artículo\s+(\d+)/gi;
+  const numsOrig = [...texto.matchAll(re_art)].map(m => parseInt(m[1]));
+  const numsLimp = [...t.matchAll(re_art)].map(m => parseInt(m[1]));
+  const setO = new Set(numsOrig), setL = new Set(numsLimp);
+  const faltantes = [...setO].filter(n => !setL.has(n));
+  if(faltantes.length > 0)
+    cambios.push({tipo:'warn', msg:'Artículos posiblemente afectados', detalle:`Revisar: ${faltantes.slice(0,5).join(', ')}`});
+  else
+    cambios.push({tipo:'ok', msg:'Integridad de artículos: OK', detalle:`${setL.size} artículos presentes`});
+
+  return {texto: t.trim(), cambios};
+}
+
 async function finalizarProcesado(textoLimpio){
   try{
     state.textoLimpio = textoLimpio;
@@ -3053,21 +3162,15 @@ function toast(msg,tipo=''){const el=document.getElementById('toast');el.textCon
 <div class="etapa-modal hidden" id="modal-etapa1">
   <div class="etapa-card" style="width:720px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div class="etapa-title" style="margin-bottom:2px;">Revisión previa — texto extraído</div>
-        <div id="etapa1-titulo" style="font-size:12px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;"></div>
-      </div>
+      <div class="etapa-title" style="margin-bottom:0;">Etapa 1 — Limpieza estructural</div>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-ghost" id="btn-vista-marcada" onclick="switchVistaEtapa('marcada')" style="font-size:11px;background:var(--accent);color:#fff;border-color:var(--accent);">📄 Vista marcada</button>
         <button class="btn btn-ghost" id="btn-vista-lista" onclick="switchVistaEtapa('lista')" style="font-size:11px;">📋 Lista de cambios</button>
       </div>
     </div>
     <div class="etapa-desc" style="margin-bottom:12px;">
-      Este es el texto <strong>crudo extraído del archivo</strong> antes de procesarlo. El texto
-      <span style="background:#f8717133;color:#f87171;padding:1px 6px;border-radius:3px;text-decoration:line-through;">marcado en rojo</span>
-      será eliminado por las reglas del perfil. Haz clic en cualquier fragmento para
-      <span style="background:#34c98a33;color:#34c98a;padding:1px 6px;border-radius:3px;">protegerlo 🛡</span> y conservarlo.
-      Al aprobar, el texto limpio quedará listo para <strong>⚡ Procesar</strong>.
+      El texto <span style="background:#f8717133;color:#f87171;padding:1px 6px;border-radius:3px;text-decoration:line-through;">marcado en rojo</span>
+      será eliminado. Haz clic en cualquier fragmento para <span style="background:#34c98a33;color:#34c98a;padding:1px 6px;border-radius:3px;">protegerlo 🛡</span> y conservarlo.
     </div>
 
     <!-- STATS -->
@@ -3094,7 +3197,7 @@ function toast(msg,tipo=''){const el=document.getElementById('toast');el.textCon
     <div class="etapa-footer">
       <button class="btn btn-danger" onclick="cancelarEtapa1()">✕ Cancelar</button>
       <button class="btn btn-warn" onclick="ajustarReglasDesdeEtapa1()">⚙ Ajustar reglas</button>
-      <button class="btn btn-approve" style="width:auto;padding:9px 20px;" onclick="aprobarEtapa1()">✓ Aceptar limpieza — ir a Procesar</button>
+      <button class="btn btn-approve" style="width:auto;padding:9px 20px;" onclick="aprobarEtapa1()">✓ Aprobar — continuar</button>
     </div>
   </div>
 </div>
