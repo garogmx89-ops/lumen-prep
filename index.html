@@ -414,6 +414,48 @@ textarea:focus{border-color:var(--accent);}
 .etapa-cambio-txt{color:var(--text-dim);flex:1;line-height:1.4;}
 .etapa-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
 
+/* Vista marcada Etapa 1 */
+.etapa-doc-viewer{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:2;
+  white-space:pre-wrap;word-break:break-word;
+  max-height:420px;overflow-y:auto;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:16px;
+  cursor:default;user-select:text;
+}
+.marca-eliminar{
+  background:#f8717133;color:#f87171;
+  text-decoration:line-through;border-radius:3px;
+  padding:0 3px;cursor:pointer;
+  border-bottom:2px solid #f87171;
+  transition:all .15s;
+}
+.marca-eliminar:hover{background:#f8717155;text-decoration:none;}
+.marca-eliminar.protegido{
+  background:#34c98a33;color:#34c98a;
+  text-decoration:none;border-bottom-color:#34c98a;
+}
+.marca-eliminar.protegido::after{content:' 🛡';font-size:10px;}
+.etapa-leyenda{
+  display:flex;align-items:center;gap:14px;
+  padding:7px 12px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:6px;
+  margin-bottom:10px;font-size:11px;flex-wrap:wrap;
+}
+.etapa-leyenda-item{display:flex;align-items:center;gap:5px;color:var(--text-dim);}
+.etapa-stats-bar{
+  display:flex;gap:12px;flex-wrap:wrap;
+  font-size:11px;font-family:'IBM Plex Mono',monospace;
+  padding:7px 12px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:6px;margin-bottom:10px;
+}
+.etapa-warn-box{
+  background:#f7c94f11;border:1px solid #f7c94f44;
+  border-radius:6px;padding:8px 12px;font-size:12px;
+  color:#f7c94f;margin-bottom:10px;display:none;
+}
+.etapa-warn-box.visible{display:block;}
+
 /* Reglas con contexto */
 .regla-contexto-opt{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;transition:all .15s;margin-bottom:6px;}
 .regla-contexto-opt:hover{border-color:var(--accent);}
@@ -2374,11 +2416,34 @@ function etapa2_NormalizacionFormato(texto){
 
 let etapaState = {textoPost1:'', cambios1:[], cambios2:[]};
 
+// Registro de fragmentos protegidos por el usuario
+let fragmentosProtegidos = new Set();
+
 function mostrarEtapa1(texto, perfil){
   const resultado = etapa1_LimpiezaEstructural(texto, perfil);
   etapaState.textoPost1 = resultado.texto;
   etapaState.cambios1 = resultado.cambios;
+  etapaState.textoOriginalEtapa1 = texto; // guardar original para vista marcada
+  fragmentosProtegidos = new Set();
 
+  // ── Stats bar ──────────────────────────────────────────────
+  const eliminados = resultado.cambios.filter(c=>c.tipo==='ok'&&c.msg.includes('eliminad')||c.msg.includes('Ruido')||c.msg.includes('Sello')||c.msg.includes('número')).length;
+  const warns = resultado.cambios.filter(c=>c.tipo==='warn').length;
+  const statsEl = document.getElementById('etapa1-stats');
+  if(statsEl) statsEl.innerHTML =
+    `<span style="color:var(--diff-del-text);">🔴 ${resultado.cambios.filter(c=>c.tipo==='ok').length} operación(es) de limpieza</span>` +
+    (warns>0 ? `<span style="color:#f7c94f;">⚠️ ${warns} advertencia(s)</span>` : '<span style="color:var(--ok);">✅ Sin advertencias</span>') +
+    `<span style="color:var(--text-faint);">${contarPalabras(texto).toLocaleString()} → ${contarPalabras(resultado.texto).toLocaleString()} palabras</span>`;
+
+  // ── Advertencia artículos ───────────────────────────────────
+  const warnArt = resultado.cambios.find(c=>c.tipo==='warn');
+  const warnEl = document.getElementById('etapa1-warn');
+  if(warnEl){
+    if(warnArt){warnEl.textContent='⚠ '+warnArt.msg+': '+warnArt.detalle;warnEl.classList.add('visible');}
+    else warnEl.classList.remove('visible');
+  }
+
+  // ── Vista lista ─────────────────────────────────────────────
   const lista = document.getElementById('etapa1-cambios');
   if(lista) lista.innerHTML = resultado.cambios.map(c =>
     `<div class="etapa-cambio-item ${c.tipo}">
@@ -2386,10 +2451,85 @@ function mostrarEtapa1(texto, perfil){
       <div class="etapa-cambio-txt"><strong>${escHtml(c.msg)}</strong><div style="font-size:11px;margin-top:2px;">${escHtml(c.detalle)}</div></div>
     </div>`).join('');
 
-  const prev = document.getElementById('etapa1-preview');
-  if(prev) prev.textContent = resultado.texto.slice(0,2000) + (resultado.texto.length>2000?'\n[...]':'');
+  // ── Vista marcada ────────────────────────────────────────────
+  renderDocumentoMarcado(texto, resultado.texto);
 
+  // Mostrar vista marcada por defecto
+  switchVistaEtapa('marcada');
   document.getElementById('modal-etapa1').classList.remove('hidden');
+}
+
+function renderDocumentoMarcado(original, limpio){
+  const el = document.getElementById('etapa1-doc-marcado');
+  if(!el) return;
+
+  // Construir diff línea por línea para identificar qué se eliminó
+  const lineasOrig = original.split('
+');
+  const lineasLimp = new Set(limpio.split('
+'));
+
+  let html = '';
+  let fragmentoIdx = 0;
+
+  for(const linea of lineasOrig){
+    const lineaTrim = linea.trim();
+    if(!lineaTrim){ html += '
+'; continue; }
+
+    if(!lineasLimp.has(linea)){
+      // Esta línea fue eliminada — marcarla en rojo
+      const fid = 'frag_' + fragmentoIdx++;
+      const esProtegido = fragmentosProtegidos.has(fid);
+      html += `<span class="marca-eliminar ${esProtegido?'protegido':''}" data-fid="${fid}" data-linea="${escAttr(linea)}" onclick="toggleProteger('${fid}',this)">${escHtml(linea)}</span>
+`;
+    } else {
+      // Línea conservada — texto normal
+      html += escHtml(linea) + '
+';
+    }
+  }
+
+  el.innerHTML = html;
+  actualizarContadorProtegidos();
+}
+
+function toggleProteger(fid, el){
+  if(fragmentosProtegidos.has(fid)){
+    fragmentosProtegidos.delete(fid);
+    el.classList.remove('protegido');
+    toast('Fragmento marcado para eliminar','success');
+  } else {
+    fragmentosProtegidos.add(fid);
+    el.classList.add('protegido');
+    toast('Fragmento protegido — no se eliminará','success');
+  }
+  actualizarContadorProtegidos();
+}
+
+function actualizarContadorProtegidos(){
+  const el = document.getElementById('etapa1-protegidos-count');
+  if(!el) return;
+  const n = fragmentosProtegidos.size;
+  el.textContent = n > 0 ? `🛡 ${n} fragmento(s) protegido(s)` : '';
+}
+
+function switchVistaEtapa(modo){
+  const marcada = document.getElementById('vista-marcada-container');
+  const lista = document.getElementById('vista-lista-container');
+  const btnM = document.getElementById('btn-vista-marcada');
+  const btnL = document.getElementById('btn-vista-lista');
+  if(modo === 'marcada'){
+    if(marcada) marcada.style.display = '';
+    if(lista)   lista.style.display = 'none';
+    if(btnM){btnM.style.background='var(--accent)';btnM.style.color='#fff';btnM.style.borderColor='var(--accent)';}
+    if(btnL){btnL.style.background='';btnL.style.color='';btnL.style.borderColor='';}
+  } else {
+    if(marcada) marcada.style.display = 'none';
+    if(lista)   lista.style.display = '';
+    if(btnL){btnL.style.background='var(--accent)';btnL.style.color='#fff';btnL.style.borderColor='var(--accent)';}
+    if(btnM){btnM.style.background='';btnM.style.color='';btnM.style.borderColor='';}
+  }
 }
 
 function cancelarEtapa1(){
@@ -2407,6 +2547,23 @@ function ajustarReglasDesdeEtapa1(){
 
 async function aprobarEtapa1(){
   document.getElementById('modal-etapa1').classList.add('hidden');
+
+  // Restaurar fragmentos protegidos por el usuario
+  if(fragmentosProtegidos.size > 0){
+    const spans = document.querySelectorAll('.marca-eliminar.protegido');
+    let textoReconstruido = etapaState.textoPost1;
+    spans.forEach(span => {
+      const lineaOriginal = span.dataset.linea || '';
+      if(lineaOriginal){
+        // Insertar la línea protegida antes de la primera línea del limpio
+        textoReconstruido = lineaOriginal + '
+' + textoReconstruido;
+      }
+    });
+    etapaState.textoPost1 = textoReconstruido;
+    logOk('Fragmentos protegidos restaurados', `${fragmentosProtegidos.size} línea(s) conservadas por el usuario`, `🛡${fragmentosProtegidos.size}`);
+  }
+
   logOk('Etapa 1 aprobada', `${etapaState.cambios1.length} operaciones`, '✓');
   const resultado2 = etapa2_NormalizacionFormato(etapaState.textoPost1);
   etapaState.cambios2 = resultado2.cambios;
@@ -2817,20 +2974,42 @@ let _tt;
 function toast(msg,tipo=''){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${tipo}`;clearTimeout(_tt);_tt=setTimeout(()=>{el.className='';},3000);}
 </script>
 
-<!-- MODAL ETAPA 1 -->
+<!-- MODAL ETAPA 1 — Vista marcada -->
 <div class="etapa-modal hidden" id="modal-etapa1">
-  <div class="etapa-card">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <div class="etapa-title">Etapa 1 — Limpieza estructural</div>
+  <div class="etapa-card" style="width:720px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div class="etapa-title" style="margin-bottom:0;">Etapa 1 — Limpieza estructural</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost" id="btn-vista-marcada" onclick="switchVistaEtapa('marcada')" style="font-size:11px;background:var(--accent);color:#fff;border-color:var(--accent);">📄 Vista marcada</button>
+        <button class="btn btn-ghost" id="btn-vista-lista" onclick="switchVistaEtapa('lista')" style="font-size:11px;">📋 Lista de cambios</button>
+      </div>
     </div>
-    <div class="etapa-desc">
-      Se eliminó el <strong>ruido estructural</strong>: números de página, sellos digitales y patrones del perfil.<br>
-      <strong>No se tocó ningún párrafo de artículo.</strong> Revisa y aprueba para continuar.
+    <div class="etapa-desc" style="margin-bottom:12px;">
+      El texto <span style="background:#f8717133;color:#f87171;padding:1px 6px;border-radius:3px;text-decoration:line-through;">marcado en rojo</span>
+      será eliminado. Haz clic en cualquier fragmento para <span style="background:#34c98a33;color:#34c98a;padding:1px 6px;border-radius:3px;">protegerlo 🛡</span> y conservarlo.
     </div>
-    <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Cambios aplicados</div>
-    <div class="etapa-cambios" id="etapa1-cambios"></div>
-    <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Vista previa (primeros 2000 chars)</div>
-    <div class="etapa-preview" id="etapa1-preview"></div>
+
+    <!-- STATS -->
+    <div class="etapa-stats-bar" id="etapa1-stats"></div>
+
+    <!-- ADVERTENCIA artículos -->
+    <div class="etapa-warn-box" id="etapa1-warn"></div>
+
+    <!-- VISTA MARCADA -->
+    <div id="vista-marcada-container">
+      <div class="etapa-leyenda">
+        <span class="etapa-leyenda-item"><span style="background:#f8717133;color:#f87171;padding:1px 8px;border-radius:3px;text-decoration:line-through;">texto</span> Se eliminará</span>
+        <span class="etapa-leyenda-item"><span style="background:#34c98a33;color:#34c98a;padding:1px 8px;border-radius:3px;">texto 🛡</span> Protegido (clic para proteger)</span>
+        <span class="etapa-leyenda-item" style="margin-left:auto;color:var(--text-faint);" id="etapa1-protegidos-count"></span>
+      </div>
+      <div class="etapa-doc-viewer" id="etapa1-doc-marcado"></div>
+    </div>
+
+    <!-- VISTA LISTA (oculta por defecto) -->
+    <div id="vista-lista-container" style="display:none;">
+      <div class="etapa-cambios" id="etapa1-cambios"></div>
+    </div>
+
     <div class="etapa-footer">
       <button class="btn btn-danger" onclick="cancelarEtapa1()">✕ Cancelar</button>
       <button class="btn btn-warn" onclick="ajustarReglasDesdeEtapa1()">⚙ Ajustar reglas</button>
