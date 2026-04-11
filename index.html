@@ -1357,20 +1357,25 @@ dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover
 dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
 dz.addEventListener('drop',async e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])await cargarArchivo(e.dataTransfer.files[0]);});
 async function cargarArchivo(file){
-  setLoading(true);mostrarEstado(`Cargando: ${file.name}`);
+  setLoading(true);mostrarEstado(`Cargando: ${file.name}...`);
   try{
     const ext=file.name.split('.').pop().toLowerCase();
     let txt='';
     if(ext==='pdf')      txt=await extraerTextoPDF(file);
     else if(ext==='docx')txt=await extraerTextoDocx(file);
     else                 txt=await file.text();
-    document.getElementById('raw-input').value=txt;
+    // Guardar el texto crudo en state para referencia
     state.textoOriginal=txt;
     logInfo('Archivo cargado',file.name,`${txt.length.toLocaleString()} chars`);
     mostrarEstado(`${file.name} — ${txt.length.toLocaleString()} chars`);
     toast(`Cargado: ${file.name}`,'success');
-  }catch(e){toast('Error: '+e.message,'error');}
-  finally{setLoading(false);}
+    // Lanzar preview de limpieza ANTES de poner el texto en el textarea
+    state.resaltados=[];diffTokens=[];state.tokensRestaurados=new Set();
+    state.log=[];state.aprobado=false;state.banco=[];state.introSubsecciones=[];
+    state.temasGenerados=[];
+    logInfo('Inicio',`Perfil: ${state.perfilActivo?.nombre||'Genérico'}`,new Date().toLocaleTimeString());
+    mostrarPreviewEtapa1(txt, state.perfilActivo);
+  }catch(e){toast('Error: '+e.message,'error');setLoading(false);}
 }
 async function extraerTextoPDF(file){
   const buf=await file.arrayBuffer();
@@ -1688,6 +1693,7 @@ function detectarProblemas(estructura){
 
 // ══ ORQUESTADOR ══════════════════════════════════════════════════
 async function procesarDocumento(){
+  // Este botón aplica cuando el usuario pega texto manualmente en el textarea
   const texto=document.getElementById('raw-input').value.trim();
   if(!texto){toast('Pega o carga un documento','error');return;}
   if(state.textoLimpio)guardarSnapshot();
@@ -1699,7 +1705,7 @@ async function procesarDocumento(){
     try{
       logInfo('Inicio',`Perfil: ${state.perfilActivo?.nombre||'Genérico'}`,new Date().toLocaleTimeString());
       state.textoOriginal=texto;
-      // Mostrar preview ANTES de ejecutar la limpieza
+      // Lanzar preview antes de ejecutar la limpieza
       mostrarPreviewEtapa1(texto, state.perfilActivo);
     }catch(e){toast('Error: '+e.message,'error');logErr('Error',e.message);setLoading(false);}
   },50);
@@ -2674,6 +2680,10 @@ async function aprobarEtapa1(){
 
   logOk('Etapa 1 aprobada', `${resultado1.cambios.filter(c=>c.tipo==='ok').length} operaciones aplicadas`, '✓');
 
+  // Poner el texto limpio en el textarea (el usuario lo puede ver)
+  document.getElementById('raw-input').value = etapaState.textoPost1;
+
+  // Continuar con Etapa 2 + parseo
   const resultado2 = etapa2_NormalizacionFormato(etapaState.textoPost1);
   etapaState.cambios2 = resultado2.cambios;
   resultado2.cambios.forEach(c => {
