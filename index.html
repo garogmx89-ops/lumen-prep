@@ -1381,7 +1381,31 @@ async function extraerTextoPDF(file){
   const buf=await file.arrayBuffer();
   const pdf=await pdfjsLib.getDocument({data:buf}).promise;
   let txt='';
-  for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const c=await page.getTextContent();txt+=c.items.map(it=>it.str).join(' ')+'\n\n';}
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const c=await page.getTextContent();
+    const items=c.items;
+    if(!items.length){txt+='\n';continue;}
+    let linea='';
+    let yAnterior=null;
+    for(const item of items){
+      const y=Math.round(item.transform[5]);
+      if(yAnterior===null){
+        yAnterior=y;
+        linea+=item.str;
+      } else if(Math.abs(y-yAnterior)>3){
+        // Salto vertical — nueva línea
+        txt+=linea.trim()+'\n';
+        linea=item.str;
+        yAnterior=y;
+      } else {
+        // Mismo renglón — separar con espacio si hay contenido
+        if(item.str.trim()) linea+=(linea.trim()?(' '+item.str):item.str);
+      }
+    }
+    if(linea.trim()) txt+=linea.trim()+'\n';
+    txt+='\n'; // separar páginas
+  }
   return txt;
 }
 async function extraerTextoDocx(file){return(await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;}
