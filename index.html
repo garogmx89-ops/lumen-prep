@@ -1875,7 +1875,8 @@ function parsear(texto,perfil){
 
     // Detectar y extraer encabezado seccional al final del contenido
     // Patrón: bloque TÍTULO/CAPÍTULO pegado al final antes del siguiente artículo
-    const rSec=/\n\n((?:TÍTULO\s+\S[^\n]*\n(?:\n[^\n]+)?|CAPÍTULO\s+\S[^\n]*(?:\n\n[^\n]+)?)\s*)$/;
+    // Captura bloque seccional completo: TÍTULO solo, CAPÍTULO solo, o TÍTULO + CAPÍTULO anidado
+    const rSec=/\n\n((?:TÍTULO|CAPÍTULO)\s[\s\S]*?)$/;
     const mSec = resto.match(rSec);
     let encabezadoSeccional = null;
     if(mSec){
@@ -2618,11 +2619,24 @@ function etapa2_NormalizacionFormato(texto){
   let t = texto;
   const cambios = [];
 
+  // Paso 1 — Unir referencias a artículo/fracción/inciso partidas por salto de línea
+  // Patrón inequívoco: línea termina en preposición + salto simple + "artículo/fracción/inciso N"
+  // Ej: "...conforme a lo dispuesto en el\nartículo 134 de la Constitución..."
+  const refsPartidas = (t.match(/\b(?:en el|de la|de los|de las|con el|con la|a la|a los|para el|para la|por el|por la|que el|que la|del|al)\n(?=\s*(?:artículo|artículos|fracción|inciso)\s+\d)/gi) || []).length;
+  t = t.replace(
+    /(\b(?:en el|de la|de los|de las|con el|con la|a la|a los|para el|para la|por el|por la|que el|que la|del|al))\n(\s*(?:artículo|artículos|fracción|inciso)\s+\d)/gi,
+    '$1 $2'
+  );
+  if(refsPartidas > 0)
+    cambios.push({tipo:'ok', msg:`${refsPartidas} referencia(s) a artículo unidas`, detalle:'Salto de línea en medio de referencia normativa'});
+
+  // Paso 2 — Normalizar saltos simples dentro de párrafos
   const saltosFixed = (t.match(/([^.\n])\n(?!\n)/g) || []).length;
   t = t.replace(/([^.\n])\n(?!\n)/g, '$1 ');
   if(saltosFixed > 0)
     cambios.push({tipo:'ok', msg:'Saltos de línea normalizados', detalle:`${saltosFixed} saltos convertidos a espacio`});
 
+  // Paso 3 — Espacios múltiples
   const antEsp = t.length;
   t = t.replace(/[ \t]{2,}/g, ' ');
   if(antEsp - t.length > 0)
