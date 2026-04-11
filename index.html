@@ -2482,8 +2482,7 @@ function renderDocumentoMarcado(original, limpio){
 `;
     } else {
       // Línea conservada — texto normal
-      html += escHtml(linea) + '
-';
+      html += escHtml(linea) + '\n';
     }
   }
 
@@ -2553,8 +2552,7 @@ async function aprobarEtapa1(){
       const lineaOriginal = span.dataset.linea || '';
       if(lineaOriginal){
         // Insertar la línea protegida antes de la primera línea del limpio
-        textoReconstruido = lineaOriginal + '
-' + textoReconstruido;
+        textoReconstruido = lineaOriginal + '\n' + textoReconstruido;
       }
     });
     etapaState.textoPost1 = textoReconstruido;
