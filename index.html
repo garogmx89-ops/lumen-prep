@@ -1877,6 +1877,118 @@ function marcarComoResuelto(idx){
 }
 
 
+// ══ SPRINT 2 — PARSER INTELIGENTE ══════════════════════════════
+
+// ─── B2: Extractor de notas de reforma ──────────────────────────
+// Separa las notas DOF del contenido real del artículo.
+// Devuelve {textoLimpio, notas:[]}
+function extraerNotasReforma(texto){
+  const patronesNota=[
+    /\*?(Párrafo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
+    /\*?(Artículo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
+    /\*?(Fracción\s+(?:reformada|adicionada|derogada)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
+    /\*?(Inciso\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
+    /\*?(Reforma\s+DOF\s+[\d\-\w,\s:]+)\*?/gi,
+  ];
+  const notas=[];
+  let textoLimpio=texto;
+  for(const patron of patronesNota){
+    textoLimpio=textoLimpio.replace(patron,(match,nota)=>{
+      notas.push(nota.trim());
+      return '';
+    });
+  }
+  return {textoLimpio:textoLimpio.trim(), notas};
+}
+
+// ─── B1: Detector de estado jurídico ────────────────────────────
+// Determina el estado de un artículo/fracción basado en su contenido.
+function detectarEstadoJuridico(contenido, titulo=''){
+  if(!contenido) return 'vacio';
+
+  const txt=(contenido+' '+titulo).toLowerCase();
+
+  // Derogado explícito
+  if(/^\s*se\s+deroga\.?\s*$/i.test(contenido.trim())) return 'derogado';
+  if(/derogado\s+dof/i.test(txt)) return 'derogado';
+  if(/fracción\s+derogada/i.test(txt)) return 'derogado';
+
+  // Reservado
+  if(/^\s*reservado\.?\s*$/i.test(contenido.trim())) return 'reservado';
+
+  return 'vigente';
+}
+
+// ─── B2: Instrucción para agente IA ─────────────────────────────
+function generarInstruccionAgente(estado, notas){
+  switch(estado){
+    case 'derogado':
+      return 'Este contenido fue DEROGADO. Úsalo solo como contexto histórico. NUNCA lo cites como norma vigente aplicable.';
+    case 'reservado':
+      return 'Este artículo está reservado. No tiene contenido aplicable actualmente.';
+    case 'vigente':
+      if(notas.length>0)
+        return `Norma vigente con reformas. Última modificación: ${notas[notas.length-1]}. Cita el texto actual, no las versiones anteriores.`;
+      return 'Norma vigente. Puedes citar textualmente como fundamento.';
+    default:
+      return 'Revisar manualmente antes de usar como referencia.';
+  }
+}
+
+// ─── B3: Aplicar plantilla de introducción ──────────────────────
+function aplicarPlantillaIntroduccion(contenido, perfil){
+  if(!perfil?.plantillaIntroduccion?.length) return {contenido, subsecciones:[]};
+
+  const subsecciones=[];
+  let resto=contenido;
+
+  for(const plantilla of perfil.plantillaIntroduccion){
+    try{
+      const re=new RegExp(plantilla.patron,'i');
+      const match=resto.match(re);
+      if(match){
+        const idx=resto.indexOf(match[0]);
+        const textoSub=match[0].trim();
+        if(textoSub){
+          subsecciones.push({
+            tipo:plantilla.tipo,
+            nombre:plantilla.nombre,
+            color:plantilla.color||'#8892a4',
+            contenido:textoSub
+          });
+          resto=resto.replace(match[0],'').trim();
+        }
+      }
+    }catch(e){}
+  }
+  return {contenido:resto.trim(), subsecciones};
+}
+
+// ─── B4: Detector de cortes de artículo ─────────────────────────
+function detectarCorteArticulo(item, siguiente){
+  const alertas=[];
+
+  // Artículo sin punto final
+  const contenido=(item.contenido||'').trim();
+  if(contenido && !contenido.match(/[.;:]\s*$/) && contenido.length>50)
+    alertas.push('El artículo no termina con punto — puede estar truncado');
+
+  // Artículo muy corto comparado con el promedio
+  if(contenido.length>0 && contenido.length<30 && !contenido.match(/se\s+deroga/i))
+    alertas.push('Contenido muy breve — verificar si está completo');
+
+  // Si el siguiente artículo empieza con minúscula (continuación)
+  if(siguiente){
+    const sigTitulo=(siguiente.articulo||'').toLowerCase();
+    const sigContenido=(siguiente.contenido||'').trim();
+    if(sigContenido && sigContenido[0]===sigContenido[0].toLowerCase() &&
+       sigContenido[0].match(/[a-záéíóúü]/))
+      alertas.push('El siguiente elemento comienza en minúscula — posible continuación de este artículo');
+  }
+
+  return alertas;
+}
+
 // ══ PARSER ═══════════════════════════════════════════════════════
 function rArt(p){
   switch(p?.patronArticulo){
@@ -1915,15 +2027,45 @@ function parsear(texto,perfil){
   const kwT=perfil?.transitorios?.length?perfil.transitorios:['TRANSITORIOS','Transitorios'];
   let tN=texto,tT='';
   for(const kw of kwT){const m=texto.indexOf(kw);if(m!==-1){tT=texto.slice(m);tN=texto.slice(0,m);break;}}
+
   const ra=rArt(perfil);const pi=tN.search(ra);
-  if(pi>0){const intro=tN.slice(0,pi).trim();if(intro.length>10)estructura.push({tipo:'introduccion',contenido:intro,subsecciones:[]});}
+  if(pi>0){
+    const introRaw=tN.slice(0,pi).trim();
+    if(introRaw.length>10){
+      // B3: Aplicar plantilla de introducción si existe en el perfil
+      const {contenido:introContenido, subsecciones}=aplicarPlantillaIntroduccion(introRaw,perfil);
+      estructura.push({
+        tipo:'introduccion',
+        contenido:introContenido,
+        subsecciones,
+        estado:'procedimental',
+        instruccion_agente:'Preámbulo del documento. Úsalo solo para contexto general, no como norma aplicable.'
+      });
+    }
+  }
+
   ra.lastIndex=0;
-  const partes=tN.split(ra).filter(Boolean);const rt=rTituloArt(perfil);
+  const partes=tN.split(ra).filter(Boolean);
+  const rt=rTituloArt(perfil);
+
   for(const parte of partes){
     if(!parte.trim())continue;
     const mt=parte.match(rt);if(!mt)continue;
-    const titulo=mt[1].trim(),resto=parte.slice(mt[0].length).trim();
+    const titulo=mt[1].trim();
+    let resto=parte.slice(mt[0].length).trim();
+
+    // B2: Extraer notas de reforma del contenido
+    const {textoLimpio:restoLimpio, notas}=extraerNotasReforma(resto);
+    resto=restoLimpio;
+
     const item={tipo:'articulo',articulo:titulo};
+
+    // B1: Detectar estado jurídico
+    const estadoJuridico=detectarEstadoJuridico(resto, titulo);
+    item.estado=estadoJuridico;
+    item.instruccion_agente=generarInstruccionAgente(estadoJuridico, notas);
+    if(notas.length>0) item.reformas=notas;
+
     const rf=rFrac(perfil),mf=rf?[...resto.matchAll(rf)]:[];
     if(mf.length>0){
       const ia=resto.slice(0,mf[0].index).trim();if(ia)item.introduccion=ia;
@@ -1931,15 +2073,28 @@ function parsear(texto,perfil){
       for(let j=0;j<mf.length;j++){
         const etq=mf[j][1]+'.', ini=mf[j].index+mf[j][0].length;
         const fin=j+1<mf.length?mf[j+1].index:resto.length;
-        const cf=resto.slice(ini,fin).trim(),fi={fraccion:etq,contenido:cf};
-        const ri=rInc(perfil),mi=ri?[...cf.matchAll(ri)]:[];
+        const cf=resto.slice(ini,fin).trim();
+
+        // B2: Extraer notas de reforma de fracciones
+        const {textoLimpio:cfLimpio, notas:notasFrac}=extraerNotasReforma(cf);
+        const estadoFrac=detectarEstadoJuridico(cfLimpio);
+
+        const fi={
+          fraccion:etq,
+          contenido:cfLimpio,
+          estado:estadoFrac
+        };
+        if(notasFrac.length>0)fi.reformas=notasFrac;
+        if(estadoFrac==='derogado')fi.instruccion_agente='Fracción derogada. Contexto histórico únicamente.';
+
+        const ri=rInc(perfil),mi=ri?[...cfLimpio.matchAll(ri)]:[];
         if(mi.length>0){
-          const iF=cf.slice(0,mi[0].index).trim();if(iF)fi.introduccion=iF;
+          const iF=cfLimpio.slice(0,mi[0].index).trim();if(iF)fi.introduccion=iF;
           fi.incisos=[];
           for(let k=0;k<mi.length;k++){
             const eI=mi[k][1]+')',iiI=mi[k].index+mi[k][0].length;
-            const fI=k+1<mi.length?mi[k+1].index:cf.length;
-            fi.incisos.push({inciso:eI,contenido:cf.slice(iiI,fI).trim()});
+            const fI=k+1<mi.length?mi[k+1].index:cfLimpio.length;
+            fi.incisos.push({inciso:eI,contenido:cfLimpio.slice(iiI,fI).trim()});
           }
           delete fi.contenido;
         }
@@ -1948,19 +2103,49 @@ function parsear(texto,perfil){
     }else{item.contenido=resto;}
     estructura.push(item);
   }
-  if(tT)estructura.push({tipo:'transitorio',contenido:tT.trim()});
+
+  // Transitorios
+  if(tT){
+    const {textoLimpio:tTLimpio,notas:notasTrans}=extraerNotasReforma(tT.trim());
+    estructura.push({
+      tipo:'transitorio',
+      contenido:tTLimpio,
+      estado:'procedimental',
+      instruccion_agente:'Disposiciones transitorias. Úsalas solo para entender la cronología de vigencia, no como norma sustantiva.',
+      reformas:notasTrans.length?notasTrans:undefined
+    });
+  }
+
   return estructura;
 }
 function detectarProblemas(estructura){
   const p=[];
-  for(const item of estructura){
-    if(item.tipo!=='articulo')continue;
+  const arts=estructura.filter(e=>e.tipo==='articulo');
+
+  for(let i=0;i<arts.length;i++){
+    const item=arts[i];
     if(state.problemasResueltos.has(item.articulo))continue;
-    if(!item.fracciones&&(item.contenido||'').length>300)
-      p.push({articulo:item.articulo,problema:'Artículo largo sin estructura',sugerencia:'Usar corrección IA'});
-    if(!item.contenido&&!item.fracciones&&!item.introduccion)
-      p.push({articulo:item.articulo,problema:'Artículo sin contenido',sugerencia:'Revisar texto original'});
+
+    // Artículo largo sin estructura
+    if(!item.fracciones&&(item.contenido||'').length>300&&item.estado!=='derogado')
+      p.push({articulo:item.articulo,problema:'Artículo largo sin estructura detectada',sugerencia:'Usar corrección IA',tipo:'estructura'});
+
+    // Artículo sin contenido (y no está derogado)
+    if(!item.contenido&&!item.fracciones&&!item.introduccion&&item.estado!=='derogado'&&item.estado!=='reservado')
+      p.push({articulo:item.articulo,problema:'Artículo sin contenido',sugerencia:'Revisar texto original',tipo:'contenido'});
+
+    // B4: Detector de cortes de artículo
+    const siguiente=i+1<arts.length?arts[i+1]:null;
+    const alertasCorte=detectarCorteArticulo(item,siguiente);
+    for(const alerta of alertasCorte)
+      p.push({articulo:item.articulo,problema:alerta,sugerencia:'Revisar límites del artículo en Estructura',tipo:'corte'});
   }
+
+  // Estadísticas de derogados — solo log, no problema
+  const derogados=arts.filter(a=>a.estado==='derogado').length;
+  if(derogados>0)logInfo('Elementos derogados detectados',
+    `${derogados} artículo(s) marcados como derogados — contexto histórico`,`×${derogados}`);
+
   return p;
 }
 
@@ -2117,6 +2302,9 @@ function renderArtCard(item,idx){
       <div class="art-header-left">
         <span class="art-drag-handle" title="Arrastrar para reordenar">⠿</span>
         <span class="art-title" id="art-title-view-${idx}">${escHtml(item.articulo)}</span>
+        ${item.estado==='derogado'?'<span style="font-size:10px;background:#f8717122;color:#f87171;border:1px solid #f8717155;border-radius:20px;padding:1px 7px;font-family:\'IBM Plex Mono\',monospace;">DEROGADO</span>':
+          item.estado==='reservado'?'<span style="font-size:10px;background:#f7c94f22;color:#f7c94f;border:1px solid #f7c94f55;border-radius:20px;padding:1px 7px;font-family:\'IBM Plex Mono\',monospace;">RESERVADO</span>':
+          item.reformas?.length?'<span style="font-size:10px;background:#4f8ef722;color:#4f8ef7;border:1px solid #4f8ef755;border-radius:20px;padding:1px 7px;font-family:\'IBM Plex Mono\',monospace;">REFORMADO</span>':''}
         <input class="art-title-input" id="art-title-edit-${idx}" value="${escAttr(item.articulo)}"
           style="display:none;"
           onchange="state.estructura[${idx}].articulo=this.value;"
@@ -2142,6 +2330,12 @@ function renderArtCard(item,idx){
     </div>
     <div class="art-body" id="art-body-${idx}">
       ${item.introduccion?`<div class="art-intro">${escHtml(item.introduccion)}</div>`:''}
+      ${item.reformas?.length?`<div style="font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;padding:4px 0 6px;border-bottom:1px dashed var(--border);margin-bottom:6px;">
+        📋 Reformas: ${item.reformas.map(r=>escHtml(r)).join(' · ')}
+      </div>`:''}
+      ${item.estado==='derogado'?`<div style="background:#f8717111;border:1px solid #f8717133;border-radius:4px;padding:6px 10px;font-size:11px;color:#f87171;margin-bottom:8px;">
+        ⚠ Este artículo fue derogado. El contenido que aparece abajo es solo de referencia histórica.
+      </div>`:''}
       ${tf?renderFracciones(item,idx):
         `<div class="art-content-view" data-art-idx="${idx}" id="art-content-view-${idx}">${escHtml(item.contenido||'')}</div>
          <textarea class="art-content-edit" id="art-content-edit-${idx}" style="display:none;"
@@ -2368,16 +2562,50 @@ function eliminarDeBanco(idx){
 
 // ══ RENDER JSON ═══════════════════════════════════════════════════
 function renderJSON(){
-  const output=[
-    ...state.estructura,
-    ...state.resaltados.map(r=>({tipo:r.tipo.toLowerCase().replace(/\s+/g,'_'),nombre:r.tipo,contenido:r.texto}))
-  ];
+  const output=construirOutputFinal();
   const json=JSON.stringify(output,null,2);
   const col=json
     .replace(/("[\w\sáéíóúüñÁÉÍÓÚÜÑ_]+")(\s*:)/g,'<span class="json-key">$1</span>$2')
     .replace(/:\s*(".*?")/g,': <span class="json-string">$1</span>')
     .replace(/:\s*(\d+)/g,': <span class="json-number">$1</span>');
   document.getElementById('pane-json').innerHTML=`<pre id="json-view">${col}</pre>`;
+}
+
+/** C1-C5: Construye el JSON final con todos los metadatos para Lumen */
+function construirOutputFinal(){
+  const ahora=new Date().toISOString();
+  return {
+    // Metadatos del documento
+    meta:{
+      perfil:          state.perfilActivo?.nombre||'Genérico',
+      ambito:          state.perfilActivo?.ambito||'—',
+      origen:          state.perfilActivo?.origen||'—',
+      fechaProcesado:  ahora,
+      hashContenido:   state.hashActual||'',
+      aprobado:        state.aprobado,
+      reglasAplicadas: (state.perfilActivo?.reglas||[]).length,
+      totalArticulos:  state.estructura.filter(e=>e.tipo==='articulo').length,
+      totalDerogados:  state.estructura.filter(e=>e.tipo==='articulo'&&e.estado==='derogado').length,
+      totalReformados: state.estructura.filter(e=>e.tipo==='articulo'&&e.reformas?.length>0).length,
+    },
+    // Contenido estructurado con estados jurídicos
+    contenido:[
+      ...state.estructura.map(item=>{
+        // Limpiar campos undefined del JSON
+        const limpio={...item};
+        Object.keys(limpio).forEach(k=>limpio[k]===undefined&&delete limpio[k]);
+        return limpio;
+      }),
+      // Elementos marcados manualmente en Vista
+      ...state.resaltados.map(r=>({
+        tipo:   r.tipo.toLowerCase().replace(/\s+/g,'_'),
+        nombre: r.tipo,
+        contenido: r.texto,
+        estado: 'manual',
+        instruccion_agente: `Elemento clasificado manualmente como "${r.tipo}".`
+      }))
+    ]
+  };
 }
 
 
@@ -2460,7 +2688,25 @@ async function renderValidacion(){
         <div><span style="color:var(--text-faint);">Origen:</span> ${escHtml(state.perfilActivo?.origen||'—')}</div>
         <div><span style="color:var(--text-faint);">Fecha:</span> ${new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'})}</div>
       </div>
-    </div>`;
+    </div>
+    <div class="val-section">
+      <div class="val-section-header">Estados jurídicos detectados</div>
+      <div class="val-grid">
+        ${(()=>{
+          const artsAll=state.estructura.filter(e=>e.tipo==='articulo');
+          const vigentes=artsAll.filter(a=>a.estado==='vigente'||!a.estado).length;
+          const derogados=artsAll.filter(a=>a.estado==='derogado').length;
+          const reformados=artsAll.filter(a=>a.reformas?.length>0).length;
+          const reservados=artsAll.filter(a=>a.estado==='reservado').length;
+          return \`
+            <div class="val-cell"><div class="val-cell-label">Vigentes</div><div class="val-cell-value val-ok">\${vigentes}</div><div class="val-cell-sub">norma aplicable</div></div>
+            <div class="val-cell"><div class="val-cell-label">Derogados</div><div class="val-cell-value \${derogados>0?'val-warn':'val-ok'}">\${derogados}</div><div class="val-cell-sub">contexto histórico</div></div>
+            <div class="val-cell"><div class="val-cell-label">Con reformas</div><div class="val-cell-value" style="color:var(--accent);">\${reformados}</div><div class="val-cell-sub">tienen notas DOF</div></div>
+            <div class="val-cell"><div class="val-cell-label">Reservados</div><div class="val-cell-value">\${reservados}</div><div class="val-cell-sub">sin contenido</div></div>
+          \`;
+        })()}
+      </div>
+    </div>\`;
 
   if(state.aprobado){
     html+=`<div class="approve-box aprobado">
@@ -2491,22 +2737,9 @@ function aprobarDocumento(){
 
 function exportarJSONAprobado(){
   if(!state.aprobado){toast('Aprueba el documento primero','error');return;}
-  const output={
-    meta:{
-      perfil:state.perfilActivo?.nombre||'Genérico',
-      ambito:state.perfilActivo?.ambito||'—',
-      origen:state.perfilActivo?.origen||'—',
-      fechaExportacion:new Date().toISOString(),
-      hashContenido:state.hashActual,
-      totalArticulos:state.estructura.filter(e=>e.tipo==='articulo').length,
-      reglasAplicadas:(state.perfilActivo?.reglas||[]).length,
-      aprobado:true
-    },
-    contenido:[
-      ...state.estructura,
-      ...state.resaltados.map(r=>({tipo:r.tipo.toLowerCase().replace(/\s+/g,'_'),nombre:r.tipo,contenido:r.texto}))
-    ]
-  };
+  const output=construirOutputFinal();
+  output.meta.aprobado=true;
+  output.meta.fechaExportacion=new Date().toISOString();
   const blob=new Blob([JSON.stringify(output,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -2571,10 +2804,17 @@ function actualizarStats(){
   const fracs=arts.reduce((n,a)=>n+(a.fracciones?.length||0),0);
   const incs=arts.reduce((n,a)=>n+(a.fracciones?.reduce((m,f)=>m+(f.incisos?.length||0),0)||0),0);
   const probActivos=state.problemas.filter(p=>!state.problemasResueltos.has(p.articulo)).length;
+  const derogados=arts.filter(a=>a.estado==='derogado').length;
+  const reformados=arts.filter(a=>a.reformas?.length>0).length;
   document.getElementById('stat-articulos').textContent=arts.length;
   document.getElementById('stat-fracciones').textContent=fracs;
   document.getElementById('stat-incisos').textContent=incs;
   document.getElementById('stat-problemas').textContent=probActivos;
+  // Badge de derogados si hay
+  const b2=document.getElementById('panel-badges');
+  const oldDer=b2?.querySelector('.der-badge');if(oldDer)oldDer.remove();
+  if(derogados>0&&b2)
+    b2.innerHTML+=`<span class="der-badge" style="display:inline-flex;align-items:center;gap:4px;background:#f8717122;border:1px solid #f87171;border-radius:20px;padding:3px 9px;font-size:11px;color:#f87171;font-family:'IBM Plex Mono',monospace;">⚠ ${derogados} derogado(s)</span>`;
   const b=document.getElementById('panel-badges');
   const old=b.querySelector('.problem-badge');if(old)old.remove();
   if(probActivos)b.innerHTML=`<span class="problem-badge">⚠ ${probActivos}</span>`+b.innerHTML;
