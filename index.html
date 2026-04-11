@@ -286,6 +286,20 @@ textarea:focus{border-color:var(--accent);}
 .diff-nav-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);flex:1;}
 .diff-nav-art{font-size:11px;color:var(--accent);background:var(--accent-dim);padding:1px 8px;border-radius:10px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tok-hidden{display:none;}
+/* Modo lista de resultados filtrados */
+.diff-results-list{padding:10px 14px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;height:100%;}
+.diff-result-card{border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:12px;font-family:'IBM Plex Mono',monospace;}
+.diff-result-header{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--surface2);border-bottom:1px solid var(--border);}
+.diff-result-num{font-size:10px;color:var(--text-faint);min-width:60px;}
+.diff-result-art{font-size:10px;color:var(--accent);background:var(--accent-dim);padding:1px 7px;border-radius:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.diff-result-nav{display:flex;gap:4px;margin-left:auto;}
+.diff-result-nav button{background:none;border:1px solid var(--border);border-radius:3px;padding:1px 7px;cursor:pointer;font-size:10px;color:var(--text-dim);}
+.diff-result-nav button:hover{background:var(--accent-dim);}
+.diff-result-body{padding:8px 10px;line-height:1.7;white-space:pre-wrap;word-break:break-word;background:var(--bg);}
+.diff-ctx{color:var(--text-faint);opacity:.6;}
+.diff-hit-del{background:var(--diff-del-bg);color:var(--diff-del-text);padding:0 3px;border-radius:2px;text-decoration:line-through;}
+.diff-hit-ref{background:#f7c94f22;color:#f7c94f;padding:0 3px;border-radius:2px;border-bottom:1px dashed #f7c94f;}
+.diff-hit-add{background:var(--diff-add-bg);color:var(--diff-add-text);padding:0 3px;border-radius:2px;}
 .diff-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;}
 .dtl{color:var(--text-faint);font-size:11px;font-family:'IBM Plex Mono',monospace;}
 .dab{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid transparent;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-weight:500;transition:all .15s;}
@@ -1568,10 +1582,11 @@ function renderDiff(){
       <button class="dab dab-remove" id="dab-remove" onclick="confirmarEliminacion()" disabled>✕ Eliminar</button>
       <button class="dab dab-keep" onclick="deseleccionarToken()" style="margin-left:auto;">Deseleccionar</button>
     </div>
-    <div class="diff-layout">
+    <div id="diff-layout-wrap" class="diff-layout">
       <div class="diff-col-wrap"><div class="diff-col-header orig">ORIGINAL</div><div class="diff-col-body" id="diff-orig">${hO}</div></div>
       <div class="diff-col-wrap"><div class="diff-col-header limp">LIMPIO (tiempo real)</div><div class="diff-col-body" id="diff-limp">${hL}</div></div>
-    </div>`;
+    </div>
+    <div id="diff-results-wrap" style="display:none;flex:1;overflow:hidden;"></div>`;
   const tC=document.getElementById('tab-cambios');
   if(borrados>0){tC.textContent=`Cambios (${borrados})`;tC.style.color='#f7c94f';}
   else{tC.textContent='Cambios ✓';tC.style.color='var(--frac)';}
@@ -1604,85 +1619,128 @@ let diffNavIndices = [];   // índices en diffTokens del tipo filtrado
 let diffNavPos = -1;       // posición actual en diffNavIndices
 
 function toggleFiltro(tipo){
+  const layout = document.getElementById('diff-layout-wrap');
+  const lista  = document.getElementById('diff-results-wrap');
+
   if(diffFiltroActivo === tipo || tipo === null){
-    // Quitar filtro
+    // Quitar filtro — volver a vista completa
     diffFiltroActivo = null;
     diffNavIndices = [];
     diffNavPos = -1;
     document.querySelectorAll('.diff-filter-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById('diff-nav-bar').style.display = 'none';
-    // Mostrar todos los tokens
-    document.querySelectorAll('#diff-orig .tok-del, #diff-orig .tok-ref, #diff-orig .tok-add, #diff-orig .tok-igual').forEach(el=>{
-      el.classList.remove('tok-hidden');
-    });
-    aplicarVisibilidadFiltro(null);
+    if(layout) layout.style.display = '';
+    if(lista)  lista.style.display = 'none';
     return;
   }
+
   diffFiltroActivo = tipo;
-  // Resaltar botón activo
   document.querySelectorAll('.diff-filter-btn').forEach(b=>b.classList.remove('active'));
   const btnId = {borrado:'flt-borrado', reformateado:'flt-reformateado', agregado:'flt-agregado'}[tipo];
   if(btnId) document.getElementById(btnId)?.classList.add('active');
-  // Construir índice de tokens del tipo filtrado
-  diffNavIndices = diffTokens
-    .map((t,i)=>({t,i}))
-    .filter(({t})=>t.tipo===tipo)
-    .map(({i})=>i);
-  diffNavPos = diffNavIndices.length > 0 ? 0 : -1;
-  // Aplicar visibilidad
-  aplicarVisibilidadFiltro(tipo);
-  document.getElementById('diff-nav-bar').style.display = 'flex';
-  actualizarNavInfo();
-  if(diffNavPos >= 0) scrollACambio(diffNavIndices[diffNavPos]);
-}
 
-function aplicarVisibilidadFiltro(tipo){
-  // En columna original: ocultar tokens que no son del tipo filtrado (excepto iguales que dan contexto)
-  const orig = document.getElementById('diff-orig');
-  if(!orig) return;
-  if(!tipo){
-    orig.querySelectorAll('.tok-hidden').forEach(el=>el.classList.remove('tok-hidden'));
-    return;
+  // Construir grupos de tokens contiguos del mismo tipo (agrupar saltos/espacios juntos)
+  const grupos = [];
+  let grupoActual = null;
+  diffTokens.forEach((tok, idx) => {
+    if(tok.tipo === tipo){
+      if(!grupoActual){
+        grupoActual = {indices:[idx], art: tok.art||''};
+        grupos.push(grupoActual);
+      } else {
+        grupoActual.indices.push(idx);
+        if(tok.art) grupoActual.art = tok.art;
+      }
+    } else {
+      grupoActual = null;
+    }
+  });
+
+  diffNavIndices = grupos.map((_,i)=>i);
+  diffNavPos = grupos.length > 0 ? 0 : -1;
+
+  // Renderizar lista de resultados
+  const claseHit = {borrado:'diff-hit-del', reformateado:'diff-hit-ref', agregado:'diff-hit-add'};
+  const CTX = 120; // chars de contexto antes/después
+
+  let cardsHtml = '';
+  grupos.forEach((grupo, gi) => {
+    const primerIdx = grupo.indices[0];
+    const ultimoIdx = grupo.indices[grupo.indices.length-1];
+
+    // Contexto: tokens igual anteriores
+    let ctxAntes = '';
+    for(let k = primerIdx-1; k >= Math.max(0, primerIdx-15); k--){
+      ctxAntes = escHtml(diffTokens[k].texto) + ctxAntes;
+      if(ctxAntes.length > CTX) break;
+    }
+    if(ctxAntes.length > CTX) ctxAntes = '…' + ctxAntes.slice(-CTX);
+
+    // Contenido del hit (todos los tokens del grupo)
+    let hitHtml = '';
+    grupo.indices.forEach(idx => {
+      const t = diffTokens[idx];
+      const txt = escHtml(t.texto);
+      // Mostrar espacios y saltos como símbolo visible
+      const vis = txt.replace(/ /g,'·').replace(/\n/g,'↵\n');
+      hitHtml += `<span class="${claseHit[tipo]}">${vis}</span>`;
+    });
+
+    // Contexto: tokens igual posteriores
+    let ctxDespues = '';
+    for(let k = ultimoIdx+1; k <= Math.min(diffTokens.length-1, ultimoIdx+15); k++){
+      ctxDespues += escHtml(diffTokens[k].texto);
+      if(ctxDespues.length > CTX) break;
+    }
+    if(ctxDespues.length > CTX) ctxDespues = ctxDespues.slice(0, CTX) + '…';
+
+    const artLabel = grupo.art ? `<span class="diff-result-art">${escHtml(grupo.art)}</span>` : '<span class="diff-result-art" style="opacity:.4;">Preámbulo / Transitorios</span>';
+
+    cardsHtml += `<div class="diff-result-card" id="res-card-${gi}">
+      <div class="diff-result-header">
+        <span class="diff-result-num">#${gi+1} / ${grupos.length}</span>
+        ${artLabel}
+      </div>
+      <div class="diff-result-body"><span class="diff-ctx">${ctxAntes}</span>${hitHtml}<span class="diff-ctx">${ctxDespues}</span></div>
+    </div>`;
+  });
+
+  // Mostrar panel de resultados, ocultar layout normal
+  if(layout) layout.style.display = 'none';
+  if(lista){
+    lista.style.display = '';
+    lista.innerHTML = `<div class="diff-results-list">${cardsHtml || '<div style="color:var(--text-faint);padding:20px;">Sin resultados</div>'}</div>`;
   }
-  // Ocultar todos los cambios que NO son del tipo activo
-  const clasesMostrar = {borrado:'.tok-del', reformateado:'.tok-ref', agregado:'.tok-add'};
-  const clasesOcultar = Object.entries(clasesMostrar)
-    .filter(([t])=>t!==tipo)
-    .map(([,c])=>c)
-    .join(',');
-  if(clasesOcultar) orig.querySelectorAll(clasesOcultar).forEach(el=>el.classList.add('tok-hidden'));
-  orig.querySelectorAll(clasesMostrar[tipo]).forEach(el=>el.classList.remove('tok-hidden'));
+
+  document.getElementById('diff-nav-bar').style.display = 'flex';
+  document.getElementById('nav-info').textContent = `${grupos.length} resultado(s)`;
+  document.getElementById('nav-prev').disabled = true;
+  document.getElementById('nav-next').disabled = grupos.length <= 1;
+  document.getElementById('nav-art').style.display = 'none';
 }
 
 function navegarCambio(dir){
   if(diffNavIndices.length === 0) return;
   diffNavPos = Math.max(0, Math.min(diffNavIndices.length-1, diffNavPos + dir));
-  actualizarNavInfo();
-  scrollACambio(diffNavIndices[diffNavPos]);
+  // Scroll a la tarjeta correspondiente
+  const card = document.getElementById(`res-card-${diffNavPos}`);
+  if(card) card.scrollIntoView({behavior:'smooth', block:'center'});
+  // Actualizar nav
+  const info = document.getElementById('nav-info');
+  if(info) info.textContent = `${diffNavPos+1} / ${diffNavIndices.length}`;
+  document.getElementById('nav-prev').disabled = diffNavPos <= 0;
+  document.getElementById('nav-next').disabled = diffNavPos >= diffNavIndices.length-1;
 }
 
 function actualizarNavInfo(){
   const info = document.getElementById('nav-info');
-  const art  = document.getElementById('nav-art');
-  const prev = document.getElementById('nav-prev');
-  const next = document.getElementById('nav-next');
-  if(!info) return;
-  const total = diffNavIndices.length;
-  info.textContent = total > 0 ? `${diffNavPos+1} / ${total}` : '0 resultados';
-  if(prev) prev.disabled = diffNavPos <= 0;
-  if(next) next.disabled = diffNavPos >= total-1;
-  // Mostrar artículo del token actual
-  if(art && diffNavPos >= 0 && diffNavIndices[diffNavPos] !== undefined){
-    const tok = diffTokens[diffNavIndices[diffNavPos]];
-    art.textContent = tok?.art ? tok.art : '';
-    art.style.display = tok?.art ? '' : 'none';
-  }
+  if(info && diffNavIndices.length > 0)
+    info.textContent = `${diffNavPos+1} / ${diffNavIndices.length}`;
 }
 
 function scrollACambio(tokenIdx){
   const tok = diffTokens[tokenIdx];
   if(!tok) return;
-  // Seleccionar el token y hacer scroll
   seleccionarToken(tok.id);
   setTimeout(()=>{
     const el = document.querySelector(`[data-tid="${tok.id}"]`);
