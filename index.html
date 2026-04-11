@@ -271,7 +271,7 @@ textarea:focus{border-color:var(--accent);}
 .diff-compare-table .warn{color:var(--warn);}
 .diff-compare-table .err{color:var(--err);}
 .diff-stats-bar{display:flex;gap:14px;flex-wrap:wrap;padding:7px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-family:'IBM Plex Mono',monospace;}
-.ds-del{color:var(--diff-del-text);}.ds-add{color:var(--diff-add-text);}.ds-neu{color:var(--text-faint);}.ds-ref{color:#f7c94f;}
+.ds-del{color:var(--diff-del-text);}.ds-add{color:var(--diff-add-text);}.ds-neu{color:var(--text-faint);}
 .diff-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;}
 .dtl{color:var(--text-faint);font-size:11px;font-family:'IBM Plex Mono',monospace;}
 .dab{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid transparent;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-weight:500;transition:all .15s;}
@@ -292,65 +292,6 @@ textarea:focus{border-color:var(--accent);}
 .tok-del.rest{text-decoration:none;opacity:1;background:var(--diff-add-bg);color:var(--diff-add-text);outline:none;}
 .tok-add{background:var(--diff-add-bg);color:var(--diff-add-text);border-radius:2px;padding:0 2px;}
 .tok-igual{color:var(--text-dim);}
-/* Sprint 1 — diff semántico */
-.tok-ref{background:#f7c94f22;color:#f7c94f;border-radius:2px;padding:0 2px;border-bottom:1px dashed #f7c94f;}
-.tok-ref:hover{opacity:1;outline:1px solid #f7c94f;}
-.tok-ref.sel{background:#f7c94f;color:#000;outline:none;}
-.ds-ref{color:#f7c94f;}
-
-/* Etapa de proceso */
-.etapa-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:4px 12px;border-radius:20px;
-  font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600;
-  border:1px solid;
-}
-.etapa-1{background:#1a2a3a;border-color:var(--accent);color:var(--accent);}
-.etapa-2{background:#1a3a2a;border-color:var(--ok);color:var(--ok);}
-
-/* Modal etapa */
-.etapa-modal{
-  position:fixed;inset:0;background:#00000099;z-index:500;
-  display:flex;align-items:center;justify-content:center;
-  backdrop-filter:blur(6px);
-}
-.etapa-modal.hidden{display:none;}
-.etapa-card{
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:12px;width:640px;max-height:80vh;overflow-y:auto;
-  padding:28px;box-shadow:0 20px 60px #00000066;
-}
-.etapa-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px;}
-.etapa-desc{font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;}
-.etapa-preview{
-  background:var(--bg);border:1px solid var(--border);border-radius:6px;
-  padding:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;
-  line-height:1.7;white-space:pre-wrap;word-break:break-word;
-  max-height:300px;overflow-y:auto;margin-bottom:16px;
-}
-.etapa-cambios{
-  display:flex;flex-direction:column;gap:6px;margin-bottom:16px;
-  max-height:200px;overflow-y:auto;
-}
-.etapa-cambio-item{
-  display:flex;align-items:flex-start;gap:8px;
-  padding:6px 10px;border-radius:6px;font-size:12px;
-}
-.etapa-cambio-item.ok  {background:var(--diff-add-bg);border-left:3px solid var(--ok);}
-.etapa-cambio-item.warn{background:#f7c94f11;border-left:3px solid #f7c94f;}
-.etapa-cambio-icon{font-size:13px;flex-shrink:0;}
-.etapa-cambio-txt{color:var(--text-dim);flex:1;line-height:1.4;}
-.etapa-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
-
-/* Reglas con contexto */
-.regla-contexto-opt{
-  display:flex;align-items:center;gap:8px;
-  padding:6px 10px;border:1px solid var(--border2);border-radius:6px;
-  cursor:pointer;transition:all .15s;margin-bottom:6px;
-}
-.regla-contexto-opt:hover{border-color:var(--accent);}
-.regla-contexto-opt.selected{border-color:var(--accent);background:var(--accent-dim);}
-.regla-contexto-opt input{accent-color:var(--accent);}
 
 /* ── LOG ── */
 .log-entry{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;}
@@ -451,44 +392,45 @@ textarea:focus{border-color:var(--accent);}
 .loading-bar.active{display:block;}
 @keyframes loading{0%{background-position:-200% 0}100%{background-position:200% 0}}
 ::-webkit-scrollbar{width:6px;height:6px;}
+/* Sprint 1 — diff semántico */
+.tok-ref{background:#f7c94f22;color:#f7c94f;border-radius:2px;padding:0 2px;border-bottom:1px dashed #f7c94f;}
+.tok-ref:hover{opacity:1;outline:1px solid #f7c94f;}
+.tok-ref.sel{background:#f7c94f;color:#000;outline:none;}
+.ds-ref{color:#f7c94f;}
+
+/* Etapa proceso */
+.etapa-modal{position:fixed;inset:0;background:#00000099;z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.etapa-modal.hidden{display:none;}
+.etapa-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:640px;max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px #00000066;}
+.etapa-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px;}
+.etapa-desc{font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;}
+.etapa-preview{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto;margin-bottom:16px;}
+.etapa-cambios{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;max-height:200px;overflow-y:auto;}
+.etapa-cambio-item{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-radius:6px;font-size:12px;}
+.etapa-cambio-item.ok{background:var(--diff-add-bg);border-left:3px solid var(--ok);}
+.etapa-cambio-item.warn{background:#f7c94f11;border-left:3px solid #f7c94f;}
+.etapa-cambio-icon{font-size:13px;flex-shrink:0;}
+.etapa-cambio-txt{color:var(--text-dim);flex:1;line-height:1.4;}
+.etapa-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
+
+/* Reglas con contexto */
+.regla-contexto-opt{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;transition:all .15s;margin-bottom:6px;}
+.regla-contexto-opt:hover{border-color:var(--accent);}
+.regla-contexto-opt.selected{border-color:var(--accent);background:var(--accent-dim);}
+.regla-contexto-opt input{accent-color:var(--accent);}
 
 /* Sprint 4-5 */
-.lumen-send-box{
-  background:var(--surface);border:2px solid var(--accent);
-  border-radius:10px;padding:20px;margin-bottom:14px;
-}
+.lumen-send-box{background:var(--surface);border:2px solid var(--accent);border-radius:10px;padding:20px;margin-bottom:14px;}
 .lumen-send-box h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:6px;color:var(--accent);}
 .lumen-send-box p{font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
-.lumen-send-result{
-  background:var(--diff-add-bg);border:1px solid var(--ok);
-  border-radius:6px;padding:12px 14px;font-size:12px;
-  color:var(--diff-add-text);margin-top:10px;display:none;
-}
+.lumen-send-result{background:var(--diff-add-bg);border:1px solid var(--ok);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--diff-add-text);margin-top:10px;display:none;}
 .lumen-send-result.visible{display:block;}
-
 .temas-container{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.tema-tag{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:4px 10px;border-radius:20px;
-  font-size:11px;font-family:'IBM Plex Mono',monospace;
-  background:var(--accent-dim);border:1px solid var(--accent);
-  color:var(--accent);cursor:default;
-}
+.tema-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-family:'IBM Plex Mono',monospace;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);}
 .tema-tag .tema-remove{cursor:pointer;color:var(--text-faint);font-size:13px;}
 .tema-tag .tema-remove:hover{color:#f87171;}
+.ds-ref{color:#f7c94f;}
 
-.vis-selector{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
-.vis-btn{
-  padding:3px 10px;border-radius:20px;border:1px solid var(--border2);
-  background:transparent;color:var(--text-dim);font-size:11px;
-  cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;
-}
-.vis-btn:hover{border-color:var(--accent);color:var(--accent);}
-.vis-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.vis-1.active{background:#34c98a;border-color:#34c98a;}
-.vis-2.active{background:#4f8ef7;border-color:#4f8ef7;}
-.vis-3.active{background:#f7c94f;border-color:#f7c94f;color:#000;}
-.vis-4.active{background:#f87171;border-color:#f87171;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 #json-view{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;white-space:pre;color:var(--text-dim);overflow-x:auto;}
@@ -724,34 +666,24 @@ textarea:focus{border-color:var(--accent);}
       </div>
     </div>
 
+    <div class="modal-footer">
+
     <div class="form-group" style="margin-top:14px;">
       <label class="form-label">Contexto de aplicación</label>
-      <p style="font-size:11px;color:var(--text-faint);margin-bottom:8px;line-height:1.5;">
-        Define en qué contexto debe aplicarse esta regla para evitar eliminar texto válido dentro de artículos.
-      </p>
+      <p style="font-size:11px;color:var(--text-faint);margin-bottom:8px;line-height:1.5;">Define cuándo aplica esta regla para proteger el texto de artículos.</p>
       <label class="regla-contexto-opt selected" id="ctx-linea-sola">
         <input type="radio" name="ctx" value="linea_sola" checked>
-        <div>
-          <div style="font-size:12px;color:var(--text);">Solo en línea sola</div>
-          <div style="font-size:11px;color:var(--text-faint);">Solo elimina si el patrón es toda la línea (más seguro)</div>
-        </div>
+        <div><div style="font-size:12px;color:var(--text);">Solo en línea sola (más seguro)</div><div style="font-size:11px;color:var(--text-faint);">Solo elimina si el patrón ocupa toda la línea</div></div>
       </label>
       <label class="regla-contexto-opt" id="ctx-inicio-linea">
         <input type="radio" name="ctx" value="inicio_linea">
-        <div>
-          <div style="font-size:12px;color:var(--text);">Al inicio de línea</div>
-          <div style="font-size:11px;color:var(--text-faint);">Elimina si el patrón aparece al inicio de una línea</div>
-        </div>
+        <div><div style="font-size:12px;color:var(--text);">Al inicio de línea</div><div style="font-size:11px;color:var(--text-faint);">Elimina si el patrón aparece al inicio</div></div>
       </label>
       <label class="regla-contexto-opt" id="ctx-cualquier-pos">
         <input type="radio" name="ctx" value="cualquier_posicion">
-        <div>
-          <div style="font-size:12px;color:var(--text);">En cualquier posición</div>
-          <div style="font-size:11px;color:var(--text-faint);">⚠ Puede afectar texto dentro de artículos — usar con cuidado</div>
-        </div>
+        <div><div style="font-size:12px;color:var(--text);">En cualquier posición ⚠</div><div style="font-size:11px;color:var(--text-faint);">Puede afectar texto dentro de artículos</div></div>
       </label>
     </div>
-    <div class="modal-footer">
       <button class="btn btn-danger" onclick="cerrarModalRegla()">Cancelar</button>
       <button class="btn btn-success" onclick="guardarRegla()">📌 Guardar regla en perfil</button>
     </div>
@@ -767,9 +699,11 @@ let state={
   tabActiva:'vista',perfiles:[],perfilActivo:null,editandoId:null,
   resaltados:[],problemasResueltos:new Set(),snapshots:[],
   tokensRestaurados:new Set(),log:[],hashActual:'',aprobado:false,
-  banco:[],           // fragmentos eliminados recuperables
-  introSubsecciones:[], // subsecciones de la introducción
-  temasGenerados:[]    // E3: temas generados con IA
+  banco:[],
+  introSubsecciones:[],
+  temasGenerados:[],
+  hashActual:'',
+  aprobado:false
 };
 let tagsTemp={ruido:[],trans:[]};
 let catsTemp=[];
@@ -1112,21 +1046,7 @@ function abrirModalRegla(){
   document.getElementById('modal-regla').classList.remove('hidden');
 }
 
-function cerrarModalRegla(){
-  document.getElementById('modal-regla').classList.add('hidden');
-}
-
-// Interactividad radio buttons contexto
-document.addEventListener('change', e=>{
-  if(e.target.name==='ctx'){
-    document.querySelectorAll('.regla-contexto-opt').forEach(o=>o.classList.remove('selected'));
-    e.target.closest('.regla-contexto-opt')?.classList.add('selected');
-  }
-  if(e.target.name==='metodo'){
-    document.querySelectorAll('.metodo-opt').forEach(o=>o.classList.remove('selected'));
-    e.target.closest('.metodo-opt')?.classList.add('selected');
-  }
-});
+function cerrarModalRegla(){document.getElementById('modal-regla').classList.add('hidden');}
 
 async function guardarRegla(){
   if(!state.perfilActivo){toast('Sin perfil activo','error');return;}
@@ -1420,206 +1340,41 @@ async function extraerTextoDocx(file){return(await mammoth.extractRawText({array
 
 
 // ══ LIMPIEZA ═════════════════════════════════════════════════════
-// ══ SPRINT 1 — PROCESO EN DOS ETAPAS ════════════════════════════
+function limpiarTextoConLog(texto,perfil){
+  const orig=texto;
+  if(perfil?.ruido?.length)
+    for(const p of perfil.ruido)
+      try{const antes=texto.length;texto=texto.replace(new RegExp(escapeRegex(p),'gi'),'');
+        if(texto.length<antes)logOk('Ruido eliminado',`"${p.slice(0,50)}"`,`−${antes-texto.length}`);}catch(e){}
 
-/**
- * ETAPA 1: Limpieza estructural — solo elimina ruido obvio.
- * NO toca párrafos de artículos. Solo líneas solas o encabezados.
- * Devuelve {texto, cambios[]}
- */
-function etapa1_LimpiezaEstructural(texto, perfil){
-  const cambios=[];
-  let t=texto;
-
-  // Sellos digitales (siempre seguros — nunca están en artículos)
-  const anteSello=t.length;
-  t=t.replace(/[A-Za-z0-9+/]{40,}={0,2}/g,'');
-  if(anteSello-t.length>0)
-    cambios.push({tipo:'ok',msg:'Sellos digitales eliminados',detalle:`−${anteSello-t.length} caracteres`});
-
-  // Números de página solos en línea (solo si la línea ES el número)
-  const numPags=(t.match(/^\s*\d{1,4}\s*$/gm)||[]).length;
-  t=t.replace(/^\s*\d{1,4}\s*$/gm,'');
-  if(numPags>0)
-    cambios.push({tipo:'ok',msg:`${numPags} número(s) de página eliminados`,detalle:'Líneas que solo contenían un número'});
-
-  // Ruido del perfil — con contexto de aplicación
-  if(perfil?.ruido?.length){
-    for(const p of perfil.ruido){
-      try{
-        // Solo aplica si la línea ES el patrón (modo seguro por defecto)
-        const re=new RegExp(`^\s*${escapeRegex(p)}\s*$`,'gim');
-        const antes=t.length;
-        t=t.replace(re,'');
-        if(t.length<antes)
-          cambios.push({tipo:'ok',msg:`Ruido eliminado: "${p.slice(0,40)}"`,detalle:`−${antes-t.length} chars (línea sola)`});
-      }catch(e){}
-    }
-  }
-
-  // Reglas del perfil — respetando contexto de aplicación
+  // Aplicar reglas de tipo pie_pagina del perfil
   if(perfil?.reglas?.length){
-    for(const regla of perfil.reglas){
-      if(regla.tipo!=='pie_pagina') continue;
-      try{
-        const ctx=regla.contextoAplicacion||'linea_sola';
-        let re;
-        if(ctx==='linea_sola')
-          re=new RegExp(`^\s*${escapeRegex(regla.patron)}.*$`,'gim');
-        else if(ctx==='inicio_linea')
-          re=new RegExp(`^\s*${escapeRegex(regla.patron)}`,'gim');
-        else
-          re=new RegExp(escapeRegex(regla.patron),'gi');
-        const antes=t.length;
-        t=t.replace(re,'');
-        if(t.length<antes)
-          cambios.push({tipo:'ok',msg:`Regla aplicada: "${regla.nombre}"`,detalle:`ctx:${ctx} −${antes-t.length} chars`});
-      }catch(e){}
-    }
+    texto=aplicarReglasPerfil(texto,perfil);
+    const reglasApp=perfil.reglas.filter(r=>r.tipo==='pie_pagina');
+    if(reglasApp.length)logOk('Reglas de perfil aplicadas',`${reglasApp.length} regla(s) de ruido ejecutadas`,`×${reglasApp.length}`);
   }
 
-  // Limpiar líneas vacías múltiples generadas
-  t=t.replace(/
-{3,}/g,'
+  const anteSello=texto.length;
+  texto=texto.replace(/[A-Za-z0-9+/]{40,}={0,2}/g,'');
+  if(anteSello-texto.length>0)logOk('Sellos eliminados','Cadenas base64',`−${anteSello-texto.length}`);
 
-');
+  const numPags=(texto.match(/^\s*\d{1,4}\s*$/gm)||[]).length;
+  texto=texto.replace(/^\s*\d{1,4}\s*$/gm,'');
+  if(numPags>0)logOk('Números de página',`${numPags} líneas`,`×${numPags}`);
 
-  // Verificar integridad de artículos
-  const extraer=tx=>[...tx.matchAll(/Artículo\s+(\d+)/gi)].map(m=>parseInt(m[1]));
-  const artOrig=new Set(extraer(texto));
-  const artLimp=new Set(extraer(t));
-  const faltantes=[...artOrig].filter(n=>!artLimp.has(n));
-  if(faltantes.length>0)
-    cambios.push({tipo:'warn',msg:`⚠ Artículos posiblemente afectados`,detalle:`Revisar: ${faltantes.slice(0,5).join(', ')}`});
-  else
-    cambios.push({tipo:'ok',msg:'Integridad de artículos: OK',detalle:`${artLimp.size} artículos presentes`});
+  const saltosFixed=(texto.match(/([^.\n])\n(?!\n)/g)||[]).length;
+  texto=texto.replace(/([^.\n])\n(?!\n)/g,'$1 ');
+  if(saltosFixed>0)logInfo('Saltos normalizados',`${saltosFixed} saltos`,`×${saltosFixed}`);
 
-  return {texto:t.trim(), cambios};
+  texto=texto.replace(/[ \t]{2,}/g,' ').replace(/\n{3,}/g,'\n\n');
+
+  const perdidos=contarPalabras(orig)-contarPalabras(texto);
+  if(perdidos>10)logWarn('Diferencia de palabras significativa',`~${perdidos} palabras`,`Δ${perdidos}`);
+  else logOk('Integridad conservada',`Diferencia mínima`,`Δ${perdidos}`);
+
+  return texto.trim();
 }
-
-/**
- * ETAPA 2: Normalización de formato — solo toca la presentación.
- * El contenido ya fue validado en Etapa 1.
- */
-function etapa2_NormalizacionFormato(texto){
-  let t=texto;
-  const cambios=[];
-
-  const saltosFixed=(t.match(/([^.
-])
-(?!
-)/g)||[]).length;
-  t=t.replace(/([^.
-])
-(?!
-)/g,'$1 ');
-  if(saltosFixed>0)
-    cambios.push({tipo:'ok',msg:'Saltos de línea normalizados',detalle:`${saltosFixed} saltos dentro de párrafos convertidos a espacio`});
-
-  const antEsp=t.length;
-  t=t.replace(/[ 	]{2,}/g,' ');
-  if(antEsp-t.length>0)
-    cambios.push({tipo:'ok',msg:'Espacios múltiples normalizados',detalle:`−${antEsp-t.length} chars`});
-
-  t=t.replace(/
-{3,}/g,'
-
-');
-
-  const perdidos=contarPalabras(texto)-contarPalabras(t);
-  if(perdidos>10)
-    cambios.push({tipo:'warn',msg:`Diferencia de palabras: ${perdidos}`,detalle:'Revisar si es normal para este documento'});
-  else
-    cambios.push({tipo:'ok',msg:'Integridad de palabras conservada',detalle:`Diferencia: ${perdidos} palabras`});
-
-  return {texto:t.trim(), cambios};
-}
-
-// Estado de las etapas
-let etapaState={
-  textoPost1:'',  // texto después de etapa 1
-  cambios1:[],
-  cambios2:[]
-};
-
-function mostrarEtapa1(texto, perfil){
-  const resultado=etapa1_LimpiezaEstructural(texto, perfil);
-  etapaState.textoPost1=resultado.texto;
-  etapaState.cambios1=resultado.cambios;
-
-  // Poblar modal
-  const listaCambios=document.getElementById('etapa1-cambios');
-  listaCambios.innerHTML=resultado.cambios.map(c=>`
-    <div class="etapa-cambio-item ${c.tipo}">
-      <span class="etapa-cambio-icon">${c.tipo==='ok'?'✅':'⚠️'}</span>
-      <div class="etapa-cambio-txt">
-        <strong>${escHtml(c.msg)}</strong>
-        <div style="font-size:11px;margin-top:2px;">${escHtml(c.detalle)}</div>
-      </div>
-    </div>`).join('');
-
-  document.getElementById('etapa1-preview').textContent=
-    resultado.texto.slice(0,2000)+(resultado.texto.length>2000?'
-[... continúa ...]':'');
-
-  document.getElementById('modal-etapa1').classList.remove('hidden');
-}
-
-function cancelarEtapa1(){
-  document.getElementById('modal-etapa1').classList.add('hidden');
-  setLoading(false);
-  toast('Proceso cancelado','success');
-}
-
-function ajustarReglasDesdeEtapa1(){
-  document.getElementById('modal-etapa1').classList.add('hidden');
-  setLoading(false);
-  editarPerfilActual();
-  toast('Ajusta las reglas y vuelve a procesar','success');
-}
-
-async function aprobarEtapa1(){
-  document.getElementById('modal-etapa1').classList.add('hidden');
-  logOk('Etapa 1 aprobada',`${etapaState.cambios1.length} operaciones`,
-    etapaState.cambios1.filter(c=>c.tipo==='ok').length+' OK');
-
-  // Ejecutar Etapa 2
-  const resultado2=etapa2_NormalizacionFormato(etapaState.textoPost1);
-  etapaState.cambios2=resultado2.cambios;
-  resultado2.cambios.forEach(c=>{
-    if(c.tipo==='ok')logOk('Etapa 2: '+c.msg,c.detalle,'');
-    else logWarn('Etapa 2: '+c.msg,c.detalle,'');
-  });
-
-  // Continuar con el proceso normal
-  await finalizarProcesado(resultado2.texto);
-}
-
-async function finalizarProcesado(textoLimpio){
-  try{
-    state.textoLimpio=textoLimpio;
-    verificarArticulos(state.textoOriginal, state.textoLimpio);
-    state.estructura=parsear(state.textoLimpio,state.perfilActivo);
-    state.problemas=detectarProblemas(state.estructura);
-    const arts=state.estructura.filter(e=>e.tipo==='articulo').length;
-    const fracs=state.estructura.reduce((n,a)=>n+(a.fracciones?.length||0),0);
-    logInfo('Parseo',`${arts} artículos, ${fracs} fracciones`,`${arts} arts`);
-    if(state.problemas.length)logWarn('Problemas',`${state.problemas.length} artículo(s)`,`×${state.problemas.length}`);
-    else logOk('Sin problemas','Estructura detectada correctamente','✓');
-    state.hashActual=await calcularHash(state.textoLimpio);
-    logInfo('Hash',`SHA-256: ${state.hashActual.slice(0,16)}...`,'');
-    actualizarStats();renderVista();renderDiff();renderEstructura();renderJSON();renderProblemas();renderLog();
-    document.getElementById('stats-section').style.display='block';
-    mostrarEstado(`${arts} artículos${state.perfilActivo?' · '+state.perfilActivo.nombre:''}`);
-    toast('Documento procesado — 2 etapas completadas','success');
-  }catch(e){
-    toast('Error: '+e.message,'error');logErr('Error en finalización',e.message);
-  }finally{
-    setLoading(false);
-  }
-}
-
-function contarPalabras(t){return(t.match(/[a-záéíóúüñA-ZÁÉÍÓÚÜÑA-Z]{2,}/g)||[]).length;}
+function contarPalabras(t){return(t.match(/\b[a-záéíóúüñA-ZÁÉÍÓÚÜÑA-Z]{2,}\b/g)||[]).length;}
 function escapeRegex(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 
 
@@ -1634,82 +1389,21 @@ function verificarArticulos(orig,limpio){
 }
 
 
-// ══ DIFF SEMÁNTICO — Sprint 1 ═══════════════════════════════════
-/**
- * Diff semántico: compara palabras significativas.
- * - ROJO: palabra que realmente desapareció del limpio
- * - AMARILLO (reformateado): palabra que cambió de contexto/posición
- * - VERDE: palabra nueva en el limpio
- * - GRIS: igual
- * Actualiza en tiempo real cuando se restaura un token.
- */
-function calcularDiffSemantico(orig, limp){
-  // Tokenizar preservando posición
-  const tokenizar = txt => {
-    const tokens = [];
-    const re = /([^\s]+)|(\s+)/g;
-    let m;
-    while((m=re.exec(txt))!==null){
-      tokens.push({
-        texto: m[0],
-        esPalabra: !!m[1],
-        id: 't'+tokens.length
-      });
-    }
-    return tokens;
-  };
-
-  const tokA = tokenizar(orig);
-  const tokB = tokenizar(limp);
-
-  // Solo palabras significativas para LCS
-  const palabrasA = tokA.filter(t=>t.esPalabra).map(t=>t.texto.toLowerCase());
-  const palabrasB = tokB.filter(t=>t.esPalabra).map(t=>t.texto.toLowerCase());
-
-  // LCS por líneas para eficiencia (documentos grandes)
-  const lineasA = orig.split('\n');
-  const lineasB = limp.split('\n');
-  const lm = lineasA.length, ln = lineasB.length;
-  const ldp = Array.from({length:lm+1},()=>new Int32Array(ln+1));
-  for(let i=lm-1;i>=0;i--)
-    for(let j=ln-1;j>=0;j--)
-      ldp[i][j]=lineasA[i]===lineasB[j]?ldp[i+1][j+1]+1:Math.max(ldp[i+1][j],ldp[i][j+1]);
-
-  // Construir resultado con clasificación semántica
-  const resultado = [];
-  let i=0,j=0;
-  const tok = t => t.match(/[^\s]+|\s+/g)||[];
-
+// ══ DIFF ═════════════════════════════════════════════════════════
+function calcularDiffTokens(orig,limp){
+  const lineasA=orig.split('\n'),lineasB=limp.split('\n');
+  const tokens=[];
+  const lm=lineasA.length,ln=lineasB.length;
+  const ldp=Array.from({length:lm+1},()=>new Int32Array(ln+1));
+  for(let i=lm-1;i>=0;i--)for(let j=ln-1;j>=0;j--)
+    ldp[i][j]=lineasA[i]===lineasB[j]?ldp[i+1][j+1]+1:Math.max(ldp[i+1][j],ldp[i][j+1]);
+  let i=0,j=0;const tok=t=>t.match(/[^\s]+|\s+/g)||[];
   while(i<lm||j<ln){
-    if(i<lm&&j<ln&&lineasA[i]===lineasB[j]){
-      // Líneas idénticas — igual
-      for(const p of tok(lineasA[i]+'\n'))
-        resultado.push({tipo:'igual',texto:p,id:'t'+resultado.length});
-      i++;j++;
-    } else if(j<ln&&(i>=lm||ldp[i][j+1]>=ldp[i+1][j])){
-      // Línea en limpio pero no en original — agregado
-      resultado.push({tipo:'agregado',texto:lineasB[j]+'\n',id:'t'+resultado.length});
-      j++;
-    } else {
-      // Línea en original pero no en limpio
-      // Determinar si es eliminado real o reformateado
-      const lineaOrig = lineasA[i];
-      const palabrasLinea = lineaOrig.match(/[a-záéíóúüña-z]{3,}/gi)||[];
-      const encontradas = palabrasLinea.filter(p=>
-        palabrasB.includes(p.toLowerCase())
-      ).length;
-      const pct = palabrasLinea.length>0 ? encontradas/palabrasLinea.length : 0;
-
-      // Si >60% de las palabras están en el limpio = reformateado (amarillo)
-      // Si <60% = eliminado real (rojo)
-      const tipo = pct > 0.6 ? 'reformateado' : 'borrado';
-
-      for(const p of tok(lineaOrig+'\n'))
-        resultado.push({tipo,texto:p,id:'t'+resultado.length});
-      i++;
-    }
+    if(i<lm&&j<ln&&lineasA[i]===lineasB[j]){for(const p of tok(lineasA[i]+'\n'))tokens.push({tipo:'igual',texto:p,id:'t'+tokens.length});i++;j++;}
+    else if(j<ln&&(i>=lm||ldp[i][j+1]>=ldp[i+1][j])){tokens.push({tipo:'agregado',texto:lineasB[j]+'\n',id:'t'+tokens.length});j++;}
+    else{for(const p of tok(lineasA[i]+'\n'))tokens.push({tipo:'borrado',texto:p,id:'t'+tokens.length});i++;}
   }
-  return resultado;
+  return tokens;
 }
 
 function renderDiff(){
@@ -1719,45 +1413,26 @@ function renderDiff(){
   }
   diffTokens=calcularDiffSemantico(state.textoOriginal,state.textoLimpio);
   state.tokensRestaurados=new Set();tokenSeleccionado=null;
-
   const pO=contarPalabras(state.textoOriginal),pL=contarPalabras(state.textoLimpio);
   const cO=state.textoOriginal.length,cL=state.textoLimpio.length;
-  const eO=(state.textoOriginal.match(/ /g)||[]).length;
-  const eL=(state.textoLimpio.match(/ /g)||[]).length;
+  const eO=(state.textoOriginal.match(/ /g)||[]).length,eL=(state.textoLimpio.match(/ /g)||[]).length;
   const dP=pL-pO,dC=cL-cO,dE=eL-eO;
   const pct=pO>0?(Math.abs(dP)/pO*100).toFixed(1):0;
   const clP=Math.abs(dP)<50?'ok':Math.abs(dP)<200?'warn':'err';
-
-  let hO='',hL='';
-  let borrados=0,reformateados=0,agregados=0;
-
+  let hO='',hL='',borrados=0,reformateados=0,agregados=0;
   for(const tok of diffTokens){
     const t=escHtml(tok.texto);
-    if(tok.tipo==='igual'){
-      hO+=`<span class="tok-igual">${t}</span>`;
-      hL+=`<span class="tok-igual">${t}</span>`;
-    } else if(tok.tipo==='borrado'){
-      hO+=`<span class="tok-del" data-tid="${tok.id}" data-tipo="borrado" onclick="seleccionarToken('${tok.id}')">${t}</span>`;
-      borrados++;
-    } else if(tok.tipo==='reformateado'){
-      hO+=`<span class="tok-ref" data-tid="${tok.id}" data-tipo="reformateado" onclick="seleccionarToken('${tok.id}')">${t}</span>`;
-      reformateados++;
-    } else if(tok.tipo==='agregado'){
-      hL+=`<span class="tok-add">${t}</span>`;
-      agregados++;
-    } else if(tok.tipo==='restaurado'){
-      hO+=`<span class="tok-del rest" data-tid="${tok.id}">${t}</span>`;
-      hL+=`<span class="tok-add">${t}</span>`;
-    }
+    if(tok.tipo==='igual'){hO+=`<span class="tok-igual">${t}</span>`;hL+=`<span class="tok-igual">${t}</span>`;}
+    else if(tok.tipo==='borrado'){hO+=`<span class="tok-del" data-tid="${tok.id}" onclick="seleccionarToken('${tok.id}')">${t}</span>`;borrados++;}
+    else if(tok.tipo==='reformateado'){hO+=`<span class="tok-ref" data-tid="${tok.id}" onclick="seleccionarToken('${tok.id}')">${t}</span>`;reformateados++;}
+    else if(tok.tipo==='agregado'){hL+=`<span class="tok-add">${t}</span>`;agregados++;}
+    else if(tok.tipo==='restaurado'){hL+=`<span class="tok-add">${t}</span>`;}
   }
-
   el.innerHTML=`
-    <div class="diff-hint">
-      💡
+    <div class="diff-hint">💡
       <span style="color:var(--diff-del-text);font-weight:600;">■ Rojo</span> = eliminado real &nbsp;|&nbsp;
-      <span style="color:#f7c94f;font-weight:600;">■ Amarillo</span> = reformateado (mismo contenido, diferente forma) &nbsp;|&nbsp;
+      <span style="color:#f7c94f;font-weight:600;">■ Amarillo</span> = reformateado (mismo contenido) &nbsp;|&nbsp;
       <span style="color:var(--diff-add-text);font-weight:600;">■ Verde</span> = agregado
-      &nbsp;&nbsp; Haz clic en cualquier fragmento marcado para gestionarlo.
     </div>
     <table class="diff-compare-table" style="margin:14px;width:calc(100% - 28px);">
       <tr><th></th><th>Palabras</th><th>Caracteres</th><th>Espacios</th></tr>
@@ -1769,7 +1444,7 @@ function renderDiff(){
       </tr>
     </table>
     <div class="diff-stats-bar">
-      <span class="ds-del">🔴 ${borrados} eliminado(s) real(es)</span>
+      <span class="ds-del">🔴 ${borrados} eliminado(s)</span>
       <span class="ds-ref">🟡 ${reformateados} reformateado(s)</span>
       <span class="ds-add">🟢 ${agregados} agregado(s)</span>
       <span class="ds-neu" id="diff-rest-count"></span>
@@ -1778,104 +1453,56 @@ function renderDiff(){
       <span class="dtl">Seleccionado:</span>
       <span id="diff-sel-preview" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);background:var(--surface2);padding:3px 8px;border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">— ninguno —</span>
       <span id="diff-sel-tipo" style="font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;"></span>
-      <button class="dab dab-restore" id="dab-restore" onclick="restaurarToken()" disabled>↩ Restaurar en limpio</button>
-      <button class="dab dab-remove"  id="dab-remove"  onclick="confirmarEliminacion()" disabled>✕ Confirmar eliminación</button>
-      <button class="dab dab-keep"    onclick="deseleccionarToken()" style="margin-left:auto;">Deseleccionar</button>
+      <button class="dab dab-restore" id="dab-restore" onclick="restaurarToken()" disabled>↩ Restaurar</button>
+      <button class="dab dab-remove" id="dab-remove" onclick="confirmarEliminacion()" disabled>✕ Eliminar</button>
+      <button class="dab dab-keep" onclick="deseleccionarToken()" style="margin-left:auto;">Deseleccionar</button>
     </div>
     <div class="diff-layout">
-      <div class="diff-col-wrap">
-        <div class="diff-col-header orig">ORIGINAL — lo que había</div>
-        <div class="diff-col-body" id="diff-orig">${hO}</div>
-      </div>
-      <div class="diff-col-wrap">
-        <div class="diff-col-header limp">LIMPIO — lo que quedó (tiempo real)</div>
-        <div class="diff-col-body" id="diff-limp">${hL}</div>
-      </div>
+      <div class="diff-col-wrap"><div class="diff-col-header orig">ORIGINAL</div><div class="diff-col-body" id="diff-orig">${hO}</div></div>
+      <div class="diff-col-wrap"><div class="diff-col-header limp">LIMPIO (tiempo real)</div><div class="diff-col-body" id="diff-limp">${hL}</div></div>
     </div>`;
-
   const tC=document.getElementById('tab-cambios');
-  if(borrados>0){tC.textContent=`Cambios (${borrados} elim.)`;tC.style.color='#f7c94f';}
-  else if(reformateados>0){tC.textContent=`Cambios (${reformateados} ref.)`;tC.style.color='#f7c94f';}
+  if(borrados>0){tC.textContent=`Cambios (${borrados})`;tC.style.color='#f7c94f';}
   else{tC.textContent='Cambios ✓';tC.style.color='var(--frac)';}
 }
 
+
 function seleccionarToken(tid){
-  if(tokenSeleccionado)
-    document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
+  if(tokenSeleccionado)document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
   tokenSeleccionado=tid;
   document.querySelectorAll(`[data-tid="${tid}"]`).forEach(el=>el.classList.add('sel'));
   const tok=diffTokens.find(t=>t.id===tid);
   const prev=document.getElementById('diff-sel-preview');
   const tipoEl=document.getElementById('diff-sel-tipo');
   if(prev&&tok)prev.textContent=`"${tok.texto.trim().slice(0,35)}"`;
-  if(tipoEl&&tok){
-    const labels={borrado:'🔴 Eliminado real',reformateado:'🟡 Reformateado'};
-    tipoEl.textContent=labels[tok.tipo]||tok.tipo;
-  }
+  if(tipoEl&&tok){const lb={borrado:'🔴 Eliminado',reformateado:'🟡 Reformateado'};tipoEl.textContent=lb[tok.tipo]||tok.tipo;}
   document.getElementById('dab-restore').disabled=false;
   document.getElementById('dab-remove').disabled=false;
 }
-
 function deseleccionarToken(){
-  if(tokenSeleccionado)
-    document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
+  if(tokenSeleccionado)document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
   tokenSeleccionado=null;
   document.getElementById('dab-restore').disabled=true;
   document.getElementById('dab-remove').disabled=true;
   const p=document.getElementById('diff-sel-preview');if(p)p.textContent='— ninguno —';
-  const t=document.getElementById('diff-sel-tipo');if(t)t.textContent='';
 }
-
 function restaurarToken(){
   if(!tokenSeleccionado)return;
   const tok=diffTokens.find(t=>t.id===tokenSeleccionado);if(!tok)return;
-  state.tokensRestaurados.add(tokenSeleccionado);
-  tok.tipo='restaurado';
-
-  // Actualizar visual en original
-  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{
-    el.classList.remove('sel','tok-del','tok-ref');
-    el.classList.add('rest');
-    el.style.textDecoration='none';
-  });
-
-  // Actualizar columna LIMPIO en tiempo real
+  state.tokensRestaurados.add(tokenSeleccionado);tok.tipo='restaurado';
+  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{el.classList.remove('sel');el.classList.add('rest');});
   actualizarColumnaLimpio();
-
-  reconstruirTextoLimpio();
-  deseleccionarToken();
-  const el=document.getElementById('diff-rest-count');
-  if(el)el.textContent=`↩ ${state.tokensRestaurados.size} restaurado(s)`;
-  toast('Fragmento restaurado en texto limpio','success');
+  reconstruirTextoLimpio();deseleccionarToken();
+  const el=document.getElementById('diff-rest-count');if(el)el.textContent=`↩ ${state.tokensRestaurados.size} restaurado(s)`;
+  toast('Fragmento restaurado','success');
 }
-
-function actualizarColumnaLimpio(){
-  // Reconstruir columna limpio desde los tokens actuales
-  let hL='';
-  for(const tok of diffTokens){
-    const t=escHtml(tok.texto);
-    if(tok.tipo==='igual')   hL+=`<span class="tok-igual">${t}</span>`;
-    else if(tok.tipo==='agregado') hL+=`<span class="tok-add">${t}</span>`;
-    else if(tok.tipo==='restaurado') hL+=`<span class="tok-add">${t}</span>`;
-    // borrado y reformateado no aparecen en limpio
-  }
-  const col=document.getElementById('diff-limp');
-  if(col)col.innerHTML=hL;
-}
-
 function confirmarEliminacion(){
   if(!tokenSeleccionado)return;
-  const tok=diffTokens.find(t=>t.id===tokenSeleccionado);
-  const tipo=tok?.tipo==='reformateado'?'reformateado':'eliminado';
-  if(!confirm(`¿Confirmas que este fragmento ${tipo} debe excluirse definitivamente del texto limpio?`))return;
-  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{
-    el.style.opacity='.15';el.style.pointerEvents='none';el.classList.remove('sel');
-  });
-  if(tok)tok.tipo='eliminado';
-  deseleccionarToken();
-  toast('Fragmento marcado como eliminado definitivamente','success');
+  if(!confirm('¿Confirmas eliminar este fragmento?'))return;
+  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{el.style.opacity='.2';el.style.pointerEvents='none';el.classList.remove('sel');});
+  const tok=diffTokens.find(t=>t.id===tokenSeleccionado);if(tok)tok.tipo='eliminado';
+  deseleccionarToken();toast('Fragmento eliminado','success');
 }
-
 function reconstruirTextoLimpio(){
   let nuevo='';
   for(const tok of diffTokens)if(tok.tipo==='igual'||tok.tipo==='agregado'||tok.tipo==='restaurado')nuevo+=tok.texto;
@@ -1916,118 +1543,6 @@ function marcarComoResuelto(idx){
 }
 
 
-// ══ SPRINT 2 — PARSER INTELIGENTE ══════════════════════════════
-
-// ─── B2: Extractor de notas de reforma ──────────────────────────
-// Separa las notas DOF del contenido real del artículo.
-// Devuelve {textoLimpio, notas:[]}
-function extraerNotasReforma(texto){
-  const patronesNota=[
-    /\*?(Párrafo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
-    /\*?(Artículo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
-    /\*?(Fracción\s+(?:reformada|adicionada|derogada)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
-    /\*?(Inciso\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+)\*?/gi,
-    /\*?(Reforma\s+DOF\s+[\d\-\w,\s:]+)\*?/gi,
-  ];
-  const notas=[];
-  let textoLimpio=texto;
-  for(const patron of patronesNota){
-    textoLimpio=textoLimpio.replace(patron,(match,nota)=>{
-      notas.push(nota.trim());
-      return '';
-    });
-  }
-  return {textoLimpio:textoLimpio.trim(), notas};
-}
-
-// ─── B1: Detector de estado jurídico ────────────────────────────
-// Determina el estado de un artículo/fracción basado en su contenido.
-function detectarEstadoJuridico(contenido, titulo=''){
-  if(!contenido) return 'vacio';
-
-  const txt=(contenido+' '+titulo).toLowerCase();
-
-  // Derogado explícito
-  if(/^\s*se\s+deroga\.?\s*$/i.test(contenido.trim())) return 'derogado';
-  if(/derogado\s+dof/i.test(txt)) return 'derogado';
-  if(/fracción\s+derogada/i.test(txt)) return 'derogado';
-
-  // Reservado
-  if(/^\s*reservado\.?\s*$/i.test(contenido.trim())) return 'reservado';
-
-  return 'vigente';
-}
-
-// ─── B2: Instrucción para agente IA ─────────────────────────────
-function generarInstruccionAgente(estado, notas){
-  switch(estado){
-    case 'derogado':
-      return 'Este contenido fue DEROGADO. Úsalo solo como contexto histórico. NUNCA lo cites como norma vigente aplicable.';
-    case 'reservado':
-      return 'Este artículo está reservado. No tiene contenido aplicable actualmente.';
-    case 'vigente':
-      if(notas.length>0)
-        return `Norma vigente con reformas. Última modificación: ${notas[notas.length-1]}. Cita el texto actual, no las versiones anteriores.`;
-      return 'Norma vigente. Puedes citar textualmente como fundamento.';
-    default:
-      return 'Revisar manualmente antes de usar como referencia.';
-  }
-}
-
-// ─── B3: Aplicar plantilla de introducción ──────────────────────
-function aplicarPlantillaIntroduccion(contenido, perfil){
-  if(!perfil?.plantillaIntroduccion?.length) return {contenido, subsecciones:[]};
-
-  const subsecciones=[];
-  let resto=contenido;
-
-  for(const plantilla of perfil.plantillaIntroduccion){
-    try{
-      const re=new RegExp(plantilla.patron,'i');
-      const match=resto.match(re);
-      if(match){
-        const idx=resto.indexOf(match[0]);
-        const textoSub=match[0].trim();
-        if(textoSub){
-          subsecciones.push({
-            tipo:plantilla.tipo,
-            nombre:plantilla.nombre,
-            color:plantilla.color||'#8892a4',
-            contenido:textoSub
-          });
-          resto=resto.replace(match[0],'').trim();
-        }
-      }
-    }catch(e){}
-  }
-  return {contenido:resto.trim(), subsecciones};
-}
-
-// ─── B4: Detector de cortes de artículo ─────────────────────────
-function detectarCorteArticulo(item, siguiente){
-  const alertas=[];
-
-  // Artículo sin punto final
-  const contenido=(item.contenido||'').trim();
-  if(contenido && !contenido.match(/[.;:]\s*$/) && contenido.length>50)
-    alertas.push('El artículo no termina con punto — puede estar truncado');
-
-  // Artículo muy corto comparado con el promedio
-  if(contenido.length>0 && contenido.length<30 && !contenido.match(/se\s+deroga/i))
-    alertas.push('Contenido muy breve — verificar si está completo');
-
-  // Si el siguiente artículo empieza con minúscula (continuación)
-  if(siguiente){
-    const sigTitulo=(siguiente.articulo||'').toLowerCase();
-    const sigContenido=(siguiente.contenido||'').trim();
-    if(sigContenido && sigContenido[0]===sigContenido[0].toLowerCase() &&
-       sigContenido[0].match(/[a-záéíóúü]/))
-      alertas.push('El siguiente elemento comienza en minúscula — posible continuación de este artículo');
-  }
-
-  return alertas;
-}
-
 // ══ PARSER ═══════════════════════════════════════════════════════
 function rArt(p){
   switch(p?.patronArticulo){
@@ -2066,45 +1581,20 @@ function parsear(texto,perfil){
   const kwT=perfil?.transitorios?.length?perfil.transitorios:['TRANSITORIOS','Transitorios'];
   let tN=texto,tT='';
   for(const kw of kwT){const m=texto.indexOf(kw);if(m!==-1){tT=texto.slice(m);tN=texto.slice(0,m);break;}}
-
   const ra=rArt(perfil);const pi=tN.search(ra);
-  if(pi>0){
-    const introRaw=tN.slice(0,pi).trim();
-    if(introRaw.length>10){
-      // B3: Aplicar plantilla de introducción si existe en el perfil
-      const {contenido:introContenido, subsecciones}=aplicarPlantillaIntroduccion(introRaw,perfil);
-      estructura.push({
-        tipo:'introduccion',
-        contenido:introContenido,
-        subsecciones,
-        estado:'procedimental',
-        instruccion_agente:'Preámbulo del documento. Úsalo solo para contexto general, no como norma aplicable.'
-      });
-    }
-  }
-
+  if(pi>0){const intro=tN.slice(0,pi).trim();if(intro.length>10)estructura.push({tipo:'introduccion',contenido:intro,subsecciones:[],estado:'procedimental',instruccion_agente:'Preámbulo. Contexto general, no norma aplicable.'});}
   ra.lastIndex=0;
-  const partes=tN.split(ra).filter(Boolean);
-  const rt=rTituloArt(perfil);
-
+  const partes=tN.split(ra).filter(Boolean);const rt=rTituloArt(perfil);
   for(const parte of partes){
     if(!parte.trim())continue;
     const mt=parte.match(rt);if(!mt)continue;
     const titulo=mt[1].trim();
     let resto=parte.slice(mt[0].length).trim();
-
-    // B2: Extraer notas de reforma del contenido
-    const {textoLimpio:restoLimpio, notas}=extraerNotasReforma(resto);
-    resto=restoLimpio;
-
-    const item={tipo:'articulo',articulo:titulo};
-
-    // B1: Detectar estado jurídico
-    const estadoJuridico=detectarEstadoJuridico(resto, titulo);
-    item.estado=estadoJuridico;
-    item.instruccion_agente=generarInstruccionAgente(estadoJuridico, notas);
-    if(notas.length>0) item.reformas=notas;
-
+    const {textoLimpio:restoL, notas}=extraerNotasReforma(resto);
+    resto=restoL;
+    const estadoArt=detectarEstadoJuridico(resto,titulo);
+    const item={tipo:'articulo',articulo:titulo,estado:estadoArt,instruccion_agente:generarInstruccionAgente(estadoArt,notas)};
+    if(notas.length>0)item.reformas=notas;
     const rf=rFrac(perfil),mf=rf?[...resto.matchAll(rf)]:[];
     if(mf.length>0){
       const ia=resto.slice(0,mf[0].index).trim();if(ia)item.introduccion=ia;
@@ -2112,28 +1602,15 @@ function parsear(texto,perfil){
       for(let j=0;j<mf.length;j++){
         const etq=mf[j][1]+'.', ini=mf[j].index+mf[j][0].length;
         const fin=j+1<mf.length?mf[j+1].index:resto.length;
-        const cf=resto.slice(ini,fin).trim();
-
-        // B2: Extraer notas de reforma de fracciones
-        const {textoLimpio:cfLimpio, notas:notasFrac}=extraerNotasReforma(cf);
-        const estadoFrac=detectarEstadoJuridico(cfLimpio);
-
-        const fi={
-          fraccion:etq,
-          contenido:cfLimpio,
-          estado:estadoFrac
-        };
-        if(notasFrac.length>0)fi.reformas=notasFrac;
-        if(estadoFrac==='derogado')fi.instruccion_agente='Fracción derogada. Contexto histórico únicamente.';
-
-        const ri=rInc(perfil),mi=ri?[...cfLimpio.matchAll(ri)]:[];
+        const cf=resto.slice(ini,fin).trim(),fi={fraccion:etq,contenido:cf};
+        const ri=rInc(perfil),mi=ri?[...cf.matchAll(ri)]:[];
         if(mi.length>0){
-          const iF=cfLimpio.slice(0,mi[0].index).trim();if(iF)fi.introduccion=iF;
+          const iF=cf.slice(0,mi[0].index).trim();if(iF)fi.introduccion=iF;
           fi.incisos=[];
           for(let k=0;k<mi.length;k++){
             const eI=mi[k][1]+')',iiI=mi[k].index+mi[k][0].length;
-            const fI=k+1<mi.length?mi[k+1].index:cfLimpio.length;
-            fi.incisos.push({inciso:eI,contenido:cfLimpio.slice(iiI,fI).trim()});
+            const fI=k+1<mi.length?mi[k+1].index:cf.length;
+            fi.incisos.push({inciso:eI,contenido:cf.slice(iiI,fI).trim()});
           }
           delete fi.contenido;
         }
@@ -2142,49 +1619,26 @@ function parsear(texto,perfil){
     }else{item.contenido=resto;}
     estructura.push(item);
   }
-
-  // Transitorios
-  if(tT){
-    const {textoLimpio:tTLimpio,notas:notasTrans}=extraerNotasReforma(tT.trim());
-    estructura.push({
-      tipo:'transitorio',
-      contenido:tTLimpio,
-      estado:'procedimental',
-      instruccion_agente:'Disposiciones transitorias. Úsalas solo para entender la cronología de vigencia, no como norma sustantiva.',
-      reformas:notasTrans.length?notasTrans:undefined
-    });
-  }
-
+  if(tT)estructura.push({tipo:'transitorio',contenido:tT.trim(),estado:'procedimental',instruccion_agente:'Transitorios. Solo para entender cronología de vigencia.'});
   return estructura;
 }
 function detectarProblemas(estructura){
   const p=[];
   const arts=estructura.filter(e=>e.tipo==='articulo');
-
   for(let i=0;i<arts.length;i++){
     const item=arts[i];
     if(state.problemasResueltos.has(item.articulo))continue;
-
-    // Artículo largo sin estructura
-    if(!item.fracciones&&(item.contenido||'').length>300&&item.estado!=='derogado')
-      p.push({articulo:item.articulo,problema:'Artículo largo sin estructura detectada',sugerencia:'Usar corrección IA',tipo:'estructura'});
-
-    // Artículo sin contenido (y no está derogado)
-    if(!item.contenido&&!item.fracciones&&!item.introduccion&&item.estado!=='derogado'&&item.estado!=='reservado')
+    if(item.estado==='derogado'||item.estado==='reservado')continue;
+    if(!item.fracciones&&(item.contenido||'').length>300)
+      p.push({articulo:item.articulo,problema:'Artículo largo sin estructura',sugerencia:'Usar corrección IA',tipo:'estructura'});
+    if(!item.contenido&&!item.fracciones&&!item.introduccion)
       p.push({articulo:item.articulo,problema:'Artículo sin contenido',sugerencia:'Revisar texto original',tipo:'contenido'});
-
-    // B4: Detector de cortes de artículo
-    const siguiente=i+1<arts.length?arts[i+1]:null;
-    const alertasCorte=detectarCorteArticulo(item,siguiente);
-    for(const alerta of alertasCorte)
-      p.push({articulo:item.articulo,problema:alerta,sugerencia:'Revisar límites del artículo en Estructura',tipo:'corte'});
+    const alertas=detectarCorteArticulo(item, i+1<arts.length?arts[i+1]:null);
+    for(const alerta of alertas)
+      p.push({articulo:item.articulo,problema:alerta,sugerencia:'Revisar en Estructura',tipo:'corte'});
   }
-
-  // Estadísticas de derogados — solo log, no problema
   const derogados=arts.filter(a=>a.estado==='derogado').length;
-  if(derogados>0)logInfo('Elementos derogados detectados',
-    `${derogados} artículo(s) marcados como derogados — contexto histórico`,`×${derogados}`);
-
+  if(derogados>0)logInfo('Derogados detectados',`${derogados} artículo(s) — contexto histórico`,`×${derogados}`);
   return p;
 }
 
@@ -2197,20 +1651,14 @@ async function procesarDocumento(){
   setLoading(true);
   state.resaltados=[];diffTokens=[];state.tokensRestaurados=new Set();
   state.log=[];state.aprobado=false;state.banco=[];state.introSubsecciones=[];
-
+  state.temasGenerados=[];
   setTimeout(()=>{
     try{
       logInfo('Inicio',`Perfil: ${state.perfilActivo?.nombre||'Genérico'}`,new Date().toLocaleTimeString());
       state.textoOriginal=texto;
-      // ── ETAPA 1: Limpieza estructural — pausa para aprobación
       logInfo('Etapa 1','Limpieza estructural iniciada','');
       mostrarEtapa1(texto, state.perfilActivo);
-      // El proceso continúa en aprobarEtapa1() → finalizarProcesado()
-    }catch(e){
-      toast('Error: '+e.message,'error');
-      logErr('Error',e.message);
-      setLoading(false);
-    }
+    }catch(e){toast('Error: '+e.message,'error');logErr('Error',e.message);setLoading(false);}
   },50);
 }
 
@@ -2341,9 +1789,6 @@ function renderArtCard(item,idx){
       <div class="art-header-left">
         <span class="art-drag-handle" title="Arrastrar para reordenar">⠿</span>
         <span class="art-title" id="art-title-view-${idx}">${escHtml(item.articulo)}</span>
-        ${item.estado==='derogado'?'<span style="font-size:10px;background:#f8717122;color:#f87171;border:1px solid #f8717155;border-radius:20px;padding:1px 7px;font-family:\'IBM Plex Mono\',monospace;">DEROGADO</span>':
-          item.estado==='reservado'?'<span style="font-size:10px;background:#f7c94f22;color:#f7c94f;border:1px solid #f7c94f55;border-radius:20px;padding:1px 7px;font-family:\'IBM Plex Mono\',monospace;">RESERVADO</span>':
-          item.reformas?.length?'<span style="font-size:10px;background:#4f8ef722;color:#4f8ef7;border:1px solid #4f8ef755;border-radius:20px;padding:1px 7px;font-family:\'IBM Plex Mono\',monospace;">REFORMADO</span>':''}
         <input class="art-title-input" id="art-title-edit-${idx}" value="${escAttr(item.articulo)}"
           style="display:none;"
           onchange="state.estructura[${idx}].articulo=this.value;"
@@ -2369,12 +1814,6 @@ function renderArtCard(item,idx){
     </div>
     <div class="art-body" id="art-body-${idx}">
       ${item.introduccion?`<div class="art-intro">${escHtml(item.introduccion)}</div>`:''}
-      ${item.reformas?.length?`<div style="font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;padding:4px 0 6px;border-bottom:1px dashed var(--border);margin-bottom:6px;">
-        📋 Reformas: ${item.reformas.map(r=>escHtml(r)).join(' · ')}
-      </div>`:''}
-      ${item.estado==='derogado'?`<div style="background:#f8717111;border:1px solid #f8717133;border-radius:4px;padding:6px 10px;font-size:11px;color:#f87171;margin-bottom:8px;">
-        ⚠ Este artículo fue derogado. El contenido que aparece abajo es solo de referencia histórica.
-      </div>`:''}
       ${tf?renderFracciones(item,idx):
         `<div class="art-content-view" data-art-idx="${idx}" id="art-content-view-${idx}">${escHtml(item.contenido||'')}</div>
          <textarea class="art-content-edit" id="art-content-edit-${idx}" style="display:none;"
@@ -2602,49 +2041,13 @@ function eliminarDeBanco(idx){
 // ══ RENDER JSON ═══════════════════════════════════════════════════
 function renderJSON(){
   const output=construirOutputFinal();
-  const json=JSON.stringify(output,null,2);
+  const salida=[...output.contenido];
+  const json=JSON.stringify(salida,null,2);
   const col=json
     .replace(/("[\w\sáéíóúüñÁÉÍÓÚÜÑ_]+")(\s*:)/g,'<span class="json-key">$1</span>$2')
     .replace(/:\s*(".*?")/g,': <span class="json-string">$1</span>')
     .replace(/:\s*(\d+)/g,': <span class="json-number">$1</span>');
   document.getElementById('pane-json').innerHTML=`<pre id="json-view">${col}</pre>`;
-}
-
-/** C1-C5: Construye el JSON final con todos los metadatos para Lumen */
-function construirOutputFinal(){
-  const ahora=new Date().toISOString();
-  return {
-    // Metadatos del documento
-    meta:{
-      perfil:          state.perfilActivo?.nombre||'Genérico',
-      ambito:          state.perfilActivo?.ambito||'—',
-      origen:          state.perfilActivo?.origen||'—',
-      fechaProcesado:  ahora,
-      hashContenido:   state.hashActual||'',
-      aprobado:        state.aprobado,
-      reglasAplicadas: (state.perfilActivo?.reglas||[]).length,
-      totalArticulos:  state.estructura.filter(e=>e.tipo==='articulo').length,
-      totalDerogados:  state.estructura.filter(e=>e.tipo==='articulo'&&e.estado==='derogado').length,
-      totalReformados: state.estructura.filter(e=>e.tipo==='articulo'&&e.reformas?.length>0).length,
-    },
-    // Contenido estructurado con estados jurídicos
-    contenido:[
-      ...state.estructura.map(item=>{
-        // Limpiar campos undefined del JSON
-        const limpio={...item};
-        Object.keys(limpio).forEach(k=>limpio[k]===undefined&&delete limpio[k]);
-        return limpio;
-      }),
-      // Elementos marcados manualmente en Vista
-      ...state.resaltados.map(r=>({
-        tipo:   r.tipo.toLowerCase().replace(/\s+/g,'_'),
-        nombre: r.tipo,
-        contenido: r.texto,
-        estado: 'manual',
-        instruccion_agente: `Elemento clasificado manualmente como "${r.tipo}".`
-      }))
-    ]
-  };
 }
 
 
@@ -2727,37 +2130,17 @@ async function renderValidacion(){
         <div><span style="color:var(--text-faint);">Origen:</span> ${escHtml(state.perfilActivo?.origen||'—')}</div>
         <div><span style="color:var(--text-faint);">Fecha:</span> ${new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'})}</div>
       </div>
-    </div>
-    <div class="val-section">
-      <div class="val-section-header">Estados jurídicos detectados</div>
-      <div class="val-grid">
-        ${(()=>{
-          const artsAll=state.estructura.filter(e=>e.tipo==='articulo');
-          const vigentes=artsAll.filter(a=>a.estado==='vigente'||!a.estado).length;
-          const derogados=artsAll.filter(a=>a.estado==='derogado').length;
-          const reformados=artsAll.filter(a=>a.reformas?.length>0).length;
-          const reservados=artsAll.filter(a=>a.estado==='reservado').length;
-          return \`
-            <div class="val-cell"><div class="val-cell-label">Vigentes</div><div class="val-cell-value val-ok">\${vigentes}</div><div class="val-cell-sub">norma aplicable</div></div>
-            <div class="val-cell"><div class="val-cell-label">Derogados</div><div class="val-cell-value \${derogados>0?'val-warn':'val-ok'}">\${derogados}</div><div class="val-cell-sub">contexto histórico</div></div>
-            <div class="val-cell"><div class="val-cell-label">Con reformas</div><div class="val-cell-value" style="color:var(--accent);">\${reformados}</div><div class="val-cell-sub">tienen notas DOF</div></div>
-            <div class="val-cell"><div class="val-cell-label">Reservados</div><div class="val-cell-value">\${reservados}</div><div class="val-cell-sub">sin contenido</div></div>
-          \`;
-        })()}
-      </div>
-    </div>\`;
+    </div>`;
 
-  // ── Sprint 5: Sección de temas ──────────────────────────────
+  // Temas Sprint 5
   html+=`<div class="val-section">
-    <div class="val-section-header">🏷 Temas del documento (para el agente IA)</div>
+    <div class="val-section-header">🏷 Temas del documento</div>
     <div style="padding:12px 14px;">
-      <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">
-        Los temas ayudan al agente IA a priorizar artículos relevantes según el contexto de cada reunión.
-      </p>
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Los temas ayudan al agente IA a priorizar artículos relevantes.</p>
       <div class="temas-container" id="temas-container"></div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-ghost" id="btn-etiquetar-temas" onclick="etiquetarTemasConIA()" style="font-size:11px;">🏷 Etiquetar temas con IA</button>
-        <button class="btn btn-ghost" onclick="exportarContextoAgente()" style="font-size:11px;">📄 Exportar contexto para agente (.md)</button>
+        <button class="btn btn-ghost" onclick="exportarContextoAgente()" style="font-size:11px;">📄 Exportar contexto IA (.md)</button>
       </div>
     </div>
   </div>`;
@@ -2766,23 +2149,22 @@ async function renderValidacion(){
     html+=`<div class="approve-box aprobado">
       <div class="aprobado-badge">✓ Documento aprobado</div>
       <h3>Listo para exportar y enviar</h3>
-      <p>El JSON incluye estados jurídicos, metadatos de aprobación y firma de contenido. Puedes descargarlo o enviarlo directamente a Lumen.</p>
+      <p>El JSON incluye estados jurídicos, metadatos y firma de contenido.</p>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
         <button class="btn btn-approve" style="width:auto;padding:9px 20px;" onclick="exportarJSONAprobado()">⬇ Descargar JSON</button>
-        <button class="btn btn-approve" id="btn-enviar-lumen" onclick="enviarALumen()" style="width:auto;padding:9px 20px;background:var(--frac);border-color:var(--frac);">🚀 Enviar a Lumen como borrador</button>
+        <button class="btn btn-approve" id="btn-enviar-lumen" onclick="enviarALumen()" style="width:auto;padding:9px 20px;background:var(--frac);border-color:var(--frac);">🚀 Enviar a Lumen</button>
       </div>
       <div class="lumen-send-result" id="lumen-send-result"></div>
     </div>`;
   } else {
     html+=`<div class="approve-box">
       <h3>Revisión y aprobación</h3>
-      <p>Confirma que has revisado el documento — artículos, diff, estructura y problemas — y que el contenido es correcto para importar a Lumen.</p>
-      ${faltantes.length>0?`<p style="color:var(--err);font-size:12px;margin-bottom:12px;">⚠ No puedes aprobar mientras haya artículos faltantes.</p>`:''}
+      <p>Confirma que has revisado el documento completo y que el contenido es correcto para importar a Lumen.</p>
+      ${faltantes.length>0?`<p style="color:var(--err);font-size:12px;margin-bottom:12px;">⚠ No puedes aprobar con artículos faltantes.</p>`:''}
       <button class="btn btn-approve" onclick="aprobarDocumento()" ${faltantes.length>0?'disabled':''}>🛡 Aprobar y habilitar exportación</button>
     </div>`;
   }
   el.innerHTML=html;
-  // Renderizar temas después de insertar HTML
   renderTemas();
 }
 
@@ -2808,331 +2190,6 @@ function exportarJSONAprobado(){
   a.click();
   logOk('JSON exportado','Archivo descargado',new Date().toLocaleTimeString());renderLog();
   toast('JSON exportado','success');
-}
-
-// ══ SPRINT 4 — ENVIAR A LUMEN ════════════════════════════════════
-
-/**
- * D1: Escribe el documento procesado directamente en Firestore de Lumen
- * bajo la colección /usuarios/{uid}/normatividad como borrador.
- * Requiere que el usuario esté autenticado en Lumen (misma sesión Firebase).
- */
-async function enviarALumen(){
-  if(!state.aprobado){toast('Aprueba el documento antes de enviarlo a Lumen','error');return;}
-  if(!window._dbReady){toast('Sin conexión a Firestore','error');return;}
-
-  const btn=document.getElementById('btn-enviar-lumen');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Enviando...';}
-
-  try{
-    const output=construirOutputFinal();
-    output.meta.aprobado=true;
-    output.meta.fechaExportacion=new Date().toISOString();
-
-    // Construir documento en formato Lumen
-    const docLumen={
-      // Campos estándar de Normatividad en Lumen
-      titulo:       extraerTituloLey(state.estructura)||state.perfilActivo?.nombre||'Documento sin título',
-      tipo:         inferirTipoNormativa(state.perfilActivo),
-      ambito:       state.perfilActivo?.ambito||'',
-      origen:       state.perfilActivo?.origen||'',
-      fechaPublicacion: extraerFechaPublicacion(state.textoOriginal)||'',
-      ultimaReforma:    extraerUltimaReforma(state.textoOriginal)||'',
-      estado:       'borrador_lumenprep',
-
-      // Contenido estructurado
-      articulos:    output.contenido.filter(e=>e.tipo==='articulo'),
-      introduccion: output.contenido.find(e=>e.tipo==='introduccion')||null,
-      transitorios: output.contenido.filter(e=>e.tipo==='transitorio'),
-
-      // Metadatos de procesado
-      meta:         output.meta,
-      hashContenido:state.hashActual||'',
-      temas:        state.temasGenerados||[],
-
-      // Control de visibilidad para agente IA
-      visibilidadDefault: 1, // normativo por defecto
-
-      // Timestamps
-      creadoEn:     new Date().toISOString(),
-      actualizadoEn:new Date().toISOString(),
-      fuente:       'lumen_prep'
-    };
-
-    // Buscar usuario autenticado (Firebase Auth compartido)
-    const uid = await obtenerUidActual();
-    if(!uid){
-      toast('No se detectó sesión activa de Lumen. Abre Lumen en otra pestaña e intenta de nuevo.','error');
-      return;
-    }
-
-    // Verificar si ya existe un documento con el mismo hash
-    const colRef=window._collection(window._db,`usuarios/${uid}/normatividad`);
-    const snap=await window._getDocs(colRef);
-    let docExistente=null;
-    snap.forEach(d=>{
-      if(d.data().hashContenido===state.hashActual)docExistente=d;
-    });
-
-    if(docExistente){
-      const confirmar=confirm(
-        `Ya existe un documento con el mismo contenido en Lumen.
-
-`+
-        `Título: "${docExistente.data().titulo}"
-
-`+
-        `¿Deseas actualizar ese documento o crear uno nuevo?
-
-`+
-        `Aceptar = Actualizar | Cancelar = Crear nuevo`
-      );
-      if(confirmar){
-        await window._updateDoc(
-          window._doc(window._db,`usuarios/${uid}/normatividad`,docExistente.id),
-          {...docLumen,actualizadoEn:new Date().toISOString()}
-        );
-        mostrarResultadoEnvio(`Documento actualizado en Lumen: "${docLumen.titulo}"`);
-        logOk('Enviado a Lumen',`Actualizado: "${docLumen.titulo}"`,uid.slice(0,8));
-      } else {
-        docLumen.titulo=docLumen.titulo+' (v'+Date.now().toString().slice(-4)+')';
-        await window._addDoc(colRef,docLumen);
-        mostrarResultadoEnvio(`Nuevo borrador creado en Lumen: "${docLumen.titulo}"`);
-        logOk('Enviado a Lumen',`Creado: "${docLumen.titulo}"`,uid.slice(0,8));
-      }
-    } else {
-      await window._addDoc(colRef,docLumen);
-      mostrarResultadoEnvio(`Borrador creado en Lumen: "${docLumen.titulo}"`);
-      logOk('Enviado a Lumen',`Creado: "${docLumen.titulo}"`,uid.slice(0,8));
-    }
-
-    renderLog();
-    toast('Documento enviado a Lumen correctamente','success');
-
-  }catch(e){
-    toast('Error al enviar: '+e.message,'error');
-    logErr('Error al enviar a Lumen',e.message);
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='🚀 Enviar a Lumen como borrador';}
-  }
-}
-
-function mostrarResultadoEnvio(msg){
-  const el=document.getElementById('lumen-send-result');
-  if(el){el.textContent='✅ '+msg;el.classList.add('visible');}
-}
-
-async function obtenerUidActual(){
-  // Intentar obtener el UID del usuario autenticado en Firebase
-  // Lumen Prep usa el mismo proyecto Firebase que Lumen
-  return new Promise(resolve=>{
-    try{
-      // Firebase Auth puede no estar inicializado en Lumen Prep
-      // Intentar leer desde localStorage de Lumen (mismo dominio en integración futura)
-      // Por ahora, pedir al usuario su UID o usar sesión compartida
-      const uid=localStorage.getItem('lumenprep_uid');
-      if(uid){resolve(uid);return;}
-
-      // Si no hay UID guardado, pedirlo una sola vez
-      const uidIngresado=prompt(
-        'Para enviar a Lumen necesitas tu ID de usuario.
-
-'+
-        'Encuéntralo en Lumen → tu perfil → "ID de sesión"
-
-'+
-        'Este dato se guardará localmente para futuras sesiones:'
-      );
-      if(uidIngresado?.trim()){
-        localStorage.setItem('lumenprep_uid',uidIngresado.trim());
-        resolve(uidIngresado.trim());
-      } else {
-        resolve(null);
-      }
-    }catch(e){resolve(null);}
-  });
-}
-
-// Helpers para extraer metadata del documento
-function extraerTituloLey(estructura){
-  const intro=estructura.find(e=>e.tipo==='introduccion');
-  if(!intro)return null;
-  const match=(intro.contenido||'').match(/^(LEY\s+[A-ZÁÉÍÓÚÜÑ\s]+)/m);
-  return match?match[1].trim():null;
-}
-function inferirTipoNormativa(perfil){
-  if(!perfil)return 'ley';
-  const nombre=(perfil.nombre||'').toLowerCase();
-  if(nombre.includes('reglamento'))return 'reglamento';
-  if(nombre.includes('lineamiento'))return 'lineamiento';
-  if(nombre.includes('acuerdo'))return 'acuerdo';
-  if(nombre.includes('norma'))return 'norma';
-  return 'ley';
-}
-function extraerFechaPublicacion(texto){
-  const m=texto?.match(/publicada?\s+en\s+el\s+Diario\s+Oficial.*?el\s+(\d+\s+de\s+\w+\s+de\s+\d{4})/i);
-  return m?m[1]:null;
-}
-function extraerUltimaReforma(texto){
-  const m=texto?.match(/[ÚU]ltima\s+reforma\s+publicada\s+DOF\s+([\d\-]+)/i);
-  return m?m[1]:null;
-}
-
-
-// ══ SPRINT 5 — AGENTE IA MEJORADO ════════════════════════════════
-
-/**
- * E3: Etiquetado temático con IA
- * Analiza el contenido de los artículos y sugiere temas automáticamente.
- */
-async function etiquetarTemasConIA(){
-  if(!state.estructura.length){toast('Primero procesa un documento','error');return;}
-  const btn=document.getElementById('btn-etiquetar-temas');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Analizando temas...';}
-
-  const arts=state.estructura.filter(e=>e.tipo==='articulo'&&e.estado!=='derogado');
-  const muestra=arts.slice(0,20).map(a=>`${a.articulo}: ${(a.contenido||a.introduccion||'').slice(0,150)}`).join('
-');
-
-  const prompt=`Eres experto en normativa legal mexicana. Analiza estos artículos y devuelve ÚNICAMENTE un JSON válido (sin markdown) con los temas principales:
-
-{"temas":["tema1","tema2","tema3",...]}
-
-Los temas deben ser palabras clave cortas (1-3 palabras) que describan los ejes temáticos del documento. Máximo 12 temas. Ejemplos: "vivienda digna", "financiamiento", "política habitacional", "género", "sustentabilidad", "organismos públicos".
-
-Artículos a analizar:
-${muestra}`;
-
-  try{
-    const res=await fetch('https://lumen-briefing.garogmx89.workers.dev',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:500,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const data=await res.json();
-    const txt=(data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
-    const resultado=JSON.parse(txt);
-    state.temasGenerados=resultado.temas||[];
-    renderTemas();
-    logOk('Temas generados con IA',`${state.temasGenerados.length} temas identificados`,`×${state.temasGenerados.length}`);
-    toast(`${state.temasGenerados.length} temas identificados`,'success');
-  }catch(e){
-    toast('Error al etiquetar: '+e.message,'error');
-    logErr('Error etiquetado IA',e.message);
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='🏷 Etiquetar temas con IA';}
-  }
-}
-
-function renderTemas(){
-  const el=document.getElementById('temas-container');
-  if(!el)return;
-  if(!state.temasGenerados?.length){el.innerHTML='<span style="font-size:11px;color:var(--text-faint);">Sin temas generados aún.</span>';return;}
-  el.innerHTML=state.temasGenerados.map((t,i)=>`
-    <span class="tema-tag">
-      ${escHtml(t)}
-      <span class="tema-remove" onclick="quitarTema(${i})" title="Eliminar tema">×</span>
-    </span>`).join('');
-}
-
-function quitarTema(idx){
-  state.temasGenerados.splice(idx,1);
-  renderTemas();
-}
-
-/**
- * E1: Construir contexto estructurado para el agente IA
- * Genera el texto que se pasará al agente, separado por estado jurídico.
- */
-function construirContextoAgente(){
-  const arts=state.estructura.filter(e=>e.tipo==='articulo');
-  const normativos=arts.filter(a=>a.estado==='vigente'||!a.estado);
-  const historicos=arts.filter(a=>a.estado==='derogado');
-  const conReformas=arts.filter(a=>a.reformas?.length>0&&a.estado!=='derogado');
-
-  let contexto='';
-
-  // Cabecera
-  const titulo=extraerTituloLey(state.estructura)||state.perfilActivo?.nombre||'Documento normativo';
-  contexto+=`# ${titulo}
-`;
-  if(state.perfilActivo?.ambito)contexto+=`Ámbito: ${state.perfilActivo.ambito} | `;
-  if(state.perfilActivo?.origen)contexto+=`Origen: ${state.perfilActivo.origen}
-`;
-  if(state.temasGenerados?.length)contexto+=`Temas: ${state.temasGenerados.join(', ')}
-`;
-  contexto+='
----
-
-';
-
-  // Norma vigente
-  contexto+=`## NORMA VIGENTE (citar como fundamento)
-
-`;
-  for(const a of normativos){
-    contexto+=`**${a.articulo}**`;
-    if(a.reformas?.length)contexto+=` *(última reforma: ${a.reformas[a.reformas.length-1]})*`;
-    contexto+='
-';
-    if(a.introduccion)contexto+=a.introduccion+'
-';
-    if(a.fracciones?.length){
-      for(const f of a.fracciones){
-        if(f.estado==='derogado')continue;
-        contexto+=`  ${f.fraccion} ${f.contenido||''}
-`;
-        if(f.incisos?.length)for(const inc of f.incisos)contexto+=`    ${inc.inciso} ${inc.contenido}
-`;
-      }
-    }else if(a.contenido){contexto+=a.contenido+'
-';}
-    contexto+='
-';
-  }
-
-  // Contexto histórico
-  if(historicos.length){
-    contexto+=`---
-
-## CONTEXTO HISTÓRICO (NO aplicar como norma vigente)
-`;
-    contexto+=`*Los siguientes artículos fueron derogados. Úsalos solo si el usuario pregunta por el estado anterior de la ley.*
-
-`;
-    for(const a of historicos){
-      contexto+=`**${a.articulo}** *(DEROGADO)*
-`;
-      if(a.contenido)contexto+=a.contenido.slice(0,200)+'
-';
-      contexto+='
-';
-    }
-  }
-
-  // Nota final para el agente
-  contexto+=`---
-
-*Este contexto fue procesado y aprobado el ${new Date().toLocaleDateString('es-MX')}. `;
-  contexto+=`Hash de integridad: ${(state.hashActual||'').slice(0,16)}...*
-`;
-
-  return contexto;
-}
-
-function exportarContextoAgente(){
-  if(!state.estructura.length){toast('Primero procesa un documento','error');return;}
-  const contexto=construirContextoAgente();
-  const blob=new Blob([contexto],{type:'text/markdown'});
-  const a=document.createElement('a');
-  const nombre=(extraerTituloLey(state.estructura)||'contexto-agente').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-  a.href=URL.createObjectURL(blob);
-  a.download=`${nombre}-contexto-ia.md`;
-  a.click();
-  logOk('Contexto IA exportado','Archivo .md para Lumen',new Date().toLocaleTimeString());
-  toast('Contexto para agente IA exportado','success');
 }
 
 async function eliminarRegla(patron){
@@ -3190,17 +2247,10 @@ function actualizarStats(){
   const fracs=arts.reduce((n,a)=>n+(a.fracciones?.length||0),0);
   const incs=arts.reduce((n,a)=>n+(a.fracciones?.reduce((m,f)=>m+(f.incisos?.length||0),0)||0),0);
   const probActivos=state.problemas.filter(p=>!state.problemasResueltos.has(p.articulo)).length;
-  const derogados=arts.filter(a=>a.estado==='derogado').length;
-  const reformados=arts.filter(a=>a.reformas?.length>0).length;
   document.getElementById('stat-articulos').textContent=arts.length;
   document.getElementById('stat-fracciones').textContent=fracs;
   document.getElementById('stat-incisos').textContent=incs;
   document.getElementById('stat-problemas').textContent=probActivos;
-  // Badge de derogados si hay
-  const b2=document.getElementById('panel-badges');
-  const oldDer=b2?.querySelector('.der-badge');if(oldDer)oldDer.remove();
-  if(derogados>0&&b2)
-    b2.innerHTML+=`<span class="der-badge" style="display:inline-flex;align-items:center;gap:4px;background:#f8717122;border:1px solid #f87171;border-radius:20px;padding:3px 9px;font-size:11px;color:#f87171;font-family:'IBM Plex Mono',monospace;">⚠ ${derogados} derogado(s)</span>`;
   const b=document.getElementById('panel-badges');
   const old=b.querySelector('.problem-badge');if(old)old.remove();
   if(probActivos)b.innerHTML=`<span class="problem-badge">⚠ ${probActivos}</span>`+b.innerHTML;
@@ -3224,34 +2274,548 @@ function setLoading(on){document.getElementById('loading-bar').classList.toggle(
 function mostrarEstado(m){document.getElementById('header-status').textContent=m;}
 function escHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){if(!s)return'';return s.replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
+
+// ════════════════════════════════════════════════════════════════
+// SPRINT 1 — PROCESO EN DOS ETAPAS
+// ════════════════════════════════════════════════════════════════
+
+function etapa1_LimpiezaEstructural(texto, perfil){
+  const cambios = [];
+  let t = texto;
+
+  // Sellos digitales
+  const anteSello = t.length;
+  t = t.replace(/[A-Za-z0-9+/]{40,}={0,2}/g, '');
+  if(anteSello - t.length > 0)
+    cambios.push({tipo:'ok', msg:'Sellos digitales eliminados', detalle:`-${anteSello-t.length} chars`});
+
+  // Números de página solos
+  const numPags = (t.match(/^\s*\d{1,4}\s*$/gm) || []).length;
+  t = t.replace(/^\s*\d{1,4}\s*$/gm, '');
+  if(numPags > 0)
+    cambios.push({tipo:'ok', msg:`${numPags} números de página eliminados`, detalle:'Líneas que solo contenían un número'});
+
+  // Ruido del perfil — solo líneas completas (modo seguro)
+  if(perfil && perfil.ruido && perfil.ruido.length){
+    for(const p of perfil.ruido){
+      try{
+        const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('^\\s*' + escaped + '\\s*$', 'gim');
+        const antes = t.length;
+        t = t.replace(re, '');
+        if(t.length < antes)
+          cambios.push({tipo:'ok', msg:`Ruido: "${p.slice(0,40)}"`, detalle:`-${antes-t.length} chars`});
+      }catch(e){}
+    }
+  }
+
+  // Reglas de tipo pie_pagina con contexto
+  if(perfil && perfil.reglas && perfil.reglas.length){
+    for(const regla of perfil.reglas){
+      if(regla.tipo !== 'pie_pagina') continue;
+      try{
+        const esc = regla.patron.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const ctx = regla.contextoAplicacion || 'linea_sola';
+        let re;
+        if(ctx === 'linea_sola')       re = new RegExp('^\\s*' + esc + '.*$', 'gim');
+        else if(ctx === 'inicio_linea') re = new RegExp('^\\s*' + esc, 'gim');
+        else                            re = new RegExp(esc, 'gi');
+        const antes = t.length;
+        t = t.replace(re, '');
+        if(t.length < antes)
+          cambios.push({tipo:'ok', msg:`Regla: "${regla.nombre}"`, detalle:`ctx:${ctx} -${antes-t.length}`});
+      }catch(e){}
+    }
+  }
+
+  // Limpiar saltos múltiples
+  t = t.replace(/\n\n\n+/g, '\n\n');
+
+  // Verificar artículos
+  const re_art = /Artículo\s+(\d+)/gi;
+  const numsOrig = [...texto.matchAll(re_art)].map(m => parseInt(m[1]));
+  const numsLimp = [...t.matchAll(re_art)].map(m => parseInt(m[1]));
+  const setO = new Set(numsOrig), setL = new Set(numsLimp);
+  const faltantes = [...setO].filter(n => !setL.has(n));
+  if(faltantes.length > 0)
+    cambios.push({tipo:'warn', msg:`Artículos posiblemente afectados`, detalle:`Revisar: ${faltantes.slice(0,5).join(', ')}`});
+  else
+    cambios.push({tipo:'ok', msg:'Integridad de artículos: OK', detalle:`${setL.size} artículos presentes`});
+
+  return {texto: t.trim(), cambios};
+}
+
+function etapa2_NormalizacionFormato(texto){
+  let t = texto;
+  const cambios = [];
+
+  const saltosFixed = (t.match(/([^.\n])\n(?!\n)/g) || []).length;
+  t = t.replace(/([^.\n])\n(?!\n)/g, '$1 ');
+  if(saltosFixed > 0)
+    cambios.push({tipo:'ok', msg:'Saltos de línea normalizados', detalle:`${saltosFixed} saltos convertidos a espacio`});
+
+  const antEsp = t.length;
+  t = t.replace(/[ \t]{2,}/g, ' ');
+  if(antEsp - t.length > 0)
+    cambios.push({tipo:'ok', msg:'Espacios múltiples normalizados', detalle:`-${antEsp-t.length} chars`});
+
+  t = t.replace(/\n\n\n+/g, '\n\n');
+
+  const pO = contarPalabras(texto), pL = contarPalabras(t);
+  const diff = pO - pL;
+  if(diff > 10)
+    cambios.push({tipo:'warn', msg:`Diferencia de palabras: ${diff}`, detalle:'Revisar si es normal'});
+  else
+    cambios.push({tipo:'ok', msg:'Integridad de palabras conservada', detalle:`Diferencia: ${diff}`});
+
+  return {texto: t.trim(), cambios};
+}
+
+let etapaState = {textoPost1:'', cambios1:[], cambios2:[]};
+
+function mostrarEtapa1(texto, perfil){
+  const resultado = etapa1_LimpiezaEstructural(texto, perfil);
+  etapaState.textoPost1 = resultado.texto;
+  etapaState.cambios1 = resultado.cambios;
+
+  const lista = document.getElementById('etapa1-cambios');
+  if(lista) lista.innerHTML = resultado.cambios.map(c =>
+    `<div class="etapa-cambio-item ${c.tipo}">
+      <span class="etapa-cambio-icon">${c.tipo==='ok'?'✅':'⚠️'}</span>
+      <div class="etapa-cambio-txt"><strong>${escHtml(c.msg)}</strong><div style="font-size:11px;margin-top:2px;">${escHtml(c.detalle)}</div></div>
+    </div>`).join('');
+
+  const prev = document.getElementById('etapa1-preview');
+  if(prev) prev.textContent = resultado.texto.slice(0,2000) + (resultado.texto.length>2000?'\n[...]':'');
+
+  document.getElementById('modal-etapa1').classList.remove('hidden');
+}
+
+function cancelarEtapa1(){
+  document.getElementById('modal-etapa1').classList.add('hidden');
+  setLoading(false);
+  toast('Proceso cancelado','success');
+}
+
+function ajustarReglasDesdeEtapa1(){
+  document.getElementById('modal-etapa1').classList.add('hidden');
+  setLoading(false);
+  editarPerfilActual();
+  toast('Ajusta las reglas y vuelve a procesar','success');
+}
+
+async function aprobarEtapa1(){
+  document.getElementById('modal-etapa1').classList.add('hidden');
+  logOk('Etapa 1 aprobada', `${etapaState.cambios1.length} operaciones`, '✓');
+  const resultado2 = etapa2_NormalizacionFormato(etapaState.textoPost1);
+  etapaState.cambios2 = resultado2.cambios;
+  resultado2.cambios.forEach(c => {
+    if(c.tipo==='ok') logOk('Etapa 2: '+c.msg, c.detalle, '');
+    else logWarn('Etapa 2: '+c.msg, c.detalle, '');
+  });
+  await finalizarProcesado(resultado2.texto);
+}
+
+async function finalizarProcesado(textoLimpio){
+  try{
+    state.textoLimpio = textoLimpio;
+    verificarArticulos(state.textoOriginal, state.textoLimpio);
+    state.estructura = parsear(state.textoLimpio, state.perfilActivo);
+    state.problemas = detectarProblemas(state.estructura);
+    const arts = state.estructura.filter(e=>e.tipo==='articulo').length;
+    const fracs = state.estructura.reduce((n,a)=>n+(a.fracciones?.length||0),0);
+    logInfo('Parseo',`${arts} artículos, ${fracs} fracciones`,`${arts} arts`);
+    if(state.problemas.length) logWarn('Problemas',`${state.problemas.length} artículo(s)`,`×${state.problemas.length}`);
+    else logOk('Sin problemas','Estructura detectada','✓');
+    state.hashActual = await calcularHash(state.textoLimpio);
+    logInfo('Hash',`SHA-256: ${state.hashActual.slice(0,16)}...`,'');
+    actualizarStats(); renderVista(); renderDiff(); renderEstructura(); renderJSON(); renderProblemas(); renderLog();
+    document.getElementById('stats-section').style.display='block';
+    mostrarEstado(`${arts} artículos${state.perfilActivo?' · '+state.perfilActivo.nombre:''}`);
+    toast('Documento procesado — 2 etapas completadas','success');
+  }catch(e){
+    toast('Error: '+e.message,'error'); logErr('Error en finalización',e.message);
+  }finally{
+    setLoading(false);
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// SPRINT 1 — DIFF SEMÁNTICO
+// ════════════════════════════════════════════════════════════════
+
+function calcularDiffSemantico(orig, limp){
+  const lineasA = orig.split('\n');
+  const lineasB = limp.split('\n');
+  const lm = lineasA.length, ln = lineasB.length;
+  const ldp = Array.from({length:lm+1}, () => new Int32Array(ln+1));
+  for(let i=lm-1;i>=0;i--)
+    for(let j=ln-1;j>=0;j--)
+      ldp[i][j] = lineasA[i]===lineasB[j] ? ldp[i+1][j+1]+1 : Math.max(ldp[i+1][j],ldp[i][j+1]);
+
+  const resultado = [];
+  let i=0, j=0;
+  const tok = t => t.match(/[^\s]+|\s+/g) || [];
+  const palabrasB = limp.match(/[a-záéíóúüña-z]{3,}/gi) || [];
+  const setBp = new Set(palabrasB.map(p=>p.toLowerCase()));
+
+  while(i<lm || j<ln){
+    if(i<lm && j<ln && lineasA[i]===lineasB[j]){
+      for(const p of tok(lineasA[i]+'\n')) resultado.push({tipo:'igual',texto:p,id:'t'+resultado.length});
+      i++; j++;
+    } else if(j<ln && (i>=lm || ldp[i][j+1]>=ldp[i+1][j])){
+      resultado.push({tipo:'agregado',texto:lineasB[j]+'\n',id:'t'+resultado.length});
+      j++;
+    } else {
+      const linea = lineasA[i];
+      const palabrasLinea = linea.match(/[a-záéíóúüña-z]{3,}/gi) || [];
+      const encontradas = palabrasLinea.filter(p=>setBp.has(p.toLowerCase())).length;
+      const pct = palabrasLinea.length > 0 ? encontradas/palabrasLinea.length : 0;
+      const tipo = pct > 0.6 ? 'reformateado' : 'borrado';
+      for(const p of tok(linea+'\n')) resultado.push({tipo,texto:p,id:'t'+resultado.length});
+      i++;
+    }
+  }
+  return resultado;
+}
+
+function actualizarColumnaLimpio(){
+  let hL = '';
+  for(const tok of diffTokens){
+    const t = escHtml(tok.texto);
+    if(tok.tipo==='igual') hL += `<span class="tok-igual">${t}</span>`;
+    else if(tok.tipo==='agregado') hL += `<span class="tok-add">${t}</span>`;
+    else if(tok.tipo==='restaurado') hL += `<span class="tok-add">${t}</span>`;
+  }
+  const col = document.getElementById('diff-limp');
+  if(col) col.innerHTML = hL;
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// SPRINT 2 — PARSER INTELIGENTE
+// ════════════════════════════════════════════════════════════════
+
+function extraerNotasReforma(texto){
+  const patrones = [
+    /\*?P[aá]rrafo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
+    /\*?Art[íi]culo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
+    /\*?Fracci[oó]n\s+(?:reformada|adicionada|derogada)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
+    /\*?Inciso\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
+    /\*?Reforma\s+DOF\s+[\d\-\w,\s:]+\*?/gi,
+  ];
+  const notas = [];
+  let textoLimpio = texto;
+  for(const patron of patrones){
+    textoLimpio = textoLimpio.replace(patron, match => {
+      notas.push(match.replace(/\*/g,'').trim());
+      return '';
+    });
+  }
+  return {textoLimpio: textoLimpio.trim(), notas};
+}
+
+function detectarEstadoJuridico(contenido, titulo){
+  titulo = titulo || '';
+  if(!contenido) return 'vacio';
+  if(/^\s*se\s+deroga\.?\s*$/i.test(contenido.trim())) return 'derogado';
+  if(/derogado\s+dof/i.test(contenido+titulo)) return 'derogado';
+  if(/fracci[oó]n\s+derogada/i.test(contenido+titulo)) return 'derogado';
+  if(/^\s*reservado\.?\s*$/i.test(contenido.trim())) return 'reservado';
+  return 'vigente';
+}
+
+function generarInstruccionAgente(estado, notas){
+  if(estado === 'derogado')
+    return 'DEROGADO. Usa solo como contexto histórico. NUNCA como norma vigente.';
+  if(estado === 'reservado')
+    return 'Artículo reservado. Sin contenido aplicable.';
+  if(notas && notas.length > 0)
+    return 'Norma vigente con reformas. Última: ' + notas[notas.length-1] + '. Cita el texto actual.';
+  return 'Norma vigente. Puedes citar textualmente como fundamento.';
+}
+
+function detectarCorteArticulo(item, siguiente){
+  const alertas = [];
+  const contenido = (item.contenido || '').trim();
+  if(contenido && !/[.;:]\s*$/.test(contenido) && contenido.length > 50)
+    alertas.push('El artículo no termina con punto — puede estar truncado');
+  if(contenido.length > 0 && contenido.length < 30 && !/se\s+deroga/i.test(contenido))
+    alertas.push('Contenido muy breve — verificar si está completo');
+  if(siguiente){
+    const sigContenido = (siguiente.contenido || '').trim();
+    if(sigContenido && sigContenido[0] === sigContenido[0].toLowerCase() && /[a-záéíóúü]/.test(sigContenido[0]))
+      alertas.push('El siguiente elemento inicia en minúscula — posible continuación');
+  }
+  return alertas;
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// SPRINT 3 — JSON CON ESTADOS JURÍDICOS
+// ════════════════════════════════════════════════════════════════
+
+function construirOutputFinal(){
+  return {
+    meta:{
+      perfil:          state.perfilActivo?.nombre||'Genérico',
+      ambito:          state.perfilActivo?.ambito||'—',
+      origen:          state.perfilActivo?.origen||'—',
+      fechaProcesado:  new Date().toISOString(),
+      hashContenido:   state.hashActual||'',
+      aprobado:        state.aprobado,
+      reglasAplicadas: (state.perfilActivo?.reglas||[]).length,
+      totalArticulos:  state.estructura.filter(e=>e.tipo==='articulo').length,
+      totalDerogados:  state.estructura.filter(e=>e.tipo==='articulo'&&e.estado==='derogado').length,
+      totalReformados: state.estructura.filter(e=>e.tipo==='articulo'&&e.reformas&&e.reformas.length>0).length,
+      temas:           state.temasGenerados||[]
+    },
+    contenido:[
+      ...state.estructura.map(item=>{
+        const limpio = Object.assign({},item);
+        Object.keys(limpio).forEach(k => limpio[k]===undefined && delete limpio[k]);
+        return limpio;
+      }),
+      ...state.resaltados.map(r=>({
+        tipo:   r.tipo.toLowerCase().replace(/\s+/g,'_'),
+        nombre: r.tipo,
+        contenido: r.texto,
+        estado: 'manual',
+        instruccion_agente: 'Elemento clasificado manualmente como "'+r.tipo+'".'
+      }))
+    ]
+  };
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// SPRINT 4 — ENVIAR A LUMEN
+// ════════════════════════════════════════════════════════════════
+
+function extraerTituloLey(estructura){
+  const intro = estructura.find(e=>e.tipo==='introduccion');
+  if(!intro) return null;
+  const match = (intro.contenido||'').match(/^(LEY\s+[A-ZÁÉÍÓÚÜÑ\s]+)/m);
+  return match ? match[1].trim() : null;
+}
+
+function inferirTipoNormativa(perfil){
+  if(!perfil) return 'ley';
+  const nombre = (perfil.nombre||'').toLowerCase();
+  if(nombre.includes('reglamento')) return 'reglamento';
+  if(nombre.includes('lineamiento')) return 'lineamiento';
+  if(nombre.includes('acuerdo')) return 'acuerdo';
+  if(nombre.includes('norma')) return 'norma';
+  return 'ley';
+}
+
+function extraerFechaPublicacion(texto){
+  if(!texto) return null;
+  const m = texto.match(/publicada?\s+en\s+el\s+Diario\s+Oficial.*?el\s+(\d+\s+de\s+\w+\s+de\s+\d{4})/i);
+  return m ? m[1] : null;
+}
+
+function extraerUltimaReforma(texto){
+  if(!texto) return null;
+  const m = texto.match(/[ÚU]ltima\s+reforma\s+publicada\s+DOF\s+([\d\-]+)/i);
+  return m ? m[1] : null;
+}
+
+async function obtenerUidActual(){
+  return new Promise(resolve => {
+    try{
+      const uid = localStorage.getItem('lumenprep_uid');
+      if(uid){ resolve(uid); return; }
+      const ingresado = prompt(
+        'Para enviar a Lumen necesitas tu ID de usuario.\n\n'+
+        'Encuéntralo en Lumen → tu perfil → "ID de sesión"\n\n'+
+        'Se guardará localmente para futuras sesiones:'
+      );
+      if(ingresado && ingresado.trim()){
+        localStorage.setItem('lumenprep_uid', ingresado.trim());
+        resolve(ingresado.trim());
+      } else { resolve(null); }
+    }catch(e){ resolve(null); }
+  });
+}
+
+async function enviarALumen(){
+  if(!state.aprobado){ toast('Aprueba el documento antes de enviarlo','error'); return; }
+  if(!window._dbReady){ toast('Sin conexión a Firestore','error'); return; }
+  const btn = document.getElementById('btn-enviar-lumen');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Enviando...'; }
+  try{
+    const output = construirOutputFinal();
+    output.meta.aprobado = true;
+    const docLumen = {
+      titulo:         extraerTituloLey(state.estructura)||state.perfilActivo?.nombre||'Documento sin título',
+      tipo:           inferirTipoNormativa(state.perfilActivo),
+      ambito:         state.perfilActivo?.ambito||'',
+      origen:         state.perfilActivo?.origen||'',
+      fechaPublicacion: extraerFechaPublicacion(state.textoOriginal)||'',
+      ultimaReforma:  extraerUltimaReforma(state.textoOriginal)||'',
+      estado:         'borrador_lumenprep',
+      articulos:      output.contenido.filter(e=>e.tipo==='articulo'),
+      introduccion:   output.contenido.find(e=>e.tipo==='introduccion')||null,
+      transitorios:   output.contenido.filter(e=>e.tipo==='transitorio'),
+      meta:           output.meta,
+      hashContenido:  state.hashActual||'',
+      temas:          state.temasGenerados||[],
+      visibilidadDefault: 1,
+      creadoEn:       new Date().toISOString(),
+      fuente:         'lumen_prep'
+    };
+    const uid = await obtenerUidActual();
+    if(!uid){ toast('No se detectó usuario — ingresa tu UID de Lumen','error'); return; }
+    const colRef = window._collection(window._db, `usuarios/${uid}/normatividad`);
+    await window._addDoc(colRef, docLumen);
+    const el = document.getElementById('lumen-send-result');
+    if(el){ el.textContent='✅ Borrador creado en Lumen: "'+docLumen.titulo+'"'; el.classList.add('visible'); }
+    logOk('Enviado a Lumen','"'+docLumen.titulo+'"', uid.slice(0,8));
+    renderLog();
+    toast('Documento enviado a Lumen','success');
+  }catch(e){
+    toast('Error al enviar: '+e.message,'error');
+    logErr('Error al enviar a Lumen', e.message);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='🚀 Enviar a Lumen como borrador'; }
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// SPRINT 5 — AGENTE IA / TEMAS
+// ════════════════════════════════════════════════════════════════
+
+async function etiquetarTemasConIA(){
+  if(!state.estructura.length){ toast('Primero procesa un documento','error'); return; }
+  const btn = document.getElementById('btn-etiquetar-temas');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Analizando...'; }
+  const arts = state.estructura.filter(e=>e.tipo==='articulo'&&e.estado!=='derogado');
+  const muestra = arts.slice(0,20).map(a=>`${a.articulo}: ${(a.contenido||a.introduccion||'').slice(0,150)}`).join('\n');
+  const prompt = `Eres experto en normativa legal mexicana. Devuelve ÚNICAMENTE JSON válido:
+{"temas":["tema1","tema2",...]}
+Máximo 12 temas, 1-3 palabras cada uno. Artículos:
+${muestra}`;
+  try{
+    const res = await fetch('https://lumen-briefing.garogmx89.workers.dev',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const txt = (data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const resultado = JSON.parse(txt);
+    state.temasGenerados = resultado.temas || [];
+    renderTemas();
+    logOk('Temas generados',`${state.temasGenerados.length} temas`,`×${state.temasGenerados.length}`);
+    toast(`${state.temasGenerados.length} temas identificados`,'success');
+  }catch(e){
+    toast('Error: '+e.message,'error');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='🏷 Etiquetar temas con IA'; }
+  }
+}
+
+function renderTemas(){
+  const el = document.getElementById('temas-container');
+  if(!el) return;
+  if(!state.temasGenerados || !state.temasGenerados.length){
+    el.innerHTML='<span style="font-size:11px;color:var(--text-faint);">Sin temas aún.</span>';return;
+  }
+  el.innerHTML = state.temasGenerados.map((t,i)=>
+    `<span class="tema-tag">${escHtml(t)}<span class="tema-remove" onclick="quitarTema(${i})">×</span></span>`
+  ).join('');
+}
+
+function quitarTema(idx){
+  state.temasGenerados.splice(idx,1);
+  renderTemas();
+}
+
+function construirContextoAgente(){
+  const arts = state.estructura.filter(e=>e.tipo==='articulo');
+  const normativos = arts.filter(a=>a.estado==='vigente'||!a.estado);
+  const historicos = arts.filter(a=>a.estado==='derogado');
+  const titulo = extraerTituloLey(state.estructura)||state.perfilActivo?.nombre||'Documento normativo';
+  let ctx = '# ' + titulo + '\n';
+  if(state.perfilActivo?.ambito) ctx += 'Ámbito: ' + state.perfilActivo.ambito + '\n';
+  if(state.temasGenerados?.length) ctx += 'Temas: ' + state.temasGenerados.join(', ') + '\n';
+  ctx += '\n---\n\n## NORMA VIGENTE\n\n';
+  for(const a of normativos){
+    ctx += '**' + a.articulo + '**';
+    if(a.reformas && a.reformas.length) ctx += ' *(reforma: ' + a.reformas[a.reformas.length-1] + ')*';
+    ctx += '\n';
+    if(a.introduccion) ctx += a.introduccion + '\n';
+    if(a.fracciones && a.fracciones.length){
+      for(const f of a.fracciones){
+        if(f.estado==='derogado') continue;
+        ctx += '  ' + f.fraccion + ' ' + (f.contenido||'') + '\n';
+      }
+    } else if(a.contenido){ ctx += a.contenido + '\n'; }
+    ctx += '\n';
+  }
+  if(historicos.length){
+    ctx += '---\n\n## CONTEXTO HISTÓRICO (NO aplicar como norma)\n\n';
+    for(const a of historicos){
+      ctx += '**' + a.articulo + '** *(DEROGADO)*\n';
+      if(a.contenido) ctx += a.contenido.slice(0,200) + '\n';
+      ctx += '\n';
+    }
+  }
+  ctx += '---\n*Procesado: ' + new Date().toLocaleDateString('es-MX') + ' | Hash: ' + (state.hashActual||'').slice(0,16) + '...*\n';
+  return ctx;
+}
+
+function exportarContextoAgente(){
+  if(!state.estructura.length){ toast('Primero procesa un documento','error'); return; }
+  const ctx = construirContextoAgente();
+  const blob = new Blob([ctx], {type:'text/markdown'});
+  const a = document.createElement('a');
+  const nombre = (extraerTituloLey(state.estructura)||'contexto').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre + '-contexto-ia.md';
+  a.click();
+  toast('Contexto para agente exportado','success');
+}
+
+// Interactividad radios
+document.addEventListener('change', e=>{
+  if(e.target.name==='ctx'){
+    document.querySelectorAll('.regla-contexto-opt').forEach(o=>o.classList.remove('selected'));
+    e.target.closest('.regla-contexto-opt')?.classList.add('selected');
+  }
+  if(e.target.name==='metodo'){
+    document.querySelectorAll('.metodo-opt').forEach(o=>o.classList.remove('selected'));
+    e.target.closest('.metodo-opt')?.classList.add('selected');
+  }
+});
+
+
 let _tt;
 function toast(msg,tipo=''){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${tipo}`;clearTimeout(_tt);_tt=setTimeout(()=>{el.className='';},3000);}
 </script>
 
-<!-- MODAL ETAPA 1 — Limpieza estructural -->
+<!-- MODAL ETAPA 1 -->
 <div class="etapa-modal hidden" id="modal-etapa1">
   <div class="etapa-card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <span class="etapa-badge etapa-1">ETAPA 1</span>
-      <div class="etapa-title">Limpieza estructural</div>
+      <div class="etapa-title">Etapa 1 — Limpieza estructural</div>
     </div>
     <div class="etapa-desc">
-      Se eliminó el <strong>ruido estructural</strong> del documento: números de página, sellos digitales
-      y patrones del perfil activo. <strong>No se tocó ningún párrafo de artículo.</strong><br><br>
-      Revisa los cambios realizados. Si algo no debió eliminarse, puedes ajustar las reglas del perfil
-      antes de continuar. Al aprobar, pasarás a la Etapa 2 — normalización de formato.
+      Se eliminó el <strong>ruido estructural</strong>: números de página, sellos digitales y patrones del perfil.<br>
+      <strong>No se tocó ningún párrafo de artículo.</strong> Revisa y aprueba para continuar.
     </div>
     <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Cambios aplicados</div>
     <div class="etapa-cambios" id="etapa1-cambios"></div>
-    <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Vista previa del texto (primeros 2000 chars)</div>
+    <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Vista previa (primeros 2000 chars)</div>
     <div class="etapa-preview" id="etapa1-preview"></div>
     <div class="etapa-footer">
-      <button class="btn btn-danger" onclick="cancelarEtapa1()">✕ Cancelar todo</button>
-      <button class="btn btn-warn"   onclick="ajustarReglasDesdeEtapa1()">⚙ Ajustar reglas</button>
-      <button class="btn btn-approve" style="width:auto;padding:9px 20px;" onclick="aprobarEtapa1()">✓ Aprobar — continuar a Etapa 2</button>
+      <button class="btn btn-danger" onclick="cancelarEtapa1()">✕ Cancelar</button>
+      <button class="btn btn-warn" onclick="ajustarReglasDesdeEtapa1()">⚙ Ajustar reglas</button>
+      <button class="btn btn-approve" style="width:auto;padding:9px 20px;" onclick="aprobarEtapa1()">✓ Aprobar — continuar</button>
     </div>
   </div>
 </div>
-
 </body>
 </html>
