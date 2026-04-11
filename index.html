@@ -1816,7 +1816,7 @@ function marcarComoResuelto(idx){
 // ══ PARSER ═══════════════════════════════════════════════════════
 function rArt(p){
   switch(p?.patronArticulo){
-    case 'mayusculas':return /(?=ART[IÍ]CULO\s+\d+[°º.]?)/gi;
+    case 'mayusculas':return /(?=ART[IÍ]CULO\s+\d+[°º.]?)/g;
     case 'abreviado': return /(?=Art\.\s*\d+)/gi;
     case 'custom':try{return new RegExp(`(?=${p.artRegexCustom})`,'gi');}catch(e){}
     default:return /(?=Artículo\s+\d+[°º.]?)/gi;
@@ -1824,7 +1824,7 @@ function rArt(p){
 }
 function rTituloArt(p){
   switch(p?.patronArticulo){
-    case 'mayusculas':return /^(ART[IÍ]CULO\s+\d+[°º.]?\.?[^\n]*)/i;
+    case 'mayusculas':return /^(ART[IÍ]CULO\s+\d+[°º.]?\.?-?)/ ;
     case 'abreviado': return /^(Art\.\s*\d+[°º.]?\.?[^\n]*)/i;
     case 'custom':try{return new RegExp(`^(${p.artRegexCustom}[^\\n]*)`, 'i');}catch(e){}
     default:return /^(Artículo\s+\d+[°º.]?\.?[^\n]*)/i;
@@ -2055,7 +2055,7 @@ function renderEstructura(){
         <div data-art-idx="${idx}" class="art-content-view">${escHtml(item.contenido)}</div></div>`;
     } else if(item.tipo==='seccion'){
       html+=`<div style="background:transparent;border:none;border-top:1px solid var(--border);padding:10px 4px 4px;margin:4px 0;">
-        <div style="font-size:10px;color:var(--frac);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Mono',monospace;">${escHtml(item.contenido)}</div>
+        <div style="font-size:10px;color:var(--frac);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Mono',monospace;white-space:pre-wrap;">${escHtml(item.contenido)}</div>
       </div>`;
     } else if(item.tipo==='articulo'){
       html+=renderArtCard(item,idx);
