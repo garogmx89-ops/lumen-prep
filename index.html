@@ -271,7 +271,7 @@ textarea:focus{border-color:var(--accent);}
 .diff-compare-table .warn{color:var(--warn);}
 .diff-compare-table .err{color:var(--err);}
 .diff-stats-bar{display:flex;gap:14px;flex-wrap:wrap;padding:7px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-family:'IBM Plex Mono',monospace;}
-.ds-del{color:var(--diff-del-text);}.ds-add{color:var(--diff-add-text);}.ds-neu{color:var(--text-faint);}
+.ds-del{color:var(--diff-del-text);}.ds-add{color:var(--diff-add-text);}.ds-neu{color:var(--text-faint);}.ds-ref{color:#f7c94f;}
 .diff-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;}
 .dtl{color:var(--text-faint);font-size:11px;font-family:'IBM Plex Mono',monospace;}
 .dab{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid transparent;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-weight:500;transition:all .15s;}
@@ -292,6 +292,65 @@ textarea:focus{border-color:var(--accent);}
 .tok-del.rest{text-decoration:none;opacity:1;background:var(--diff-add-bg);color:var(--diff-add-text);outline:none;}
 .tok-add{background:var(--diff-add-bg);color:var(--diff-add-text);border-radius:2px;padding:0 2px;}
 .tok-igual{color:var(--text-dim);}
+/* Sprint 1 — diff semántico */
+.tok-ref{background:#f7c94f22;color:#f7c94f;border-radius:2px;padding:0 2px;border-bottom:1px dashed #f7c94f;}
+.tok-ref:hover{opacity:1;outline:1px solid #f7c94f;}
+.tok-ref.sel{background:#f7c94f;color:#000;outline:none;}
+.ds-ref{color:#f7c94f;}
+
+/* Etapa de proceso */
+.etapa-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:20px;
+  font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600;
+  border:1px solid;
+}
+.etapa-1{background:#1a2a3a;border-color:var(--accent);color:var(--accent);}
+.etapa-2{background:#1a3a2a;border-color:var(--ok);color:var(--ok);}
+
+/* Modal etapa */
+.etapa-modal{
+  position:fixed;inset:0;background:#00000099;z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+.etapa-modal.hidden{display:none;}
+.etapa-card{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:12px;width:640px;max-height:80vh;overflow-y:auto;
+  padding:28px;box-shadow:0 20px 60px #00000066;
+}
+.etapa-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px;}
+.etapa-desc{font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;}
+.etapa-preview{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+  line-height:1.7;white-space:pre-wrap;word-break:break-word;
+  max-height:300px;overflow-y:auto;margin-bottom:16px;
+}
+.etapa-cambios{
+  display:flex;flex-direction:column;gap:6px;margin-bottom:16px;
+  max-height:200px;overflow-y:auto;
+}
+.etapa-cambio-item{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:6px 10px;border-radius:6px;font-size:12px;
+}
+.etapa-cambio-item.ok  {background:var(--diff-add-bg);border-left:3px solid var(--ok);}
+.etapa-cambio-item.warn{background:#f7c94f11;border-left:3px solid #f7c94f;}
+.etapa-cambio-icon{font-size:13px;flex-shrink:0;}
+.etapa-cambio-txt{color:var(--text-dim);flex:1;line-height:1.4;}
+.etapa-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
+
+/* Reglas con contexto */
+.regla-contexto-opt{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 10px;border:1px solid var(--border2);border-radius:6px;
+  cursor:pointer;transition:all .15s;margin-bottom:6px;
+}
+.regla-contexto-opt:hover{border-color:var(--accent);}
+.regla-contexto-opt.selected{border-color:var(--accent);background:var(--accent-dim);}
+.regla-contexto-opt input{accent-color:var(--accent);}
 
 /* ── LOG ── */
 .log-entry{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;}
@@ -627,6 +686,33 @@ textarea:focus{border-color:var(--accent);}
       </div>
     </div>
 
+    <div class="form-group" style="margin-top:14px;">
+      <label class="form-label">Contexto de aplicación</label>
+      <p style="font-size:11px;color:var(--text-faint);margin-bottom:8px;line-height:1.5;">
+        Define en qué contexto debe aplicarse esta regla para evitar eliminar texto válido dentro de artículos.
+      </p>
+      <label class="regla-contexto-opt selected" id="ctx-linea-sola">
+        <input type="radio" name="ctx" value="linea_sola" checked>
+        <div>
+          <div style="font-size:12px;color:var(--text);">Solo en línea sola</div>
+          <div style="font-size:11px;color:var(--text-faint);">Solo elimina si el patrón es toda la línea (más seguro)</div>
+        </div>
+      </label>
+      <label class="regla-contexto-opt" id="ctx-inicio-linea">
+        <input type="radio" name="ctx" value="inicio_linea">
+        <div>
+          <div style="font-size:12px;color:var(--text);">Al inicio de línea</div>
+          <div style="font-size:11px;color:var(--text-faint);">Elimina si el patrón aparece al inicio de una línea</div>
+        </div>
+      </label>
+      <label class="regla-contexto-opt" id="ctx-cualquier-pos">
+        <input type="radio" name="ctx" value="cualquier_posicion">
+        <div>
+          <div style="font-size:12px;color:var(--text);">En cualquier posición</div>
+          <div style="font-size:11px;color:var(--text-faint);">⚠ Puede afectar texto dentro de artículos — usar con cuidado</div>
+        </div>
+      </label>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-danger" onclick="cerrarModalRegla()">Cancelar</button>
       <button class="btn btn-success" onclick="guardarRegla()">📌 Guardar regla en perfil</button>
@@ -987,7 +1073,21 @@ function abrirModalRegla(){
   document.getElementById('modal-regla').classList.remove('hidden');
 }
 
-function cerrarModalRegla(){document.getElementById('modal-regla').classList.add('hidden');}
+function cerrarModalRegla(){
+  document.getElementById('modal-regla').classList.add('hidden');
+}
+
+// Interactividad radio buttons contexto
+document.addEventListener('change', e=>{
+  if(e.target.name==='ctx'){
+    document.querySelectorAll('.regla-contexto-opt').forEach(o=>o.classList.remove('selected'));
+    e.target.closest('.regla-contexto-opt')?.classList.add('selected');
+  }
+  if(e.target.name==='metodo'){
+    document.querySelectorAll('.metodo-opt').forEach(o=>o.classList.remove('selected'));
+    e.target.closest('.metodo-opt')?.classList.add('selected');
+  }
+});
 
 async function guardarRegla(){
   if(!state.perfilActivo){toast('Sin perfil activo','error');return;}
@@ -1281,41 +1381,206 @@ async function extraerTextoDocx(file){return(await mammoth.extractRawText({array
 
 
 // ══ LIMPIEZA ═════════════════════════════════════════════════════
-function limpiarTextoConLog(texto,perfil){
-  const orig=texto;
-  if(perfil?.ruido?.length)
-    for(const p of perfil.ruido)
-      try{const antes=texto.length;texto=texto.replace(new RegExp(escapeRegex(p),'gi'),'');
-        if(texto.length<antes)logOk('Ruido eliminado',`"${p.slice(0,50)}"`,`−${antes-texto.length}`);}catch(e){}
+// ══ SPRINT 1 — PROCESO EN DOS ETAPAS ════════════════════════════
 
-  // Aplicar reglas de tipo pie_pagina del perfil
-  if(perfil?.reglas?.length){
-    texto=aplicarReglasPerfil(texto,perfil);
-    const reglasApp=perfil.reglas.filter(r=>r.tipo==='pie_pagina');
-    if(reglasApp.length)logOk('Reglas de perfil aplicadas',`${reglasApp.length} regla(s) de ruido ejecutadas`,`×${reglasApp.length}`);
+/**
+ * ETAPA 1: Limpieza estructural — solo elimina ruido obvio.
+ * NO toca párrafos de artículos. Solo líneas solas o encabezados.
+ * Devuelve {texto, cambios[]}
+ */
+function etapa1_LimpiezaEstructural(texto, perfil){
+  const cambios=[];
+  let t=texto;
+
+  // Sellos digitales (siempre seguros — nunca están en artículos)
+  const anteSello=t.length;
+  t=t.replace(/[A-Za-z0-9+/]{40,}={0,2}/g,'');
+  if(anteSello-t.length>0)
+    cambios.push({tipo:'ok',msg:'Sellos digitales eliminados',detalle:`−${anteSello-t.length} caracteres`});
+
+  // Números de página solos en línea (solo si la línea ES el número)
+  const numPags=(t.match(/^\s*\d{1,4}\s*$/gm)||[]).length;
+  t=t.replace(/^\s*\d{1,4}\s*$/gm,'');
+  if(numPags>0)
+    cambios.push({tipo:'ok',msg:`${numPags} número(s) de página eliminados`,detalle:'Líneas que solo contenían un número'});
+
+  // Ruido del perfil — con contexto de aplicación
+  if(perfil?.ruido?.length){
+    for(const p of perfil.ruido){
+      try{
+        // Solo aplica si la línea ES el patrón (modo seguro por defecto)
+        const re=new RegExp(`^\s*${escapeRegex(p)}\s*$`,'gim');
+        const antes=t.length;
+        t=t.replace(re,'');
+        if(t.length<antes)
+          cambios.push({tipo:'ok',msg:`Ruido eliminado: "${p.slice(0,40)}"`,detalle:`−${antes-t.length} chars (línea sola)`});
+      }catch(e){}
+    }
   }
 
-  const anteSello=texto.length;
-  texto=texto.replace(/[A-Za-z0-9+/]{40,}={0,2}/g,'');
-  if(anteSello-texto.length>0)logOk('Sellos eliminados','Cadenas base64',`−${anteSello-texto.length}`);
+  // Reglas del perfil — respetando contexto de aplicación
+  if(perfil?.reglas?.length){
+    for(const regla of perfil.reglas){
+      if(regla.tipo!=='pie_pagina') continue;
+      try{
+        const ctx=regla.contextoAplicacion||'linea_sola';
+        let re;
+        if(ctx==='linea_sola')
+          re=new RegExp(`^\s*${escapeRegex(regla.patron)}.*$`,'gim');
+        else if(ctx==='inicio_linea')
+          re=new RegExp(`^\s*${escapeRegex(regla.patron)}`,'gim');
+        else
+          re=new RegExp(escapeRegex(regla.patron),'gi');
+        const antes=t.length;
+        t=t.replace(re,'');
+        if(t.length<antes)
+          cambios.push({tipo:'ok',msg:`Regla aplicada: "${regla.nombre}"`,detalle:`ctx:${ctx} −${antes-t.length} chars`});
+      }catch(e){}
+    }
+  }
 
-  const numPags=(texto.match(/^\s*\d{1,4}\s*$/gm)||[]).length;
-  texto=texto.replace(/^\s*\d{1,4}\s*$/gm,'');
-  if(numPags>0)logOk('Números de página',`${numPags} líneas`,`×${numPags}`);
+  // Limpiar líneas vacías múltiples generadas
+  t=t.replace(/
+{3,}/g,'
 
-  const saltosFixed=(texto.match(/([^.\n])\n(?!\n)/g)||[]).length;
-  texto=texto.replace(/([^.\n])\n(?!\n)/g,'$1 ');
-  if(saltosFixed>0)logInfo('Saltos normalizados',`${saltosFixed} saltos`,`×${saltosFixed}`);
+');
 
-  texto=texto.replace(/[ \t]{2,}/g,' ').replace(/\n{3,}/g,'\n\n');
+  // Verificar integridad de artículos
+  const extraer=tx=>[...tx.matchAll(/Artículo\s+(\d+)/gi)].map(m=>parseInt(m[1]));
+  const artOrig=new Set(extraer(texto));
+  const artLimp=new Set(extraer(t));
+  const faltantes=[...artOrig].filter(n=>!artLimp.has(n));
+  if(faltantes.length>0)
+    cambios.push({tipo:'warn',msg:`⚠ Artículos posiblemente afectados`,detalle:`Revisar: ${faltantes.slice(0,5).join(', ')}`});
+  else
+    cambios.push({tipo:'ok',msg:'Integridad de artículos: OK',detalle:`${artLimp.size} artículos presentes`});
 
-  const perdidos=contarPalabras(orig)-contarPalabras(texto);
-  if(perdidos>10)logWarn('Diferencia de palabras significativa',`~${perdidos} palabras`,`Δ${perdidos}`);
-  else logOk('Integridad conservada',`Diferencia mínima`,`Δ${perdidos}`);
-
-  return texto.trim();
+  return {texto:t.trim(), cambios};
 }
-function contarPalabras(t){return(t.match(/\b[a-záéíóúüñA-ZÁÉÍÓÚÜÑA-Z]{2,}\b/g)||[]).length;}
+
+/**
+ * ETAPA 2: Normalización de formato — solo toca la presentación.
+ * El contenido ya fue validado en Etapa 1.
+ */
+function etapa2_NormalizacionFormato(texto){
+  let t=texto;
+  const cambios=[];
+
+  const saltosFixed=(t.match(/([^.
+])
+(?!
+)/g)||[]).length;
+  t=t.replace(/([^.
+])
+(?!
+)/g,'$1 ');
+  if(saltosFixed>0)
+    cambios.push({tipo:'ok',msg:'Saltos de línea normalizados',detalle:`${saltosFixed} saltos dentro de párrafos convertidos a espacio`});
+
+  const antEsp=t.length;
+  t=t.replace(/[ 	]{2,}/g,' ');
+  if(antEsp-t.length>0)
+    cambios.push({tipo:'ok',msg:'Espacios múltiples normalizados',detalle:`−${antEsp-t.length} chars`});
+
+  t=t.replace(/
+{3,}/g,'
+
+');
+
+  const perdidos=contarPalabras(texto)-contarPalabras(t);
+  if(perdidos>10)
+    cambios.push({tipo:'warn',msg:`Diferencia de palabras: ${perdidos}`,detalle:'Revisar si es normal para este documento'});
+  else
+    cambios.push({tipo:'ok',msg:'Integridad de palabras conservada',detalle:`Diferencia: ${perdidos} palabras`});
+
+  return {texto:t.trim(), cambios};
+}
+
+// Estado de las etapas
+let etapaState={
+  textoPost1:'',  // texto después de etapa 1
+  cambios1:[],
+  cambios2:[]
+};
+
+function mostrarEtapa1(texto, perfil){
+  const resultado=etapa1_LimpiezaEstructural(texto, perfil);
+  etapaState.textoPost1=resultado.texto;
+  etapaState.cambios1=resultado.cambios;
+
+  // Poblar modal
+  const listaCambios=document.getElementById('etapa1-cambios');
+  listaCambios.innerHTML=resultado.cambios.map(c=>`
+    <div class="etapa-cambio-item ${c.tipo}">
+      <span class="etapa-cambio-icon">${c.tipo==='ok'?'✅':'⚠️'}</span>
+      <div class="etapa-cambio-txt">
+        <strong>${escHtml(c.msg)}</strong>
+        <div style="font-size:11px;margin-top:2px;">${escHtml(c.detalle)}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('etapa1-preview').textContent=
+    resultado.texto.slice(0,2000)+(resultado.texto.length>2000?'
+[... continúa ...]':'');
+
+  document.getElementById('modal-etapa1').classList.remove('hidden');
+}
+
+function cancelarEtapa1(){
+  document.getElementById('modal-etapa1').classList.add('hidden');
+  setLoading(false);
+  toast('Proceso cancelado','success');
+}
+
+function ajustarReglasDesdeEtapa1(){
+  document.getElementById('modal-etapa1').classList.add('hidden');
+  setLoading(false);
+  editarPerfilActual();
+  toast('Ajusta las reglas y vuelve a procesar','success');
+}
+
+async function aprobarEtapa1(){
+  document.getElementById('modal-etapa1').classList.add('hidden');
+  logOk('Etapa 1 aprobada',`${etapaState.cambios1.length} operaciones`,
+    etapaState.cambios1.filter(c=>c.tipo==='ok').length+' OK');
+
+  // Ejecutar Etapa 2
+  const resultado2=etapa2_NormalizacionFormato(etapaState.textoPost1);
+  etapaState.cambios2=resultado2.cambios;
+  resultado2.cambios.forEach(c=>{
+    if(c.tipo==='ok')logOk('Etapa 2: '+c.msg,c.detalle,'');
+    else logWarn('Etapa 2: '+c.msg,c.detalle,'');
+  });
+
+  // Continuar con el proceso normal
+  await finalizarProcesado(resultado2.texto);
+}
+
+async function finalizarProcesado(textoLimpio){
+  try{
+    state.textoLimpio=textoLimpio;
+    verificarArticulos(state.textoOriginal, state.textoLimpio);
+    state.estructura=parsear(state.textoLimpio,state.perfilActivo);
+    state.problemas=detectarProblemas(state.estructura);
+    const arts=state.estructura.filter(e=>e.tipo==='articulo').length;
+    const fracs=state.estructura.reduce((n,a)=>n+(a.fracciones?.length||0),0);
+    logInfo('Parseo',`${arts} artículos, ${fracs} fracciones`,`${arts} arts`);
+    if(state.problemas.length)logWarn('Problemas',`${state.problemas.length} artículo(s)`,`×${state.problemas.length}`);
+    else logOk('Sin problemas','Estructura detectada correctamente','✓');
+    state.hashActual=await calcularHash(state.textoLimpio);
+    logInfo('Hash',`SHA-256: ${state.hashActual.slice(0,16)}...`,'');
+    actualizarStats();renderVista();renderDiff();renderEstructura();renderJSON();renderProblemas();renderLog();
+    document.getElementById('stats-section').style.display='block';
+    mostrarEstado(`${arts} artículos${state.perfilActivo?' · '+state.perfilActivo.nombre:''}`);
+    toast('Documento procesado — 2 etapas completadas','success');
+  }catch(e){
+    toast('Error: '+e.message,'error');logErr('Error en finalización',e.message);
+  }finally{
+    setLoading(false);
+  }
+}
+
+function contarPalabras(t){return(t.match(/[a-záéíóúüñA-ZÁÉÍÓÚÜÑA-Z]{2,}/g)||[]).length;}
 function escapeRegex(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 
 
@@ -1330,43 +1595,131 @@ function verificarArticulos(orig,limpio){
 }
 
 
-// ══ DIFF ═════════════════════════════════════════════════════════
-function calcularDiffTokens(orig,limp){
-  const lineasA=orig.split('\n'),lineasB=limp.split('\n');
-  const tokens=[];
-  const lm=lineasA.length,ln=lineasB.length;
-  const ldp=Array.from({length:lm+1},()=>new Int32Array(ln+1));
-  for(let i=lm-1;i>=0;i--)for(let j=ln-1;j>=0;j--)
-    ldp[i][j]=lineasA[i]===lineasB[j]?ldp[i+1][j+1]+1:Math.max(ldp[i+1][j],ldp[i][j+1]);
-  let i=0,j=0;const tok=t=>t.match(/[^\s]+|\s+/g)||[];
+// ══ DIFF SEMÁNTICO — Sprint 1 ═══════════════════════════════════
+/**
+ * Diff semántico: compara palabras significativas.
+ * - ROJO: palabra que realmente desapareció del limpio
+ * - AMARILLO (reformateado): palabra que cambió de contexto/posición
+ * - VERDE: palabra nueva en el limpio
+ * - GRIS: igual
+ * Actualiza en tiempo real cuando se restaura un token.
+ */
+function calcularDiffSemantico(orig, limp){
+  // Tokenizar preservando posición
+  const tokenizar = txt => {
+    const tokens = [];
+    const re = /([^\s]+)|(\s+)/g;
+    let m;
+    while((m=re.exec(txt))!==null){
+      tokens.push({
+        texto: m[0],
+        esPalabra: !!m[1],
+        id: 't'+tokens.length
+      });
+    }
+    return tokens;
+  };
+
+  const tokA = tokenizar(orig);
+  const tokB = tokenizar(limp);
+
+  // Solo palabras significativas para LCS
+  const palabrasA = tokA.filter(t=>t.esPalabra).map(t=>t.texto.toLowerCase());
+  const palabrasB = tokB.filter(t=>t.esPalabra).map(t=>t.texto.toLowerCase());
+
+  // LCS por líneas para eficiencia (documentos grandes)
+  const lineasA = orig.split('\n');
+  const lineasB = limp.split('\n');
+  const lm = lineasA.length, ln = lineasB.length;
+  const ldp = Array.from({length:lm+1},()=>new Int32Array(ln+1));
+  for(let i=lm-1;i>=0;i--)
+    for(let j=ln-1;j>=0;j--)
+      ldp[i][j]=lineasA[i]===lineasB[j]?ldp[i+1][j+1]+1:Math.max(ldp[i+1][j],ldp[i][j+1]);
+
+  // Construir resultado con clasificación semántica
+  const resultado = [];
+  let i=0,j=0;
+  const tok = t => t.match(/[^\s]+|\s+/g)||[];
+
   while(i<lm||j<ln){
-    if(i<lm&&j<ln&&lineasA[i]===lineasB[j]){for(const p of tok(lineasA[i]+'\n'))tokens.push({tipo:'igual',texto:p,id:'t'+tokens.length});i++;j++;}
-    else if(j<ln&&(i>=lm||ldp[i][j+1]>=ldp[i+1][j])){tokens.push({tipo:'agregado',texto:lineasB[j]+'\n',id:'t'+tokens.length});j++;}
-    else{for(const p of tok(lineasA[i]+'\n'))tokens.push({tipo:'borrado',texto:p,id:'t'+tokens.length});i++;}
+    if(i<lm&&j<ln&&lineasA[i]===lineasB[j]){
+      // Líneas idénticas — igual
+      for(const p of tok(lineasA[i]+'\n'))
+        resultado.push({tipo:'igual',texto:p,id:'t'+resultado.length});
+      i++;j++;
+    } else if(j<ln&&(i>=lm||ldp[i][j+1]>=ldp[i+1][j])){
+      // Línea en limpio pero no en original — agregado
+      resultado.push({tipo:'agregado',texto:lineasB[j]+'\n',id:'t'+resultado.length});
+      j++;
+    } else {
+      // Línea en original pero no en limpio
+      // Determinar si es eliminado real o reformateado
+      const lineaOrig = lineasA[i];
+      const palabrasLinea = lineaOrig.match(/[a-záéíóúüña-z]{3,}/gi)||[];
+      const encontradas = palabrasLinea.filter(p=>
+        palabrasB.includes(p.toLowerCase())
+      ).length;
+      const pct = palabrasLinea.length>0 ? encontradas/palabrasLinea.length : 0;
+
+      // Si >60% de las palabras están en el limpio = reformateado (amarillo)
+      // Si <60% = eliminado real (rojo)
+      const tipo = pct > 0.6 ? 'reformateado' : 'borrado';
+
+      for(const p of tok(lineaOrig+'\n'))
+        resultado.push({tipo,texto:p,id:'t'+resultado.length});
+      i++;
+    }
   }
-  return tokens;
+  return resultado;
 }
 
 function renderDiff(){
   const el=document.getElementById('pane-cambios');
-  if(!state.textoOriginal||!state.textoLimpio){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Procesa un documento.</p></div>`;return;}
-  diffTokens=calcularDiffTokens(state.textoOriginal,state.textoLimpio);
+  if(!state.textoOriginal||!state.textoLimpio){
+    el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Procesa un documento.</p></div>`;return;
+  }
+  diffTokens=calcularDiffSemantico(state.textoOriginal,state.textoLimpio);
   state.tokensRestaurados=new Set();tokenSeleccionado=null;
+
   const pO=contarPalabras(state.textoOriginal),pL=contarPalabras(state.textoLimpio);
   const cO=state.textoOriginal.length,cL=state.textoLimpio.length;
-  const eO=(state.textoOriginal.match(/ /g)||[]).length,eL=(state.textoLimpio.match(/ /g)||[]).length;
+  const eO=(state.textoOriginal.match(/ /g)||[]).length;
+  const eL=(state.textoLimpio.match(/ /g)||[]).length;
   const dP=pL-pO,dC=cL-cO,dE=eL-eO;
   const pct=pO>0?(Math.abs(dP)/pO*100).toFixed(1):0;
   const clP=Math.abs(dP)<50?'ok':Math.abs(dP)<200?'warn':'err';
-  let hO='',hL='',borrados=0,agregados=0;
+
+  let hO='',hL='';
+  let borrados=0,reformateados=0,agregados=0;
+
   for(const tok of diffTokens){
     const t=escHtml(tok.texto);
-    if(tok.tipo==='igual'){hO+=`<span class="tok-igual">${t}</span>`;hL+=`<span class="tok-igual">${t}</span>`;}
-    else if(tok.tipo==='borrado'){hO+=`<span class="tok-del" data-tid="${tok.id}" onclick="seleccionarToken('${tok.id}')">${t}</span>`;borrados++;}
-    else{hL+=`<span class="tok-add">${t}</span>`;agregados++;}
+    if(tok.tipo==='igual'){
+      hO+=`<span class="tok-igual">${t}</span>`;
+      hL+=`<span class="tok-igual">${t}</span>`;
+    } else if(tok.tipo==='borrado'){
+      hO+=`<span class="tok-del" data-tid="${tok.id}" data-tipo="borrado" onclick="seleccionarToken('${tok.id}')">${t}</span>`;
+      borrados++;
+    } else if(tok.tipo==='reformateado'){
+      hO+=`<span class="tok-ref" data-tid="${tok.id}" data-tipo="reformateado" onclick="seleccionarToken('${tok.id}')">${t}</span>`;
+      reformateados++;
+    } else if(tok.tipo==='agregado'){
+      hL+=`<span class="tok-add">${t}</span>`;
+      agregados++;
+    } else if(tok.tipo==='restaurado'){
+      hO+=`<span class="tok-del rest" data-tid="${tok.id}">${t}</span>`;
+      hL+=`<span class="tok-add">${t}</span>`;
+    }
   }
+
   el.innerHTML=`
-    <div class="diff-hint">💡 Haz clic en texto <span style="color:var(--diff-del-text);font-weight:600;">rojo tachado</span> para seleccionarlo y decidir qué hacer con él.</div>
+    <div class="diff-hint">
+      💡
+      <span style="color:var(--diff-del-text);font-weight:600;">■ Rojo</span> = eliminado real &nbsp;|&nbsp;
+      <span style="color:#f7c94f;font-weight:600;">■ Amarillo</span> = reformateado (mismo contenido, diferente forma) &nbsp;|&nbsp;
+      <span style="color:var(--diff-add-text);font-weight:600;">■ Verde</span> = agregado
+      &nbsp;&nbsp; Haz clic en cualquier fragmento marcado para gestionarlo.
+    </div>
     <table class="diff-compare-table" style="margin:14px;width:calc(100% - 28px);">
       <tr><th></th><th>Palabras</th><th>Caracteres</th><th>Espacios</th></tr>
       <tr><td class="col-label">Original</td><td>${pO.toLocaleString()}</td><td>${cO.toLocaleString()}</td><td>${eO.toLocaleString()}</td></tr>
@@ -1377,61 +1730,113 @@ function renderDiff(){
       </tr>
     </table>
     <div class="diff-stats-bar">
-      <span class="ds-del">− ${borrados} eliminado(s)</span>
-      <span class="ds-add">+ ${agregados} modificado(s)</span>
+      <span class="ds-del">🔴 ${borrados} eliminado(s) real(es)</span>
+      <span class="ds-ref">🟡 ${reformateados} reformateado(s)</span>
+      <span class="ds-add">🟢 ${agregados} agregado(s)</span>
       <span class="ds-neu" id="diff-rest-count"></span>
     </div>
     <div class="diff-toolbar">
-      <span class="dtl">Token:</span>
-      <span id="diff-sel-preview" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);background:var(--surface2);padding:3px 8px;border-radius:4px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">— ninguno —</span>
-      <button class="dab dab-restore" id="dab-restore" onclick="restaurarToken()" disabled>↩ Restaurar</button>
-      <button class="dab dab-remove"  id="dab-remove"  onclick="confirmarEliminacion()" disabled>✕ Eliminar</button>
+      <span class="dtl">Seleccionado:</span>
+      <span id="diff-sel-preview" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);background:var(--surface2);padding:3px 8px;border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">— ninguno —</span>
+      <span id="diff-sel-tipo" style="font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;"></span>
+      <button class="dab dab-restore" id="dab-restore" onclick="restaurarToken()" disabled>↩ Restaurar en limpio</button>
+      <button class="dab dab-remove"  id="dab-remove"  onclick="confirmarEliminacion()" disabled>✕ Confirmar eliminación</button>
       <button class="dab dab-keep"    onclick="deseleccionarToken()" style="margin-left:auto;">Deseleccionar</button>
     </div>
     <div class="diff-layout">
-      <div class="diff-col-wrap"><div class="diff-col-header orig">ORIGINAL</div><div class="diff-col-body" id="diff-orig">${hO}</div></div>
-      <div class="diff-col-wrap"><div class="diff-col-header limp">LIMPIO</div><div class="diff-col-body" id="diff-limp">${hL}</div></div>
+      <div class="diff-col-wrap">
+        <div class="diff-col-header orig">ORIGINAL — lo que había</div>
+        <div class="diff-col-body" id="diff-orig">${hO}</div>
+      </div>
+      <div class="diff-col-wrap">
+        <div class="diff-col-header limp">LIMPIO — lo que quedó (tiempo real)</div>
+        <div class="diff-col-body" id="diff-limp">${hL}</div>
+      </div>
     </div>`;
+
   const tC=document.getElementById('tab-cambios');
-  if(borrados>0){tC.textContent=`Cambios (${borrados})`;tC.style.color='#f7c94f';}
+  if(borrados>0){tC.textContent=`Cambios (${borrados} elim.)`;tC.style.color='#f7c94f';}
+  else if(reformateados>0){tC.textContent=`Cambios (${reformateados} ref.)`;tC.style.color='#f7c94f';}
   else{tC.textContent='Cambios ✓';tC.style.color='var(--frac)';}
 }
 
 function seleccionarToken(tid){
-  if(tokenSeleccionado)document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
+  if(tokenSeleccionado)
+    document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
   tokenSeleccionado=tid;
   document.querySelectorAll(`[data-tid="${tid}"]`).forEach(el=>el.classList.add('sel'));
   const tok=diffTokens.find(t=>t.id===tid);
   const prev=document.getElementById('diff-sel-preview');
-  if(prev&&tok)prev.textContent=`"${tok.texto.trim().slice(0,40)}"`;
+  const tipoEl=document.getElementById('diff-sel-tipo');
+  if(prev&&tok)prev.textContent=`"${tok.texto.trim().slice(0,35)}"`;
+  if(tipoEl&&tok){
+    const labels={borrado:'🔴 Eliminado real',reformateado:'🟡 Reformateado'};
+    tipoEl.textContent=labels[tok.tipo]||tok.tipo;
+  }
   document.getElementById('dab-restore').disabled=false;
   document.getElementById('dab-remove').disabled=false;
 }
+
 function deseleccionarToken(){
-  if(tokenSeleccionado)document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
+  if(tokenSeleccionado)
+    document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
   tokenSeleccionado=null;
   document.getElementById('dab-restore').disabled=true;
   document.getElementById('dab-remove').disabled=true;
   const p=document.getElementById('diff-sel-preview');if(p)p.textContent='— ninguno —';
+  const t=document.getElementById('diff-sel-tipo');if(t)t.textContent='';
 }
+
 function restaurarToken(){
   if(!tokenSeleccionado)return;
   const tok=diffTokens.find(t=>t.id===tokenSeleccionado);if(!tok)return;
-  state.tokensRestaurados.add(tokenSeleccionado);tok.tipo='restaurado';
-  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{el.classList.remove('sel');el.classList.add('rest');});
-  const limp=document.getElementById('diff-limp');
-  if(limp){const span=document.createElement('span');span.className='tok-add';span.textContent=tok.texto;limp.appendChild(span);}
-  reconstruirTextoLimpio();deseleccionarToken();
-  const el=document.getElementById('diff-rest-count');if(el)el.textContent=`↩ ${state.tokensRestaurados.size} restaurado(s)`;
-  toast('Fragmento restaurado','success');
+  state.tokensRestaurados.add(tokenSeleccionado);
+  tok.tipo='restaurado';
+
+  // Actualizar visual en original
+  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{
+    el.classList.remove('sel','tok-del','tok-ref');
+    el.classList.add('rest');
+    el.style.textDecoration='none';
+  });
+
+  // Actualizar columna LIMPIO en tiempo real
+  actualizarColumnaLimpio();
+
+  reconstruirTextoLimpio();
+  deseleccionarToken();
+  const el=document.getElementById('diff-rest-count');
+  if(el)el.textContent=`↩ ${state.tokensRestaurados.size} restaurado(s)`;
+  toast('Fragmento restaurado en texto limpio','success');
 }
+
+function actualizarColumnaLimpio(){
+  // Reconstruir columna limpio desde los tokens actuales
+  let hL='';
+  for(const tok of diffTokens){
+    const t=escHtml(tok.texto);
+    if(tok.tipo==='igual')   hL+=`<span class="tok-igual">${t}</span>`;
+    else if(tok.tipo==='agregado') hL+=`<span class="tok-add">${t}</span>`;
+    else if(tok.tipo==='restaurado') hL+=`<span class="tok-add">${t}</span>`;
+    // borrado y reformateado no aparecen en limpio
+  }
+  const col=document.getElementById('diff-limp');
+  if(col)col.innerHTML=hL;
+}
+
 function confirmarEliminacion(){
   if(!tokenSeleccionado)return;
-  if(!confirm('¿Confirmas eliminar este fragmento?'))return;
-  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{el.style.opacity='.2';el.style.pointerEvents='none';el.classList.remove('sel');});
-  const tok=diffTokens.find(t=>t.id===tokenSeleccionado);if(tok)tok.tipo='eliminado';
-  deseleccionarToken();toast('Fragmento eliminado','success');
+  const tok=diffTokens.find(t=>t.id===tokenSeleccionado);
+  const tipo=tok?.tipo==='reformateado'?'reformateado':'eliminado';
+  if(!confirm(`¿Confirmas que este fragmento ${tipo} debe excluirse definitivamente del texto limpio?`))return;
+  document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>{
+    el.style.opacity='.15';el.style.pointerEvents='none';el.classList.remove('sel');
+  });
+  if(tok)tok.tipo='eliminado';
+  deseleccionarToken();
+  toast('Fragmento marcado como eliminado definitivamente','success');
 }
+
 function reconstruirTextoLimpio(){
   let nuevo='';
   for(const tok of diffTokens)if(tok.tipo==='igual'||tok.tipo==='agregado'||tok.tipo==='restaurado')nuevo+=tok.texto;
@@ -1569,27 +1974,19 @@ async function procesarDocumento(){
   state.resaltados=[];diffTokens=[];state.tokensRestaurados=new Set();
   state.log=[];state.aprobado=false;state.banco=[];state.introSubsecciones=[];
 
-  setTimeout(async()=>{
+  setTimeout(()=>{
     try{
       logInfo('Inicio',`Perfil: ${state.perfilActivo?.nombre||'Genérico'}`,new Date().toLocaleTimeString());
       state.textoOriginal=texto;
-      state.textoLimpio=limpiarTextoConLog(texto,state.perfilActivo);
-      verificarArticulos(state.textoOriginal,state.textoLimpio);
-      state.estructura=parsear(state.textoLimpio,state.perfilActivo);
-      state.problemas=detectarProblemas(state.estructura);
-      const arts=state.estructura.filter(e=>e.tipo==='articulo').length;
-      const fracs=state.estructura.reduce((n,a)=>n+(a.fracciones?.length||0),0);
-      logInfo('Parseo',`${arts} artículos, ${fracs} fracciones`,`${arts} arts`);
-      if(state.problemas.length)logWarn('Problemas',`${state.problemas.length} artículo(s)`,`×${state.problemas.length}`);
-      else logOk('Sin problemas','Estructura detectada correctamente','✓');
-      state.hashActual=await calcularHash(state.textoLimpio);
-      logInfo('Hash',`SHA-256: ${state.hashActual.slice(0,16)}...`,'');
-      actualizarStats();renderVista();renderDiff();renderEstructura();renderJSON();renderProblemas();renderLog();
-      document.getElementById('stats-section').style.display='block';
-      mostrarEstado(`${arts} artículos${state.perfilActivo?' · '+state.perfilActivo.nombre:''}`);
-      toast('Documento procesado','success');
-    }catch(e){toast('Error: '+e.message,'error');logErr('Error',e.message);}
-    finally{setLoading(false);}
+      // ── ETAPA 1: Limpieza estructural — pausa para aprobación
+      logInfo('Etapa 1','Limpieza estructural iniciada','');
+      mostrarEtapa1(texto, state.perfilActivo);
+      // El proceso continúa en aprobarEtapa1() → finalizarProcesado()
+    }catch(e){
+      toast('Error: '+e.message,'error');
+      logErr('Error',e.message);
+      setLoading(false);
+    }
   },50);
 }
 
@@ -2204,5 +2601,31 @@ function escAttr(s){if(!s)return'';return s.replace(/'/g,'&#39;').replace(/"/g,'
 let _tt;
 function toast(msg,tipo=''){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${tipo}`;clearTimeout(_tt);_tt=setTimeout(()=>{el.className='';},3000);}
 </script>
+
+<!-- MODAL ETAPA 1 — Limpieza estructural -->
+<div class="etapa-modal hidden" id="modal-etapa1">
+  <div class="etapa-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span class="etapa-badge etapa-1">ETAPA 1</span>
+      <div class="etapa-title">Limpieza estructural</div>
+    </div>
+    <div class="etapa-desc">
+      Se eliminó el <strong>ruido estructural</strong> del documento: números de página, sellos digitales
+      y patrones del perfil activo. <strong>No se tocó ningún párrafo de artículo.</strong><br><br>
+      Revisa los cambios realizados. Si algo no debió eliminarse, puedes ajustar las reglas del perfil
+      antes de continuar. Al aprobar, pasarás a la Etapa 2 — normalización de formato.
+    </div>
+    <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Cambios aplicados</div>
+    <div class="etapa-cambios" id="etapa1-cambios"></div>
+    <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Vista previa del texto (primeros 2000 chars)</div>
+    <div class="etapa-preview" id="etapa1-preview"></div>
+    <div class="etapa-footer">
+      <button class="btn btn-danger" onclick="cancelarEtapa1()">✕ Cancelar todo</button>
+      <button class="btn btn-warn"   onclick="ajustarReglasDesdeEtapa1()">⚙ Ajustar reglas</button>
+      <button class="btn btn-approve" style="width:auto;padding:9px 20px;" onclick="aprobarEtapa1()">✓ Aprobar — continuar a Etapa 2</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
