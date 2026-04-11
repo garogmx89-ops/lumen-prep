@@ -1691,7 +1691,30 @@ function parsear(texto,perfil){
     }else{item.contenido=resto;}
     estructura.push(item);
   }
-  if(tT)estructura.push({tipo:'transitorio',contenido:tT.trim(),estado:'procedimental',instruccion_agente:'Transitorios. Solo para entender cronología de vigencia.'});
+  if(tT){
+    const textoT = tT.trim();
+    // Separar transitorios de firmas
+    // Patrones de inicio de bloque de firmas (consistentes en leyes DOF)
+    const patronesFirma = [
+      /\n(Ciudad de México, a \d)/,
+      /\n(En cumplimiento de lo dispuesto por la fracción I)/
+    ];
+    let corte = -1;
+    for(const pat of patronesFirma){
+      const m = textoT.search(pat);
+      if(m !== -1 && (corte === -1 || m < corte)) corte = m;
+    }
+    if(corte > 0){
+      const textoTransitorio = textoT.slice(0, corte).trim();
+      const textoFirma = textoT.slice(corte).trim();
+      if(textoTransitorio)
+        estructura.push({tipo:'transitorio', contenido:textoTransitorio, estado:'procedimental', instruccion_agente:'Transitorios. Solo para entender cronología de vigencia.'});
+      if(textoFirma)
+        estructura.push({tipo:'firma', contenido:textoFirma, estado:'procedimental', instruccion_agente:'Firmas de promulgación. Parte del instrumento jurídico formal, no norma aplicable.'});
+    } else {
+      estructura.push({tipo:'transitorio', contenido:textoT, estado:'procedimental', instruccion_agente:'Transitorios. Solo para entender cronología de vigencia.'});
+    }
+  }
   return estructura;
 }
 function detectarProblemas(estructura){
@@ -1775,6 +1798,10 @@ function renderEstructura(){
     } else if(item.tipo==='transitorio'){
       html+=`<div style="background:var(--diff-del-bg);border:1px solid #f8717133;border-left:3px solid var(--trans);border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
         <div style="font-size:10px;color:var(--trans);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Transitorios</div>
+        <div data-art-idx="${idx}" class="art-content-view">${escHtml(item.contenido)}</div></div>`;
+    } else if(item.tipo==='firma'){
+      html+=`<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #a78bfa;border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
+        <div style="font-size:10px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">✍ Firmas de promulgación</div>
         <div data-art-idx="${idx}" class="art-content-view">${escHtml(item.contenido)}</div></div>`;
     } else if(item.tipo==='articulo'){
       html+=renderArtCard(item,idx);
@@ -2352,72 +2379,6 @@ function escAttr(s){if(!s)return'';return s.replace(/'/g,'&#39;').replace(/"/g,'
 // SPRINT 1 — PROCESO EN DOS ETAPAS
 // ════════════════════════════════════════════════════════════════
 
-function etapa1_LimpiezaEstructural(texto, perfil){
-  const cambios = [];
-  let t = texto;
-
-  // Sellos digitales
-  const anteSello = t.length;
-  t = t.replace(/[A-Za-z0-9+/]{40,}={0,2}/g, '');
-  if(anteSello - t.length > 0)
-    cambios.push({tipo:'ok', msg:'Sellos digitales eliminados', detalle:`-${anteSello-t.length} chars`});
-
-  // Números de página solos
-  const numPags = (t.match(/^\s*\d{1,4}\s*$/gm) || []).length;
-  t = t.replace(/^\s*\d{1,4}\s*$/gm, '');
-  if(numPags > 0)
-    cambios.push({tipo:'ok', msg:`${numPags} números de página eliminados`, detalle:'Líneas que solo contenían un número'});
-
-  // Ruido del perfil — solo líneas completas (modo seguro)
-  if(perfil && perfil.ruido && perfil.ruido.length){
-    for(const p of perfil.ruido){
-      try{
-        const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const re = new RegExp('^\\s*' + escaped + '\\s*$', 'gim');
-        const antes = t.length;
-        t = t.replace(re, '');
-        if(t.length < antes)
-          cambios.push({tipo:'ok', msg:`Ruido: "${p.slice(0,40)}"`, detalle:`-${antes-t.length} chars`});
-      }catch(e){}
-    }
-  }
-
-  // Reglas de tipo pie_pagina con contexto
-  if(perfil && perfil.reglas && perfil.reglas.length){
-    for(const regla of perfil.reglas){
-      if(regla.tipo !== 'pie_pagina') continue;
-      try{
-        const esc = regla.patron.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const ctx = regla.contextoAplicacion || 'linea_sola';
-        let re;
-        if(ctx === 'linea_sola')       re = new RegExp('^\\s*' + esc + '.*$', 'gim');
-        else if(ctx === 'inicio_linea') re = new RegExp('^\\s*' + esc, 'gim');
-        else                            re = new RegExp(esc, 'gi');
-        const antes = t.length;
-        t = t.replace(re, '');
-        if(t.length < antes)
-          cambios.push({tipo:'ok', msg:`Regla: "${regla.nombre}"`, detalle:`ctx:${ctx} -${antes-t.length}`});
-      }catch(e){}
-    }
-  }
-
-  // Limpiar saltos múltiples
-  t = t.replace(/\n\n\n+/g, '\n\n');
-
-  // Verificar artículos
-  const re_art = /Artículo\s+(\d+)/gi;
-  const numsOrig = [...texto.matchAll(re_art)].map(m => parseInt(m[1]));
-  const numsLimp = [...t.matchAll(re_art)].map(m => parseInt(m[1]));
-  const setO = new Set(numsOrig), setL = new Set(numsLimp);
-  const faltantes = [...setO].filter(n => !setL.has(n));
-  if(faltantes.length > 0)
-    cambios.push({tipo:'warn', msg:`Artículos posiblemente afectados`, detalle:`Revisar: ${faltantes.slice(0,5).join(', ')}`});
-  else
-    cambios.push({tipo:'ok', msg:'Integridad de artículos: OK', detalle:`${setL.size} artículos presentes`});
-
-  return {texto: t.trim(), cambios};
-}
-
 function etapa2_NormalizacionFormato(texto){
   let t = texto;
   const cambios = [];
@@ -2459,11 +2420,22 @@ function mostrarPreviewEtapa1(texto, perfil){
 
   // ── Stats bar ──────────────────────────────────────────────
   const warns = preview.cambios.filter(c=>c.tipo==='warn').length;
+  const sinLimpieza = preview.lineasEliminar.size === 0;
   const statsEl = document.getElementById('etapa1-stats');
   if(statsEl) statsEl.innerHTML =
-    `<span style="color:var(--diff-del-text);">🔴 ${preview.lineasEliminar.size} línea(s) a eliminar</span>` +
+    (sinLimpieza
+      ? `<span style="color:var(--ok);">✅ Sin ruido estructural detectado</span>`
+      : `<span style="color:var(--diff-del-text);">🔴 ${preview.lineasEliminar.size} línea(s) a eliminar</span>`) +
     (warns>0 ? `<span style="color:#f7c94f;">⚠️ ${warns} advertencia(s)</span>` : '<span style="color:var(--ok);">✅ Sin advertencias</span>') +
     `<span style="color:var(--text-faint);">${contarPalabras(texto).toLocaleString()} palabras en el original</span>`;
+
+  // ── Mensaje informativo cuando no hay nada que limpiar ──────
+  const docMarcado = document.getElementById('etapa1-doc-marcado');
+  if(sinLimpieza && docMarcado){
+    docMarcado.dataset.sinLimpieza = 'true';
+  } else if(docMarcado){
+    delete docMarcado.dataset.sinLimpieza;
+  }
 
   // ── Advertencia artículos ───────────────────────────────────
   const warnArt = preview.cambios.find(c=>c.tipo==='warn');
@@ -2584,6 +2556,13 @@ function renderDocumentoMarcadoDesdePreview(original, lineasEliminar){
   let html = '';
   let fragmentoIdx = 0;
 
+  // Banner cuando no hay nada que eliminar
+  if(lineasEliminar.size === 0){
+    html += `<div style="background:var(--ok-dim,#d1fae533);border:1px solid var(--ok,#34d399);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--ok,#34d399);">
+      ✅ <strong>El documento no requiere limpieza estructural.</strong> No se detectaron sellos, números de página ni ruido del perfil. Puedes aprobar directamente.
+    </div>`;
+  }
+
   lineas.forEach((linea, idx) => {
     const lineaTrim = linea.trim();
     if(!lineaTrim){ html += '\n'; return; }
@@ -2672,8 +2651,14 @@ function switchVistaEtapa(modo){
 
 function cancelarEtapa1(){
   document.getElementById('modal-etapa1').classList.add('hidden');
+  // Poner el texto crudo en el textarea para que el usuario pueda trabajar con él
+  if(etapaState.textoOriginalEtapa1){
+    document.getElementById('raw-input').value = etapaState.textoOriginalEtapa1;
+    toast('Proceso cancelado — texto cargado sin limpiar','success');
+  } else {
+    toast('Proceso cancelado','success');
+  }
   setLoading(false);
-  toast('Proceso cancelado','success');
 }
 
 function ajustarReglasDesdeEtapa1(){
@@ -3035,6 +3020,7 @@ async function enviarALumen(){
       articulos:      output.contenido.filter(e=>e.tipo==='articulo'),
       introduccion:   output.contenido.find(e=>e.tipo==='introduccion')||null,
       transitorios:   output.contenido.filter(e=>e.tipo==='transitorio'),
+    firmas:        output.contenido.filter(e=>e.tipo==='firma'),
       meta:           output.meta,
       hashContenido:  state.hashActual||'',
       temas:          state.temasGenerados||[],
