@@ -1503,7 +1503,8 @@ function renderDiff(){
   const pO=contarPalabras(state.textoOriginal),pL=contarPalabras(state.textoLimpio);
   const cO=state.textoOriginal.length,cL=state.textoLimpio.length;
   const eO=(state.textoOriginal.match(/ /g)||[]).length,eL=(state.textoLimpio.match(/ /g)||[]).length;
-  const dP=pL-pO,dC=cL-cO,dE=eL-eO;
+  const sO=(state.textoOriginal.match(/\n/g)||[]).length,sL=(state.textoLimpio.match(/\n/g)||[]).length;
+  const dP=pL-pO,dC=cL-cO,dE=eL-eO,dS=sL-sO;
   const pct=pO>0?(Math.abs(dP)/pO*100).toFixed(1):0;
   const clP=Math.abs(dP)<50?'ok':Math.abs(dP)<200?'warn':'err';
   let hO='',hL='',borrados=0,reformateados=0,agregados=0;
@@ -1522,18 +1523,20 @@ function renderDiff(){
       <span style="color:var(--diff-add-text);font-weight:600;">■ Verde</span> = agregado
     </div>
     <table class="diff-compare-table" style="margin:14px;width:calc(100% - 28px);">
-      <tr><th></th><th>Palabras</th><th>Caracteres</th><th>Espacios</th></tr>
-      <tr><td class="col-label">Original</td><td>${pO.toLocaleString()}</td><td>${cO.toLocaleString()}</td><td>${eO.toLocaleString()}</td></tr>
-      <tr><td class="col-label">Limpio</td><td>${pL.toLocaleString()}</td><td>${cL.toLocaleString()}</td><td>${eL.toLocaleString()}</td></tr>
+      <tr><th></th><th>Palabras</th><th>Caracteres</th><th>Espacios</th><th>Saltos de línea</th></tr>
+      <tr><td class="col-label">Original</td><td>${pO.toLocaleString()}</td><td>${cO.toLocaleString()}</td><td>${eO.toLocaleString()}</td><td>${sO.toLocaleString()}</td></tr>
+      <tr><td class="col-label">Limpio</td><td>${pL.toLocaleString()}</td><td>${cL.toLocaleString()}</td><td>${eL.toLocaleString()}</td><td>${sL.toLocaleString()}</td></tr>
       <tr><td class="col-label">Diferencia</td>
         <td class="${clP}">${dP>0?'+':''}${dP} (${pct}%)${clP==='ok'?' ✅':clP==='warn'?' ⚠':' ❌'}</td>
         <td>${dC>0?'+':''}${dC}</td><td>${dE>0?'+':''}${dE}</td>
+        <td style="color:${dS<0?'var(--ok)':dS>0?'#f87171':'var(--text-faint)'}">${dS>0?'+':''}${dS}</td>
       </tr>
     </table>
     <div class="diff-stats-bar">
       <span class="ds-del">🔴 ${borrados} eliminado(s)</span>
       <span class="ds-ref">🟡 ${reformateados} reformateado(s)</span>
       <span class="ds-add">🟢 ${agregados} agregado(s)</span>
+      <span style="color:var(--ok);font-size:12px;">↵ ${Math.abs(dS)} salto(s) ${dS<=0?'normalizados':'agregados'}</span>
       <span class="ds-neu" id="diff-rest-count"></span>
     </div>
     <div class="diff-toolbar">
