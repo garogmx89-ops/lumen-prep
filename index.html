@@ -2,6 +2,7 @@
 <html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234f8ef7'/><text y='.9em' font-size='70' x='50%' text-anchor='middle' fill='white'>L</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumen Prep — Estructurador de Normativa</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -24,7 +25,7 @@ const db=getFirestore(app);
 window._db=db; window._collection=collection; window._addDoc=addDoc;
 window._getDocs=getDocs; window._doc=doc; window._updateDoc=updateDoc;
 window._deleteDoc=deleteDoc; window._dbReady=true;
-window.addEventListener('load',()=>setTimeout(()=>cargarPerfilesFirestore(),800));
+// cargarPerfilesFirestore se llama desde el script principal
 </script>
 
 <style>
@@ -2791,6 +2792,26 @@ document.addEventListener('change', e=>{
   }
 });
 
+
+// ── Inicialización robusta de Firebase ──────────────────────────
+// Espera a que Firebase esté listo con reintentos
+function inicializarApp(){
+  const maxIntentos = 20; // hasta 4 segundos
+  let intentos = 0;
+  const intervalo = setInterval(() => {
+    intentos++;
+    if(window._dbReady && typeof cargarPerfilesFirestore === 'function'){
+      clearInterval(intervalo);
+      cargarPerfilesFirestore().then(() => {
+        console.log('[Lumen Prep] Perfiles cargados correctamente');
+      }).catch(e => console.error('[Lumen Prep] Error cargando perfiles:', e));
+    } else if(intentos >= maxIntentos){
+      clearInterval(intervalo);
+      console.warn('[Lumen Prep] Firebase tardó demasiado en inicializarse');
+    }
+  }, 200);
+}
+window.addEventListener('load', inicializarApp);
 
 let _tt;
 function toast(msg,tipo=''){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${tipo}`;clearTimeout(_tt);_tt=setTimeout(()=>{el.className='';},3000);}
