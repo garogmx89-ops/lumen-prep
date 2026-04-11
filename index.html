@@ -1849,7 +1849,16 @@ function parsear(texto,perfil){
   let tN=texto,tT='';
   for(const kw of kwT){const m=texto.indexOf(kw);if(m!==-1){tT=texto.slice(m);tN=texto.slice(0,m);break;}}
   const ra=rArt(perfil);const pi=tN.search(ra);
-  if(pi>0){const intro=tN.slice(0,pi).trim();if(intro.length>10)estructura.push({tipo:'introduccion',contenido:intro,subsecciones:[],estado:'procedimental',instruccion_agente:'Preámbulo. Contexto general, no norma aplicable.'});}
+  if(pi>0){
+    let introTexto=tN.slice(0,pi).trim();
+    // Recortar intro hasta antes del primer TÍTULO o Capítulo del cuerpo normativo
+    // Estos elementos pertenecen al cuerpo, no al preámbulo
+    const rCorte=/\n(TÍTULO\s+(PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|ÚNICO|[IVXLCDM]+)\b|Capítulo\s+Primero\b)/;
+    const mCorte=introTexto.search(rCorte);
+    if(mCorte>0) introTexto=introTexto.slice(0,mCorte).trim();
+    if(introTexto.length>10)
+      estructura.push({tipo:'introduccion',contenido:introTexto,subsecciones:[],estado:'procedimental',instruccion_agente:'Preámbulo. Contexto general, no norma aplicable.'});
+  }
   ra.lastIndex=0;
   const partes=tN.split(ra).filter(Boolean);const rt=rTituloArt(perfil);
   for(const parte of partes){
