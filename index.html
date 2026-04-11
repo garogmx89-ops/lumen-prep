@@ -2021,6 +2021,7 @@ function renderEstructura(){
     </div>
     ${state.perfilActivo?.reglas?.length?
       `<div style="font-size:11px;color:var(--ok);">📌 ${state.perfilActivo.reglas.length} regla(s) en perfil</div>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="exportarEstructuraPDF()" style="font-size:11px;">&#11015; PDF Estructura</button>
   </div>
   <div class="estructura-container">`;
 
@@ -2512,6 +2513,83 @@ function aprobarDocumento(){
   const old=b.querySelector('.ok-badge');if(old)old.remove();
   b.innerHTML=`<span class="ok-badge">🛡 Aprobado</span>`+b.innerHTML;
   toast('Aprobado — puedes exportar','success');
+}
+
+function exportarEstructuraPDF(){
+  const titulo = state.perfilActivo?.nombre || 'Documento';
+  const fecha = new Date().toLocaleDateString('es-MX');
+
+  // Construir HTML para imprimir
+  let html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Estructura — ${titulo}</title>
+  <style>
+    body{font-family:Georgia,serif;font-size:11pt;line-height:1.6;color:#111;margin:2cm;max-width:none;}
+    h1{font-size:14pt;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:16px;}
+    .meta{font-size:9pt;color:#555;margin-bottom:24px;}
+    .seccion{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+             color:#1a56db;border-top:1px solid #ccc;padding-top:8px;margin:16px 0 8px;}
+    .art-titulo{font-size:10.5pt;font-weight:700;color:#1a56db;margin:12px 0 4px;}
+    .art-body{font-size:10pt;margin-bottom:4px;}
+    .art-frac{margin:4px 0 4px 20px;font-size:10pt;}
+    .art-frac-etq{font-weight:700;color:#008573;}
+    .art-inc{margin:2px 0 2px 36px;font-size:10pt;}
+    .art-inc-etq{font-weight:700;color:#b45309;}
+    .bloque{background:#f8f8f8;border-left:3px solid #ccc;padding:8px 12px;
+            margin:8px 0;font-size:9.5pt;color:#444;}
+    .bloque-label{font-size:8pt;font-weight:700;text-transform:uppercase;
+                  letter-spacing:1px;color:#888;margin-bottom:4px;}
+    .nota{font-size:8.5pt;color:#888;font-style:italic;margin-top:2px;}
+    .estado-derogado{color:#999;text-decoration:line-through;}
+    .estado-reformado{color:#1a56db;}
+    @media print{body{margin:1.5cm;}h1{page-break-after:avoid;}.art-titulo{page-break-after:avoid;}}
+  </style></head><body>`;
+
+  html += `<h1>${escHtml(titulo)}</h1>`;
+  html += `<div class="meta">Generado: ${fecha} · ${state.estructura.filter(e=>e.tipo==='articulo').length} artículos · Perfil: ${escHtml(state.perfilActivo?.nombre||'Genérico')}</div>`;
+
+  state.estructura.forEach(item => {
+    if(item.tipo === 'introduccion'){
+      html += `<div class="bloque"><div class="bloque-label">Introducción / Preámbulo</div>${escHtml(item.contenido).replace(/\n/g,'<br>')}</div>`;
+    } else if(item.tipo === 'seccion'){
+      html += `<div class="seccion">${escHtml(item.contenido).replace(/\n/g,' · ')}</div>`;
+    } else if(item.tipo === 'articulo'){
+      const claseEstado = item.estado==='derogado'?'estado-derogado':item.estado==='reformado'?'estado-reformado':'';
+      html += `<div class="art-titulo ${claseEstado}">${escHtml(item.articulo)}</div>`;
+      if(item.reformas?.length){
+        html += `<div class="nota">${escHtml(item.reformas.join(' · '))}</div>`;
+      }
+      if(item.fracciones?.length){
+        if(item.introduccion) html += `<div class="art-body">${escHtml(item.introduccion).replace(/\n/g,'<br>')}</div>`;
+        item.fracciones.forEach(f => {
+          html += `<div class="art-frac"><span class="art-frac-etq">${escHtml(f.fraccion)}</span> `;
+          if(f.incisos?.length){
+            if(f.introduccion) html += escHtml(f.introduccion);
+            html += '</div>';
+            f.incisos.forEach(inc => {
+              html += `<div class="art-inc"><span class="art-inc-etq">${escHtml(inc.inciso)}</span> ${escHtml(inc.contenido||'').replace(/\n/g,' ')}</div>`;
+            });
+          } else {
+            html += `${escHtml(f.contenido||'').replace(/\n/g,' ')}</div>`;
+          }
+        });
+      } else {
+        html += `<div class="art-body">${escHtml(item.contenido||'').replace(/\n/g,'<br>')}</div>`;
+      }
+    } else if(item.tipo === 'transitorio'){
+      html += `<div class="bloque"><div class="bloque-label">Transitorios</div>${escHtml(item.contenido).replace(/\n/g,'<br>')}</div>`;
+    } else if(item.tipo === 'firma'){
+      html += `<div class="bloque"><div class="bloque-label">Firmas de promulgación</div>${escHtml(item.contenido).replace(/\n/g,'<br>')}</div>`;
+    }
+  });
+
+  html += `</body></html>`;
+
+  // Abrir en nueva ventana e imprimir
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 600);
 }
 
 function exportarJSONAprobado(){
