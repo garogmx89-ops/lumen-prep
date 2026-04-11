@@ -410,6 +410,17 @@ textarea:focus{border-color:var(--accent);}
 .etapa-cambio-item{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-radius:6px;font-size:12px;}
 .etapa-cambio-item.ok{background:var(--diff-add-bg);border-left:3px solid var(--ok);}
 .etapa-cambio-item.warn{background:#f7c94f11;border-left:3px solid #f7c94f;}
+/* Vista marcada con números de línea */
+.doc-viewer-numbered{font-family:monospace;font-size:12px;line-height:1.6;}
+.doc-row{display:flex;align-items:baseline;gap:0;}
+.doc-linenum{min-width:3.2em;text-align:right;padding-right:10px;color:var(--text-faint);user-select:none;font-size:11px;flex-shrink:0;border-right:1px solid var(--border);margin-right:10px;}
+.doc-linecontent{flex:1;white-space:pre-wrap;word-break:break-word;}
+.doc-row-eliminar{background:var(--diff-del-bg);cursor:pointer;border-radius:3px;}
+.doc-row-eliminar .doc-linecontent{color:var(--diff-del-text);text-decoration:line-through;}
+.doc-row-eliminar:hover{opacity:0.85;}
+.doc-row-protegido{background:var(--diff-add-bg)!important;}
+.doc-row-protegido .doc-linecontent{color:var(--ok)!important;text-decoration:none!important;}
+.doc-row-protegido .doc-linecontent::after{content:' 🛡';font-size:10px;}
 .etapa-cambio-icon{font-size:13px;flex-shrink:0;}
 .etapa-cambio-txt{color:var(--text-dim);flex:1;line-height:1.4;}
 .etapa-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
@@ -2454,7 +2465,13 @@ function mostrarPreviewEtapa1(texto, perfil){
   if(lista) lista.innerHTML = preview.cambios.map(c =>
     `<div class="etapa-cambio-item ${c.tipo}">
       <span class="etapa-cambio-icon">${c.tipo==='ok'?'✅':'⚠️'}</span>
-      <div class="etapa-cambio-txt"><strong>${escHtml(c.msg)}</strong><div style="font-size:11px;margin-top:2px;">${escHtml(c.detalle)}</div></div>
+      <div class="etapa-cambio-txt" style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <strong>${escHtml(c.msg)}</strong>
+          ${c.lineas ? `<span style="font-size:10px;background:var(--surface2);color:var(--text-faint);border-radius:4px;padding:1px 6px;font-family:monospace;letter-spacing:0.3px;">${escHtml(c.lineas)}</span>` : ''}
+        </div>
+        <div style="font-size:11px;margin-top:2px;color:var(--text-faint);">${escHtml(c.detalle)}</div>
+      </div>
     </div>`).join('');
 
   // ── Vista marcada (usa el original + set de líneas a eliminar) ──
@@ -2471,27 +2488,43 @@ function calcularPreviewEtapa1(texto, perfil){
   const lineasEliminar = new Set(); // índices de líneas a eliminar
   const lineas = texto.split('\n');
 
+  // Helper: formatea lista de índices como rango legible ej. "L3, L7–L9, L15"
+  function formatearLineas(indices){
+    const sorted = [...indices].sort((a,b)=>a-b);
+    const rangos = [];
+    let ini = sorted[0], fin = sorted[0];
+    for(let i = 1; i < sorted.length; i++){
+      if(sorted[i] === fin + 1){ fin = sorted[i]; }
+      else {
+        rangos.push(ini === fin ? `L${ini+1}` : `L${ini+1}–L${fin+1}`);
+        ini = fin = sorted[i];
+      }
+    }
+    rangos.push(ini === fin ? `L${ini+1}` : `L${ini+1}–L${fin+1}`);
+    return rangos.slice(0,6).join(', ') + (rangos.length > 6 ? '…' : '');
+  }
+
   // Sellos digitales
-  let sellosCount = 0;
+  const idxSellos = [];
   lineas.forEach((linea, idx) => {
     if(/[A-Za-z0-9+/]{40,}={0,2}/.test(linea)){
       lineasEliminar.add(idx);
-      sellosCount++;
+      idxSellos.push(idx);
     }
   });
-  if(sellosCount > 0)
-    cambios.push({tipo:'ok', msg:`${sellosCount} sello(s) digital(es) a eliminar`, detalle:'Líneas con firmas digitales'});
+  if(idxSellos.length > 0)
+    cambios.push({tipo:'ok', msg:`${idxSellos.length} sello(s) digital(es) a eliminar`, detalle:'Líneas con firmas digitales', lineas: formatearLineas(idxSellos)});
 
   // Números de página solos
-  let numPags = 0;
+  const idxPags = [];
   lineas.forEach((linea, idx) => {
     if(!lineasEliminar.has(idx) && /^\s*\d{1,4}\s*$/.test(linea) && linea.trim() !== ''){
       lineasEliminar.add(idx);
-      numPags++;
+      idxPags.push(idx);
     }
   });
-  if(numPags > 0)
-    cambios.push({tipo:'ok', msg:`${numPags} número(s) de página a eliminar`, detalle:'Líneas que solo contienen un número'});
+  if(idxPags.length > 0)
+    cambios.push({tipo:'ok', msg:`${idxPags.length} número(s) de página a eliminar`, detalle:'Líneas que solo contienen un número', lineas: formatearLineas(idxPags)});
 
   // Ruido del perfil
   if(perfil?.ruido?.length){
@@ -2499,15 +2532,15 @@ function calcularPreviewEtapa1(texto, perfil){
       try{
         const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const re = new RegExp('^\\s*' + escaped + '\\s*$', 'i');
-        let count = 0;
+        const idxRuido = [];
         lineas.forEach((linea, idx) => {
           if(!lineasEliminar.has(idx) && re.test(linea)){
             lineasEliminar.add(idx);
-            count++;
+            idxRuido.push(idx);
           }
         });
-        if(count > 0)
-          cambios.push({tipo:'ok', msg:`Ruido: "${p.slice(0,40)}"`, detalle:`${count} línea(s)`});
+        if(idxRuido.length > 0)
+          cambios.push({tipo:'ok', msg:`Ruido: "${p.slice(0,40)}"`, detalle:`${idxRuido.length} línea(s)`, lineas: formatearLineas(idxRuido)});
       }catch(e){}
     }
   }
@@ -2523,20 +2556,20 @@ function calcularPreviewEtapa1(texto, perfil){
         if(ctx === 'linea_sola')       re = new RegExp('^\\s*' + esc + '.*$', 'i');
         else if(ctx === 'inicio_linea') re = new RegExp('^\\s*' + esc, 'i');
         else                            re = new RegExp(esc, 'i');
-        let count = 0;
+        const idxRegla = [];
         lineas.forEach((linea, idx) => {
           if(!lineasEliminar.has(idx) && re.test(linea)){
             lineasEliminar.add(idx);
-            count++;
+            idxRegla.push(idx);
           }
         });
-        if(count > 0)
-          cambios.push({tipo:'ok', msg:`Regla: "${regla.nombre}"`, detalle:`ctx:${ctx} · ${count} línea(s)`});
+        if(idxRegla.length > 0)
+          cambios.push({tipo:'ok', msg:`Regla: "${regla.nombre}"`, detalle:`ctx:${ctx} · ${idxRegla.length} línea(s)`, lineas: formatearLineas(idxRegla)});
       }catch(e){}
     }
   }
 
-  // Verificar artículos en el preview
+  // Verificar artículos
   const re_art = /Artículo\s+(\d+)/gi;
   const numsOrig = [...texto.matchAll(re_art)].map(m => parseInt(m[1]));
   const textoSinEliminar = lineas.filter((_,idx) => !lineasEliminar.has(idx)).join('\n');
@@ -2557,30 +2590,65 @@ function renderDocumentoMarcadoDesdePreview(original, lineasEliminar){
   if(!el) return;
 
   const lineas = original.split('\n');
-  let html = '';
   let fragmentoIdx = 0;
 
   // Banner cuando no hay nada que eliminar
   if(lineasEliminar.size === 0){
-    html += `<div style="background:var(--ok-dim,#d1fae533);border:1px solid var(--ok,#34d399);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--ok,#34d399);">
+    el.innerHTML = `<div style="background:var(--ok-dim,#d1fae533);border:1px solid var(--ok,#34d399);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--ok,#34d399);">
       ✅ <strong>El documento no requiere limpieza estructural.</strong> No se detectaron sellos, números de página ni ruido del perfil. Puedes aprobar directamente.
     </div>`;
+    actualizarContadorProtegidos();
+    return;
   }
+
+  // Contenedor tipo editor con números de línea
+  const numWidth = String(lineas.length).length; // dígitos del total para alinear
+  let rowsHtml = '';
 
   lineas.forEach((linea, idx) => {
     const lineaTrim = linea.trim();
-    if(!lineaTrim){ html += '\n'; return; }
+    const numStr = String(idx + 1).padStart(numWidth, ' ');
+
+    if(!lineaTrim){
+      // Línea vacía — mostrar número pero sin contenido
+      rowsHtml += `<div class="doc-row">
+        <span class="doc-linenum">${numStr}</span>
+        <span class="doc-linecontent">&nbsp;</span>
+      </div>`;
+      return;
+    }
 
     if(lineasEliminar.has(idx)){
       const fid = 'frag_' + fragmentoIdx++;
       const esProtegido = fragmentosProtegidos.has(fid);
-      html += `<span class="marca-eliminar ${esProtegido?'protegido':''}" data-fid="${fid}" data-idx="${idx}" onclick="toggleProteger('${fid}',this)">${escHtml(linea)}</span>\n`;
+      rowsHtml += `<div class="doc-row doc-row-eliminar ${esProtegido?'doc-row-protegido':''}"
+          data-fid="${fid}" data-idx="${idx}" onclick="toggleProtegerRow('${fid}',this)">
+        <span class="doc-linenum">${numStr}</span>
+        <span class="doc-linecontent">${escHtml(linea)}</span>
+      </div>`;
     } else {
-      html += escHtml(linea) + '\n';
+      rowsHtml += `<div class="doc-row">
+        <span class="doc-linenum">${numStr}</span>
+        <span class="doc-linecontent">${escHtml(linea)}</span>
+      </div>`;
     }
   });
 
-  el.innerHTML = html;
+  el.innerHTML = `<div class="doc-viewer-numbered">${rowsHtml}</div>`;
+  actualizarContadorProtegidos();
+}
+
+// toggleProteger adaptado para el nuevo layout de filas
+function toggleProtegerRow(fid, rowEl){
+  if(fragmentosProtegidos.has(fid)){
+    fragmentosProtegidos.delete(fid);
+    rowEl.classList.remove('doc-row-protegido');
+    toast('Fragmento marcado para eliminar','success');
+  } else {
+    fragmentosProtegidos.add(fid);
+    rowEl.classList.add('doc-row-protegido');
+    toast('Fragmento protegido — no se eliminará','success');
+  }
   actualizarContadorProtegidos();
 }
 
