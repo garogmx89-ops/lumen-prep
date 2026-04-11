@@ -1,7 +1,7 @@
 {
   "_lumenprep_perfil": true,
-  "_version": "1.1",
-  "_descripcion": "Perfil base para leyes federales publicadas en el Diario Oficial de la Federación. Probado con: Ley de Vivienda, Ley General de Asentamientos Humanos OTDU, Ley de Obras Públicas y Servicios Relacionados con las Mismas. Versión 1.1: agrega reglas pie_pagina para limpieza de encabezados y pies de página al procesar PDF del DOF.",
+  "_version": "1.3",
+  "_descripcion": "Perfil base para leyes federales publicadas en el Diario Oficial de la Federación. Probado con: Ley de Vivienda, Ley General de Asentamientos Humanos OTDU, Ley de Obras Públicas y Servicios Relacionados con las Mismas. v1.1: agrega reglas pie_pagina para PDF del DOF. v1.2: amplía notas de reforma, decreto de reforma y ruido estructural. v1.3: el preámbulo (sello, decreto, fórmulas) se conserva como introducción estructurada via plantillaIntroduccion; ruido queda solo para elipsis de decretos y encabezados PDF.",
   "_generado": "2026-04-11",
   "nombre": "Ley Federal — DOF",
   "ambito": "Federal",
@@ -18,8 +18,9 @@
     "Transitorio"
   ],
   "ruido": [
-    "TEXTO VIGENTE",
-    "Al margen un sello con el Escudo Nacional, que dice: Estados Unidos Mexicanos.- Presidencia de la República."
+    "………",
+    "…….",
+    "……"
   ],
   "categorias": [
     {
@@ -184,11 +185,11 @@
       "nombre": "Decreto de reforma — encabezado",
       "tipo": "decreto_reforma",
       "metodo": "inicio",
-      "patron": "DECRETO por el que se reform",
+      "patron": "DECRETO por el que se",
       "color": "#ec4899",
       "categoriaPersonalizada": "Decreto de reforma",
       "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
-      "fecha": "2026-04-10"
+      "fecha": "2026-04-11"
     },
     {
       "nombre": "Decreto de reforma — publicación DOF",
@@ -221,55 +222,123 @@
       "fecha": "2026-04-10"
     },
     {
-      "nombre": "Encabezado DIARIO OFICIAL — PDF",
-      "tipo": "pie_pagina",
-      "metodo": "contiene",
-      "patron": "DIARIO OFICIAL",
-      "color": "#f87171",
-      "contextoAplicacion": "inicio_linea",
-      "aprendidaEn": "Ley de Vivienda PDF",
+      "nombre": "Nota de reforma DOF — fracción recorrida",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Fracción recorrida DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Vivienda / LGAHOTDU / Ley de Obras Públicas",
       "fecha": "2026-04-11"
     },
     {
-      "nombre": "Encabezado Cámara de Diputados — PDF",
-      "tipo": "pie_pagina",
-      "metodo": "contiene",
-      "patron": "Cámara de Diputados del H. Congreso",
-      "color": "#f87171",
-      "contextoAplicacion": "inicio_linea",
-      "aprendidaEn": "Ley de Vivienda PDF",
+      "nombre": "Nota de reforma DOF — inciso reformado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Inciso reformado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Obras Públicas",
       "fecha": "2026-04-11"
     },
     {
-      "nombre": "Pie de página N de N — PDF",
-      "tipo": "pie_pagina",
-      "metodo": "contiene",
-      "patron": "de 45",
-      "color": "#f87171",
-      "contextoAplicacion": "linea_sola",
-      "aprendidaEn": "Ley de Vivienda PDF",
+      "nombre": "Nota de reforma DOF — inciso derogado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Inciso derogado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Obras Públicas",
       "fecha": "2026-04-11"
     },
     {
-      "nombre": "Encabezado Primera Sección DOF — PDF",
-      "tipo": "pie_pagina",
-      "metodo": "contiene",
-      "patron": "Primera Sección",
-      "color": "#f87171",
-      "contextoAplicacion": "inicio_linea",
-      "aprendidaEn": "Ley de Vivienda PDF",
+      "nombre": "Nota de reforma DOF — inciso adicionado",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Inciso adicionado DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Obras Públicas",
       "fecha": "2026-04-11"
     },
     {
-      "nombre": "Encabezado Secretaría de Servicios Parlamentarios — PDF",
-      "tipo": "pie_pagina",
-      "metodo": "contiene",
-      "patron": "Secretaría de Servicios Parlamentarios",
-      "color": "#f87171",
-      "contextoAplicacion": "cualquier_posicion",
-      "aprendidaEn": "Ley de Vivienda PDF",
+      "nombre": "Nota de reforma narrativa — Reforma DOF derogó",
+      "tipo": "nota_reforma",
+      "metodo": "inicio",
+      "patron": "Reforma DOF",
+      "color": "#9aa3b0",
+      "categoriaPersonalizada": "Nota de reforma",
+      "aprendidaEn": "Ley de Vivienda / Ley de Obras Públicas",
       "fecha": "2026-04-11"
     }
   ],
-  "creadoEn": "2026-04-10T00:00:00.000Z"
+  "creadoEn": "2026-04-10T00:00:00.000Z",
+  "plantillaIntroduccion": [
+    {
+      "patron": "Nueva Ley publicada en el Diario Oficial",
+      "tipo": "encabezado_dof",
+      "nombre": "Encabezado DOF",
+      "color": "#06b6d4"
+    },
+    {
+      "patron": "TEXTO VIGENTE",
+      "tipo": "vigencia",
+      "nombre": "Vigencia",
+      "color": "#8b5cf6"
+    },
+    {
+      "patron": "Última reforma publicada DOF",
+      "tipo": "vigencia",
+      "nombre": "Última reforma",
+      "color": "#8b5cf6"
+    },
+    {
+      "patron": "Al margen un sello",
+      "tipo": "sello",
+      "nombre": "Sello presidencial",
+      "color": "#94a3b8"
+    },
+    {
+      "patron": "Presidente de los Estados Unidos Mexicanos, a sus habitantes sabed",
+      "tipo": "formula_promulgacion",
+      "nombre": "Fórmula de promulgación",
+      "color": "#f97316"
+    },
+    {
+      "patron": "Que el Honorable Congreso",
+      "tipo": "formula_promulgacion",
+      "nombre": "Fórmula introductoria",
+      "color": "#f97316"
+    },
+    {
+      "patron": "DECRETO",
+      "tipo": "decreto_presidencial",
+      "nombre": "Decreto",
+      "color": "#f97316"
+    },
+    {
+      "patron": "EL CONGRESO GENERAL DE LOS ESTADOS UNIDOS MEXICANOS",
+      "tipo": "decreto_presidencial",
+      "nombre": "Fórmula del Congreso",
+      "color": "#f97316"
+    },
+    {
+      "patron": "SE EXPIDE",
+      "tipo": "articulo_expedicion",
+      "nombre": "Artículo de expedición",
+      "color": "#eab308"
+    },
+    {
+      "patron": "ARTÍCULO ÚNICO",
+      "tipo": "articulo_expedicion",
+      "nombre": "Artículo único",
+      "color": "#eab308"
+    },
+    {
+      "patron": "ARTÍCULO PRIMERO",
+      "tipo": "articulo_expedicion",
+      "nombre": "Artículo primero",
+      "color": "#eab308"
+    }
+  ]
 }

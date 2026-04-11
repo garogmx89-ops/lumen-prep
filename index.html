@@ -989,7 +989,11 @@ async function guardarPerfil(){
   const nombre=document.getElementById('fp-nombre').value.trim();
   if(!nombre){toast('Nombre obligatorio','error');return;}
   const pa=document.getElementById('fp-patron-art').value;
+  // Preservar campos del perfil activo que no están en el formulario
+  const camposExtras = {};
+  if(state.perfilActivo?.plantillaIntroduccion) camposExtras.plantillaIntroduccion = state.perfilActivo.plantillaIntroduccion;
   const perfil={
+    ...camposExtras,
     nombre,ambito:document.getElementById('fp-ambito').value,
     origen:document.getElementById('fp-origen').value.trim(),
     notas:document.getElementById('fp-notas').value.trim(),
