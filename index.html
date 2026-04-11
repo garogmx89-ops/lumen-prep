@@ -271,8 +271,21 @@ textarea:focus{border-color:var(--accent);}
 .diff-compare-table .ok{color:var(--ok);}
 .diff-compare-table .warn{color:var(--warn);}
 .diff-compare-table .err{color:var(--err);}
-.diff-stats-bar{display:flex;gap:14px;flex-wrap:wrap;padding:7px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-family:'IBM Plex Mono',monospace;}
+.diff-stats-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:7px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-family:'IBM Plex Mono',monospace;}
 .ds-del{color:var(--diff-del-text);}.ds-add{color:var(--diff-add-text);}.ds-neu{color:var(--text-faint);}
+.diff-filter-btn{cursor:pointer;padding:2px 9px;border-radius:12px;border:1.5px solid transparent;font-size:11px;font-family:'IBM Plex Mono',monospace;transition:all .15s;opacity:.75;}
+.diff-filter-btn:hover{opacity:1;}
+.diff-filter-btn.active{opacity:1;border-color:currentColor;font-weight:700;}
+.diff-filter-btn.flt-del{color:var(--diff-del-text);}
+.diff-filter-btn.flt-ref{color:#f7c94f;}
+.diff-filter-btn.flt-add{color:var(--diff-add-text);}
+.diff-nav-bar{display:flex;align-items:center;gap:8px;padding:5px 14px;background:var(--surface);border-bottom:1px solid var(--border);font-size:11px;}
+.diff-nav-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 10px;cursor:pointer;font-size:12px;color:var(--text-dim);}
+.diff-nav-btn:hover{background:var(--accent-dim);}
+.diff-nav-btn:disabled{opacity:.35;cursor:default;}
+.diff-nav-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);flex:1;}
+.diff-nav-art{font-size:11px;color:var(--accent);background:var(--accent-dim);padding:1px 8px;border-radius:10px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tok-hidden{display:none;}
 .diff-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;}
 .dtl{color:var(--text-faint);font-size:11px;font-family:'IBM Plex Mono',monospace;}
 .dab{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid transparent;font-size:11px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-weight:500;transition:all .15s;}
@@ -1533,11 +1546,19 @@ function renderDiff(){
       </tr>
     </table>
     <div class="diff-stats-bar">
-      <span class="ds-del">🔴 ${borrados} eliminado(s)</span>
-      <span class="ds-ref">🟡 ${reformateados} reformateado(s)</span>
-      <span class="ds-add">🟢 ${agregados} agregado(s)</span>
-      <span style="color:var(--ok);font-size:12px;">↵ ${Math.abs(dS)} salto(s) ${dS<=0?'normalizados':'agregados'}</span>
+      <span style="color:var(--text-faint);font-size:10px;margin-right:2px;">FILTRAR:</span>
+      <button class="diff-filter-btn flt-del" id="flt-borrado" onclick="toggleFiltro('borrado')">🔴 ${borrados} eliminado(s)</button>
+      <button class="diff-filter-btn flt-ref" id="flt-reformateado" onclick="toggleFiltro('reformateado')">🟡 ${reformateados} reformateado(s)</button>
+      <button class="diff-filter-btn flt-add" id="flt-agregado" onclick="toggleFiltro('agregado')">🟢 ${agregados} agregado(s)</button>
+      <span style="color:var(--ok);font-size:11px;margin-left:4px;">↵ ${Math.abs(dS)} salto(s) ${dS<=0?'normalizados':'agregados'}</span>
       <span class="ds-neu" id="diff-rest-count"></span>
+    </div>
+    <div class="diff-nav-bar" id="diff-nav-bar" style="display:none;">
+      <button class="diff-nav-btn" id="nav-prev" onclick="navegarCambio(-1)">◀ Anterior</button>
+      <button class="diff-nav-btn" id="nav-next" onclick="navegarCambio(1)">Siguiente ▶</button>
+      <span class="diff-nav-info" id="nav-info">— / —</span>
+      <span class="diff-nav-art" id="nav-art"></span>
+      <button class="diff-nav-btn" onclick="toggleFiltro(null)" style="margin-left:auto;">✕ Quitar filtro</button>
     </div>
     <div class="diff-toolbar">
       <span class="dtl">Seleccionado:</span>
@@ -1575,6 +1596,98 @@ function deseleccionarToken(){
   document.getElementById('dab-restore').disabled=true;
   document.getElementById('dab-remove').disabled=true;
   const p=document.getElementById('diff-sel-preview');if(p)p.textContent='— ninguno —';
+}
+
+// ── Filtro y navegación por tipo de cambio ─────────────────────
+let diffFiltroActivo = null;
+let diffNavIndices = [];   // índices en diffTokens del tipo filtrado
+let diffNavPos = -1;       // posición actual en diffNavIndices
+
+function toggleFiltro(tipo){
+  if(diffFiltroActivo === tipo || tipo === null){
+    // Quitar filtro
+    diffFiltroActivo = null;
+    diffNavIndices = [];
+    diffNavPos = -1;
+    document.querySelectorAll('.diff-filter-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('diff-nav-bar').style.display = 'none';
+    // Mostrar todos los tokens
+    document.querySelectorAll('#diff-orig .tok-del, #diff-orig .tok-ref, #diff-orig .tok-add, #diff-orig .tok-igual').forEach(el=>{
+      el.classList.remove('tok-hidden');
+    });
+    aplicarVisibilidadFiltro(null);
+    return;
+  }
+  diffFiltroActivo = tipo;
+  // Resaltar botón activo
+  document.querySelectorAll('.diff-filter-btn').forEach(b=>b.classList.remove('active'));
+  const btnId = {borrado:'flt-borrado', reformateado:'flt-reformateado', agregado:'flt-agregado'}[tipo];
+  if(btnId) document.getElementById(btnId)?.classList.add('active');
+  // Construir índice de tokens del tipo filtrado
+  diffNavIndices = diffTokens
+    .map((t,i)=>({t,i}))
+    .filter(({t})=>t.tipo===tipo)
+    .map(({i})=>i);
+  diffNavPos = diffNavIndices.length > 0 ? 0 : -1;
+  // Aplicar visibilidad
+  aplicarVisibilidadFiltro(tipo);
+  document.getElementById('diff-nav-bar').style.display = 'flex';
+  actualizarNavInfo();
+  if(diffNavPos >= 0) scrollACambio(diffNavIndices[diffNavPos]);
+}
+
+function aplicarVisibilidadFiltro(tipo){
+  // En columna original: ocultar tokens que no son del tipo filtrado (excepto iguales que dan contexto)
+  const orig = document.getElementById('diff-orig');
+  if(!orig) return;
+  if(!tipo){
+    orig.querySelectorAll('.tok-hidden').forEach(el=>el.classList.remove('tok-hidden'));
+    return;
+  }
+  // Ocultar todos los cambios que NO son del tipo activo
+  const clasesMostrar = {borrado:'.tok-del', reformateado:'.tok-ref', agregado:'.tok-add'};
+  const clasesOcultar = Object.entries(clasesMostrar)
+    .filter(([t])=>t!==tipo)
+    .map(([,c])=>c)
+    .join(',');
+  if(clasesOcultar) orig.querySelectorAll(clasesOcultar).forEach(el=>el.classList.add('tok-hidden'));
+  orig.querySelectorAll(clasesMostrar[tipo]).forEach(el=>el.classList.remove('tok-hidden'));
+}
+
+function navegarCambio(dir){
+  if(diffNavIndices.length === 0) return;
+  diffNavPos = Math.max(0, Math.min(diffNavIndices.length-1, diffNavPos + dir));
+  actualizarNavInfo();
+  scrollACambio(diffNavIndices[diffNavPos]);
+}
+
+function actualizarNavInfo(){
+  const info = document.getElementById('nav-info');
+  const art  = document.getElementById('nav-art');
+  const prev = document.getElementById('nav-prev');
+  const next = document.getElementById('nav-next');
+  if(!info) return;
+  const total = diffNavIndices.length;
+  info.textContent = total > 0 ? `${diffNavPos+1} / ${total}` : '0 resultados';
+  if(prev) prev.disabled = diffNavPos <= 0;
+  if(next) next.disabled = diffNavPos >= total-1;
+  // Mostrar artículo del token actual
+  if(art && diffNavPos >= 0 && diffNavIndices[diffNavPos] !== undefined){
+    const tok = diffTokens[diffNavIndices[diffNavPos]];
+    art.textContent = tok?.art ? tok.art : '';
+    art.style.display = tok?.art ? '' : 'none';
+  }
+}
+
+function scrollACambio(tokenIdx){
+  const tok = diffTokens[tokenIdx];
+  if(!tok) return;
+  // Seleccionar el token y hacer scroll
+  seleccionarToken(tok.id);
+  setTimeout(()=>{
+    const el = document.querySelector(`[data-tid="${tok.id}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 50);
 }
 function restaurarToken(){
   if(!tokenSeleccionado)return;
@@ -2896,12 +3009,21 @@ function calcularDiffSemantico(orig, limp){
   const palabrasB = limp.match(/[a-záéíóúüña-z]{3,}/gi) || [];
   const setBp = new Set(palabrasB.map(p=>p.toLowerCase()));
 
+  // Mapa de línea → artículo para contexto de navegación
+  const reArtLinea = /^(ART[IÍ]CULO\s+[\dÚUNICOPRIMEROSEGUNDOTERCERO][^\n]*)/i;
+  let artActual = '';
+  const artPorLinea = lineasA.map(l => {
+    const m = l.match(reArtLinea);
+    if(m) artActual = m[1].slice(0,60).trim();
+    return artActual;
+  });
+
   while(i<lm || j<ln){
     if(i<lm && j<ln && lineasA[i]===lineasB[j]){
-      for(const p of tok(lineasA[i]+'\n')) resultado.push({tipo:'igual',texto:p,id:'t'+resultado.length});
+      for(const p of tok(lineasA[i]+'\n')) resultado.push({tipo:'igual',texto:p,id:'t'+resultado.length,art:artPorLinea[i]||''});
       i++; j++;
     } else if(j<ln && (i>=lm || ldp[i][j+1]>=ldp[i+1][j])){
-      resultado.push({tipo:'agregado',texto:lineasB[j]+'\n',id:'t'+resultado.length});
+      resultado.push({tipo:'agregado',texto:lineasB[j]+'\n',id:'t'+resultado.length,art:''});
       j++;
     } else {
       const linea = lineasA[i];
@@ -2909,7 +3031,7 @@ function calcularDiffSemantico(orig, limp){
       const encontradas = palabrasLinea.filter(p=>setBp.has(p.toLowerCase())).length;
       const pct = palabrasLinea.length > 0 ? encontradas/palabrasLinea.length : 0;
       const tipo = pct > 0.6 ? 'reformateado' : 'borrado';
-      for(const p of tok(linea+'\n')) resultado.push({tipo,texto:p,id:'t'+resultado.length});
+      for(const p of tok(linea+'\n')) resultado.push({tipo,texto:p,id:'t'+resultado.length,art:artPorLinea[i]||''});
       i++;
     }
   }
