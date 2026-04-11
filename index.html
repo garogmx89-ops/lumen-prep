@@ -2464,10 +2464,8 @@ function renderDocumentoMarcado(original, limpio){
   if(!el) return;
 
   // Construir diff línea por línea para identificar qué se eliminó
-  const lineasOrig = original.split('
-');
-  const lineasLimp = new Set(limpio.split('
-'));
+  const lineasOrig = original.split('\n');
+  const lineasLimp = new Set(limpio.split('\n'));
 
   let html = '';
   let fragmentoIdx = 0;
