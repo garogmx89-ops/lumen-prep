@@ -2027,19 +2027,135 @@ function renderVista(){
 
 
 // ══ RENDER ESTRUCTURA (EDITABLE) ═════════════════════════════════
+function reconstruirTextoDesdeEstructura(){
+  // Reconstruye texto plano desde state.estructura para comparar contra state.textoLimpio
+  let partes = [];
+  for(const item of state.estructura){
+    if(item.tipo === 'seccion'){
+      partes.push(item.contenido || '');
+    } else if(item.tipo === 'introduccion'){
+      if(item.subsecciones && item.subsecciones.length){
+        partes.push(item.subsecciones.map(s=>s.contenido||'').join('\n\n'));
+      } else {
+        partes.push(item.contenido || '');
+      }
+    } else if(item.tipo === 'articulo'){
+      let bloque = item.articulo || '';
+      // Incluir notas de reforma — dan contexto de vigencia al agente IA
+      if(item.reformas && item.reformas.length) bloque += ' ' + item.reformas.join(' ');
+      if(item.introduccion) bloque += ' ' + item.introduccion;
+      if(item.fracciones && item.fracciones.length){
+        for(const f of item.fracciones){
+          bloque += ' ' + (f.fraccion||'') + ' ';
+          if(f.introduccion) bloque += f.introduccion + ' ';
+          if(f.incisos && f.incisos.length){
+            for(const inc of f.incisos) bloque += (inc.inciso||'') + ' ' + (inc.contenido||'') + ' ';
+          } else {
+            bloque += (f.contenido||'');
+          }
+        }
+      } else {
+        bloque += ' ' + (item.contenido || '');
+      }
+      partes.push(bloque.trim());
+    } else if(item.tipo === 'transitorio' || item.tipo === 'firma'){
+      partes.push(item.contenido || '');
+    }
+  }
+  return partes.join('\n\n');
+}
+
+function calcularIntegridadEstructura(){
+  if(!state.textoLimpio || !state.estructura.length) return null;
+  const textoRef   = state.textoLimpio;
+  const textoRecon = reconstruirTextoDesdeEstructura();
+  const pRef  = contarPalabras(textoRef);
+  const pRecon= contarPalabras(textoRecon);
+  const cRef  = textoRef.replace(/\s/g,'').length;
+  const cRecon= textoRecon.replace(/\s/g,'').length;
+  const arts  = state.estructura.filter(e=>e.tipo==='articulo').length;
+  const diffP = pRecon - pRef;
+  const diffC = cRecon - cRef;
+  const pct   = pRef > 0 ? ((pRecon/pRef)*100).toFixed(1) : '0';
+  const ok    = Math.abs(diffP) <= Math.round(pRef * 0.01); // tolerancia 1%
+  return { pRef, pRecon, cRef, cRecon, diffP, diffC, pct, ok, arts };
+}
+
 function renderEstructura(){
   const el=document.getElementById('pane-estructura');
   if(!state.estructura.length)return;
 
-  // Instrucción
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-    <div style="font-size:11px;color:var(--text-faint);">
-      💡 Haz clic en <strong style="color:var(--text-dim);">✏ Editar</strong> para modificar un elemento. Selecciona texto para crear reglas o cortar fragmentos.
+  // Calcular integridad
+  const integ = calcularIntegridadEstructura();
+  const arts  = state.estructura.filter(e=>e.tipo==='articulo').length;
+
+  // Badge de artículos
+  const artsBadge = integ
+    ? `<span style="font-family:'DM Mono',monospace;font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid ${integ.ok?'var(--ok)':'var(--warn)'};color:${integ.ok?'var(--ok)':'var(--warn)'};">
+        ${integ.ok?'✓':'⚠'} ${arts} artículos · ${integ.pct}% integridad
+       </span>` : '';
+
+  // Tabla de integridad Limpio vs Estructura
+  let tablaInteg = '';
+  if(integ){
+    const fmtDiff = (d) => {
+      if(d === 0) return `<span style="color:var(--ok);">0 ✅</span>`;
+      const s = d > 0 ? `+${d}` : `${d}`;
+      const col = Math.abs(d) <= 5 ? 'var(--warn)' : 'var(--err)';
+      return `<span style="color:${col};">${s}</span>`;
+    };
+    tablaInteg = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:11px;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px;">
+        Integridad — Limpio vs Estructura reconstruida
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:3px 8px;color:var(--text-faint);font-weight:600;font-size:10px;"></th>
+            <th style="text-align:right;padding:3px 8px;color:var(--text-faint);font-weight:600;font-size:10px;">PALABRAS</th>
+            <th style="text-align:right;padding:3px 8px;color:var(--text-faint);font-weight:600;font-size:10px;">CARACTERES</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:4px 8px;font-weight:600;color:var(--text-dim);">Limpio</td>
+            <td style="padding:4px 8px;text-align:right;font-family:'DM Mono',monospace;">${integ.pRef.toLocaleString()}</td>
+            <td style="padding:4px 8px;text-align:right;font-family:'DM Mono',monospace;">${integ.cRef.toLocaleString()}</td>
+          </tr>
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:4px 8px;font-weight:600;color:var(--text-dim);">Estructura</td>
+            <td style="padding:4px 8px;text-align:right;font-family:'DM Mono',monospace;">${integ.pRecon.toLocaleString()}</td>
+            <td style="padding:4px 8px;text-align:right;font-family:'DM Mono',monospace;">${integ.cRecon.toLocaleString()}</td>
+          </tr>
+          <tr style="border-top:1px solid var(--border2);">
+            <td style="padding:4px 8px;font-weight:700;color:var(--text);">Diferencia</td>
+            <td style="padding:4px 8px;text-align:right;font-family:'DM Mono',monospace;">${fmtDiff(integ.diffP)}</td>
+            <td style="padding:4px 8px;text-align:right;font-family:'DM Mono',monospace;">${fmtDiff(integ.diffC)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:6px;color:var(--text-faint);font-size:10px;">
+        ℹ La reconstrucción incluye notas de reforma y estado jurídico de cada artículo. Una diferencia de 0 indica parseo completo.
+      </div>
+    </div>`;
+  }
+
+  let html=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="font-size:11px;color:var(--text-faint);">
+        💡 Haz clic en <strong style="color:var(--text-dim);">✏ Editar</strong> para modificar un elemento. Selecciona texto para crear reglas o cortar fragmentos.
+      </div>
+      ${artsBadge}
     </div>
-    ${state.perfilActivo?.reglas?.length?
-      `<div style="font-size:11px;color:var(--ok);">📌 ${state.perfilActivo.reglas.length} regla(s) en perfil</div>`:''}
+    <div style="display:flex;align-items:center;gap:8px;">
+      ${state.perfilActivo?.reglas?.length?
+        `<div style="font-size:11px;color:var(--ok);">📌 ${state.perfilActivo.reglas.length} regla(s) en perfil</div>`:''}
       <button class="btn btn-ghost btn-sm" onclick="exportarEstructuraPDF()" style="font-size:11px;">&#11015; PDF Estructura</button>
+    </div>
   </div>
+  ${tablaInteg}
   <div class="estructura-container">`;
 
   state.estructura.forEach((item,idx)=>{
