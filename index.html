@@ -2472,8 +2472,7 @@ function renderDocumentoMarcado(original, limpio){
 
   for(const linea of lineasOrig){
     const lineaTrim = linea.trim();
-    if(!lineaTrim){ html += '
-'; continue; }
+    if(!lineaTrim){ html += '\n'; continue; }
 
     if(!lineasLimp.has(linea)){
       // Esta línea fue eliminada — marcarla en rojo
