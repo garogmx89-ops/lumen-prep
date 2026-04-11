@@ -451,6 +451,44 @@ textarea:focus{border-color:var(--accent);}
 .loading-bar.active{display:block;}
 @keyframes loading{0%{background-position:-200% 0}100%{background-position:200% 0}}
 ::-webkit-scrollbar{width:6px;height:6px;}
+
+/* Sprint 4-5 */
+.lumen-send-box{
+  background:var(--surface);border:2px solid var(--accent);
+  border-radius:10px;padding:20px;margin-bottom:14px;
+}
+.lumen-send-box h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:6px;color:var(--accent);}
+.lumen-send-box p{font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+.lumen-send-result{
+  background:var(--diff-add-bg);border:1px solid var(--ok);
+  border-radius:6px;padding:12px 14px;font-size:12px;
+  color:var(--diff-add-text);margin-top:10px;display:none;
+}
+.lumen-send-result.visible{display:block;}
+
+.temas-container{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.tema-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;
+  font-size:11px;font-family:'IBM Plex Mono',monospace;
+  background:var(--accent-dim);border:1px solid var(--accent);
+  color:var(--accent);cursor:default;
+}
+.tema-tag .tema-remove{cursor:pointer;color:var(--text-faint);font-size:13px;}
+.tema-tag .tema-remove:hover{color:#f87171;}
+
+.vis-selector{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+.vis-btn{
+  padding:3px 10px;border-radius:20px;border:1px solid var(--border2);
+  background:transparent;color:var(--text-dim);font-size:11px;
+  cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s;
+}
+.vis-btn:hover{border-color:var(--accent);color:var(--accent);}
+.vis-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.vis-1.active{background:#34c98a;border-color:#34c98a;}
+.vis-2.active{background:#4f8ef7;border-color:#4f8ef7;}
+.vis-3.active{background:#f7c94f;border-color:#f7c94f;color:#000;}
+.vis-4.active{background:#f87171;border-color:#f87171;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 #json-view{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;white-space:pre;color:var(--text-dim);overflow-x:auto;}
@@ -730,7 +768,8 @@ let state={
   resaltados:[],problemasResueltos:new Set(),snapshots:[],
   tokensRestaurados:new Set(),log:[],hashActual:'',aprobado:false,
   banco:[],           // fragmentos eliminados recuperables
-  introSubsecciones:[] // subsecciones de la introducción
+  introSubsecciones:[], // subsecciones de la introducción
+  temasGenerados:[]    // E3: temas generados con IA
 };
 let tagsTemp={ruido:[],trans:[]};
 let catsTemp=[];
@@ -2708,11 +2747,31 @@ async function renderValidacion(){
       </div>
     </div>\`;
 
+  // ── Sprint 5: Sección de temas ──────────────────────────────
+  html+=`<div class="val-section">
+    <div class="val-section-header">🏷 Temas del documento (para el agente IA)</div>
+    <div style="padding:12px 14px;">
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">
+        Los temas ayudan al agente IA a priorizar artículos relevantes según el contexto de cada reunión.
+      </p>
+      <div class="temas-container" id="temas-container"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" id="btn-etiquetar-temas" onclick="etiquetarTemasConIA()" style="font-size:11px;">🏷 Etiquetar temas con IA</button>
+        <button class="btn btn-ghost" onclick="exportarContextoAgente()" style="font-size:11px;">📄 Exportar contexto para agente (.md)</button>
+      </div>
+    </div>
+  </div>`;
+
   if(state.aprobado){
     html+=`<div class="approve-box aprobado">
       <div class="aprobado-badge">✓ Documento aprobado</div>
-      <h3>Listo para exportar</h3><p>El JSON incluye metadatos de aprobación y firma de contenido.</p>
-      <button class="btn btn-approve" onclick="exportarJSONAprobado()">⬇ Descargar JSON aprobado</button>
+      <h3>Listo para exportar y enviar</h3>
+      <p>El JSON incluye estados jurídicos, metadatos de aprobación y firma de contenido. Puedes descargarlo o enviarlo directamente a Lumen.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-approve" style="width:auto;padding:9px 20px;" onclick="exportarJSONAprobado()">⬇ Descargar JSON</button>
+        <button class="btn btn-approve" id="btn-enviar-lumen" onclick="enviarALumen()" style="width:auto;padding:9px 20px;background:var(--frac);border-color:var(--frac);">🚀 Enviar a Lumen como borrador</button>
+      </div>
+      <div class="lumen-send-result" id="lumen-send-result"></div>
     </div>`;
   } else {
     html+=`<div class="approve-box">
@@ -2723,6 +2782,8 @@ async function renderValidacion(){
     </div>`;
   }
   el.innerHTML=html;
+  // Renderizar temas después de insertar HTML
+  renderTemas();
 }
 
 function aprobarDocumento(){
@@ -2747,6 +2808,331 @@ function exportarJSONAprobado(){
   a.click();
   logOk('JSON exportado','Archivo descargado',new Date().toLocaleTimeString());renderLog();
   toast('JSON exportado','success');
+}
+
+// ══ SPRINT 4 — ENVIAR A LUMEN ════════════════════════════════════
+
+/**
+ * D1: Escribe el documento procesado directamente en Firestore de Lumen
+ * bajo la colección /usuarios/{uid}/normatividad como borrador.
+ * Requiere que el usuario esté autenticado en Lumen (misma sesión Firebase).
+ */
+async function enviarALumen(){
+  if(!state.aprobado){toast('Aprueba el documento antes de enviarlo a Lumen','error');return;}
+  if(!window._dbReady){toast('Sin conexión a Firestore','error');return;}
+
+  const btn=document.getElementById('btn-enviar-lumen');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Enviando...';}
+
+  try{
+    const output=construirOutputFinal();
+    output.meta.aprobado=true;
+    output.meta.fechaExportacion=new Date().toISOString();
+
+    // Construir documento en formato Lumen
+    const docLumen={
+      // Campos estándar de Normatividad en Lumen
+      titulo:       extraerTituloLey(state.estructura)||state.perfilActivo?.nombre||'Documento sin título',
+      tipo:         inferirTipoNormativa(state.perfilActivo),
+      ambito:       state.perfilActivo?.ambito||'',
+      origen:       state.perfilActivo?.origen||'',
+      fechaPublicacion: extraerFechaPublicacion(state.textoOriginal)||'',
+      ultimaReforma:    extraerUltimaReforma(state.textoOriginal)||'',
+      estado:       'borrador_lumenprep',
+
+      // Contenido estructurado
+      articulos:    output.contenido.filter(e=>e.tipo==='articulo'),
+      introduccion: output.contenido.find(e=>e.tipo==='introduccion')||null,
+      transitorios: output.contenido.filter(e=>e.tipo==='transitorio'),
+
+      // Metadatos de procesado
+      meta:         output.meta,
+      hashContenido:state.hashActual||'',
+      temas:        state.temasGenerados||[],
+
+      // Control de visibilidad para agente IA
+      visibilidadDefault: 1, // normativo por defecto
+
+      // Timestamps
+      creadoEn:     new Date().toISOString(),
+      actualizadoEn:new Date().toISOString(),
+      fuente:       'lumen_prep'
+    };
+
+    // Buscar usuario autenticado (Firebase Auth compartido)
+    const uid = await obtenerUidActual();
+    if(!uid){
+      toast('No se detectó sesión activa de Lumen. Abre Lumen en otra pestaña e intenta de nuevo.','error');
+      return;
+    }
+
+    // Verificar si ya existe un documento con el mismo hash
+    const colRef=window._collection(window._db,`usuarios/${uid}/normatividad`);
+    const snap=await window._getDocs(colRef);
+    let docExistente=null;
+    snap.forEach(d=>{
+      if(d.data().hashContenido===state.hashActual)docExistente=d;
+    });
+
+    if(docExistente){
+      const confirmar=confirm(
+        `Ya existe un documento con el mismo contenido en Lumen.
+
+`+
+        `Título: "${docExistente.data().titulo}"
+
+`+
+        `¿Deseas actualizar ese documento o crear uno nuevo?
+
+`+
+        `Aceptar = Actualizar | Cancelar = Crear nuevo`
+      );
+      if(confirmar){
+        await window._updateDoc(
+          window._doc(window._db,`usuarios/${uid}/normatividad`,docExistente.id),
+          {...docLumen,actualizadoEn:new Date().toISOString()}
+        );
+        mostrarResultadoEnvio(`Documento actualizado en Lumen: "${docLumen.titulo}"`);
+        logOk('Enviado a Lumen',`Actualizado: "${docLumen.titulo}"`,uid.slice(0,8));
+      } else {
+        docLumen.titulo=docLumen.titulo+' (v'+Date.now().toString().slice(-4)+')';
+        await window._addDoc(colRef,docLumen);
+        mostrarResultadoEnvio(`Nuevo borrador creado en Lumen: "${docLumen.titulo}"`);
+        logOk('Enviado a Lumen',`Creado: "${docLumen.titulo}"`,uid.slice(0,8));
+      }
+    } else {
+      await window._addDoc(colRef,docLumen);
+      mostrarResultadoEnvio(`Borrador creado en Lumen: "${docLumen.titulo}"`);
+      logOk('Enviado a Lumen',`Creado: "${docLumen.titulo}"`,uid.slice(0,8));
+    }
+
+    renderLog();
+    toast('Documento enviado a Lumen correctamente','success');
+
+  }catch(e){
+    toast('Error al enviar: '+e.message,'error');
+    logErr('Error al enviar a Lumen',e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='🚀 Enviar a Lumen como borrador';}
+  }
+}
+
+function mostrarResultadoEnvio(msg){
+  const el=document.getElementById('lumen-send-result');
+  if(el){el.textContent='✅ '+msg;el.classList.add('visible');}
+}
+
+async function obtenerUidActual(){
+  // Intentar obtener el UID del usuario autenticado en Firebase
+  // Lumen Prep usa el mismo proyecto Firebase que Lumen
+  return new Promise(resolve=>{
+    try{
+      // Firebase Auth puede no estar inicializado en Lumen Prep
+      // Intentar leer desde localStorage de Lumen (mismo dominio en integración futura)
+      // Por ahora, pedir al usuario su UID o usar sesión compartida
+      const uid=localStorage.getItem('lumenprep_uid');
+      if(uid){resolve(uid);return;}
+
+      // Si no hay UID guardado, pedirlo una sola vez
+      const uidIngresado=prompt(
+        'Para enviar a Lumen necesitas tu ID de usuario.
+
+'+
+        'Encuéntralo en Lumen → tu perfil → "ID de sesión"
+
+'+
+        'Este dato se guardará localmente para futuras sesiones:'
+      );
+      if(uidIngresado?.trim()){
+        localStorage.setItem('lumenprep_uid',uidIngresado.trim());
+        resolve(uidIngresado.trim());
+      } else {
+        resolve(null);
+      }
+    }catch(e){resolve(null);}
+  });
+}
+
+// Helpers para extraer metadata del documento
+function extraerTituloLey(estructura){
+  const intro=estructura.find(e=>e.tipo==='introduccion');
+  if(!intro)return null;
+  const match=(intro.contenido||'').match(/^(LEY\s+[A-ZÁÉÍÓÚÜÑ\s]+)/m);
+  return match?match[1].trim():null;
+}
+function inferirTipoNormativa(perfil){
+  if(!perfil)return 'ley';
+  const nombre=(perfil.nombre||'').toLowerCase();
+  if(nombre.includes('reglamento'))return 'reglamento';
+  if(nombre.includes('lineamiento'))return 'lineamiento';
+  if(nombre.includes('acuerdo'))return 'acuerdo';
+  if(nombre.includes('norma'))return 'norma';
+  return 'ley';
+}
+function extraerFechaPublicacion(texto){
+  const m=texto?.match(/publicada?\s+en\s+el\s+Diario\s+Oficial.*?el\s+(\d+\s+de\s+\w+\s+de\s+\d{4})/i);
+  return m?m[1]:null;
+}
+function extraerUltimaReforma(texto){
+  const m=texto?.match(/[ÚU]ltima\s+reforma\s+publicada\s+DOF\s+([\d\-]+)/i);
+  return m?m[1]:null;
+}
+
+
+// ══ SPRINT 5 — AGENTE IA MEJORADO ════════════════════════════════
+
+/**
+ * E3: Etiquetado temático con IA
+ * Analiza el contenido de los artículos y sugiere temas automáticamente.
+ */
+async function etiquetarTemasConIA(){
+  if(!state.estructura.length){toast('Primero procesa un documento','error');return;}
+  const btn=document.getElementById('btn-etiquetar-temas');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Analizando temas...';}
+
+  const arts=state.estructura.filter(e=>e.tipo==='articulo'&&e.estado!=='derogado');
+  const muestra=arts.slice(0,20).map(a=>`${a.articulo}: ${(a.contenido||a.introduccion||'').slice(0,150)}`).join('
+');
+
+  const prompt=`Eres experto en normativa legal mexicana. Analiza estos artículos y devuelve ÚNICAMENTE un JSON válido (sin markdown) con los temas principales:
+
+{"temas":["tema1","tema2","tema3",...]}
+
+Los temas deben ser palabras clave cortas (1-3 palabras) que describan los ejes temáticos del documento. Máximo 12 temas. Ejemplos: "vivienda digna", "financiamiento", "política habitacional", "género", "sustentabilidad", "organismos públicos".
+
+Artículos a analizar:
+${muestra}`;
+
+  try{
+    const res=await fetch('https://lumen-briefing.garogmx89.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:500,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const txt=(data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const resultado=JSON.parse(txt);
+    state.temasGenerados=resultado.temas||[];
+    renderTemas();
+    logOk('Temas generados con IA',`${state.temasGenerados.length} temas identificados`,`×${state.temasGenerados.length}`);
+    toast(`${state.temasGenerados.length} temas identificados`,'success');
+  }catch(e){
+    toast('Error al etiquetar: '+e.message,'error');
+    logErr('Error etiquetado IA',e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='🏷 Etiquetar temas con IA';}
+  }
+}
+
+function renderTemas(){
+  const el=document.getElementById('temas-container');
+  if(!el)return;
+  if(!state.temasGenerados?.length){el.innerHTML='<span style="font-size:11px;color:var(--text-faint);">Sin temas generados aún.</span>';return;}
+  el.innerHTML=state.temasGenerados.map((t,i)=>`
+    <span class="tema-tag">
+      ${escHtml(t)}
+      <span class="tema-remove" onclick="quitarTema(${i})" title="Eliminar tema">×</span>
+    </span>`).join('');
+}
+
+function quitarTema(idx){
+  state.temasGenerados.splice(idx,1);
+  renderTemas();
+}
+
+/**
+ * E1: Construir contexto estructurado para el agente IA
+ * Genera el texto que se pasará al agente, separado por estado jurídico.
+ */
+function construirContextoAgente(){
+  const arts=state.estructura.filter(e=>e.tipo==='articulo');
+  const normativos=arts.filter(a=>a.estado==='vigente'||!a.estado);
+  const historicos=arts.filter(a=>a.estado==='derogado');
+  const conReformas=arts.filter(a=>a.reformas?.length>0&&a.estado!=='derogado');
+
+  let contexto='';
+
+  // Cabecera
+  const titulo=extraerTituloLey(state.estructura)||state.perfilActivo?.nombre||'Documento normativo';
+  contexto+=`# ${titulo}
+`;
+  if(state.perfilActivo?.ambito)contexto+=`Ámbito: ${state.perfilActivo.ambito} | `;
+  if(state.perfilActivo?.origen)contexto+=`Origen: ${state.perfilActivo.origen}
+`;
+  if(state.temasGenerados?.length)contexto+=`Temas: ${state.temasGenerados.join(', ')}
+`;
+  contexto+='
+---
+
+';
+
+  // Norma vigente
+  contexto+=`## NORMA VIGENTE (citar como fundamento)
+
+`;
+  for(const a of normativos){
+    contexto+=`**${a.articulo}**`;
+    if(a.reformas?.length)contexto+=` *(última reforma: ${a.reformas[a.reformas.length-1]})*`;
+    contexto+='
+';
+    if(a.introduccion)contexto+=a.introduccion+'
+';
+    if(a.fracciones?.length){
+      for(const f of a.fracciones){
+        if(f.estado==='derogado')continue;
+        contexto+=`  ${f.fraccion} ${f.contenido||''}
+`;
+        if(f.incisos?.length)for(const inc of f.incisos)contexto+=`    ${inc.inciso} ${inc.contenido}
+`;
+      }
+    }else if(a.contenido){contexto+=a.contenido+'
+';}
+    contexto+='
+';
+  }
+
+  // Contexto histórico
+  if(historicos.length){
+    contexto+=`---
+
+## CONTEXTO HISTÓRICO (NO aplicar como norma vigente)
+`;
+    contexto+=`*Los siguientes artículos fueron derogados. Úsalos solo si el usuario pregunta por el estado anterior de la ley.*
+
+`;
+    for(const a of historicos){
+      contexto+=`**${a.articulo}** *(DEROGADO)*
+`;
+      if(a.contenido)contexto+=a.contenido.slice(0,200)+'
+';
+      contexto+='
+';
+    }
+  }
+
+  // Nota final para el agente
+  contexto+=`---
+
+*Este contexto fue procesado y aprobado el ${new Date().toLocaleDateString('es-MX')}. `;
+  contexto+=`Hash de integridad: ${(state.hashActual||'').slice(0,16)}...*
+`;
+
+  return contexto;
+}
+
+function exportarContextoAgente(){
+  if(!state.estructura.length){toast('Primero procesa un documento','error');return;}
+  const contexto=construirContextoAgente();
+  const blob=new Blob([contexto],{type:'text/markdown'});
+  const a=document.createElement('a');
+  const nombre=(extraerTituloLey(state.estructura)||'contexto-agente').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${nombre}-contexto-ia.md`;
+  a.click();
+  logOk('Contexto IA exportado','Archivo .md para Lumen',new Date().toLocaleTimeString());
+  toast('Contexto para agente IA exportado','success');
 }
 
 async function eliminarRegla(patron){
@@ -2822,7 +3208,7 @@ function actualizarStats(){
 function limpiarTodo(){
   state={...state,textoOriginal:'',textoLimpio:'',estructura:[],problemas:[],
     tabActiva:'vista',editandoId:null,resaltados:[],problemasResueltos:new Set(),
-    snapshots:[],tokensRestaurados:new Set(),log:[],hashActual:'',aprobado:false,
+    snapshots:[],tokensRestaurados:new Set(),log:[],hashActual:'',aprobado:false,temasGenerados:[],
     banco:[],introSubsecciones:[]};
   diffTokens=[];tokenSeleccionado=null;
   document.getElementById('raw-input').value='';
