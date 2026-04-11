@@ -1412,8 +1412,9 @@ async function cargarArchivo(file){
     if(ext==='pdf')      txt=await extraerTextoPDF(file);
     else if(ext==='docx')txt=await extraerTextoDocx(file);
     else                 txt=await file.text();
-    // Guardar el texto crudo en state para referencia
+    // Guardar el texto crudo en state — textoOriginalCrudo es inmutable para el diff
     state.textoOriginal=txt;
+    state.textoOriginalCrudo=txt;
     logInfo('Archivo cargado',file.name,`${txt.length.toLocaleString()} chars`);
     mostrarEstado(`${file.name} — ${txt.length.toLocaleString()} chars`);
     toast(`Cargado: ${file.name}`,'success');
@@ -1531,12 +1532,14 @@ function renderDiff(){
   if(!state.textoOriginal||!state.textoLimpio){
     el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Procesa un documento.</p></div>`;return;
   }
-  diffTokens=calcularDiffSemantico(state.textoOriginal,state.textoLimpio);
+  // Usar el texto crudo original para el diff — no el normalizado
+  const textoParaDiff = state.textoOriginalCrudo || state.textoOriginal;
+  diffTokens=calcularDiffSemantico(textoParaDiff,state.textoLimpio);
   state.tokensRestaurados=new Set();tokenSeleccionado=null;
-  const pO=contarPalabras(state.textoOriginal),pL=contarPalabras(state.textoLimpio);
-  const cO=state.textoOriginal.length,cL=state.textoLimpio.length;
-  const eO=(state.textoOriginal.match(/ /g)||[]).length,eL=(state.textoLimpio.match(/ /g)||[]).length;
-  const sO=(state.textoOriginal.match(/\n/g)||[]).length,sL=(state.textoLimpio.match(/\n/g)||[]).length;
+  const pO=contarPalabras(textoParaDiff),pL=contarPalabras(state.textoLimpio);
+  const cO=textoParaDiff.length,cL=state.textoLimpio.length;
+  const eO=(textoParaDiff.match(/ /g)||[]).length,eL=(state.textoLimpio.match(/ /g)||[]).length;
+  const sO=(textoParaDiff.match(/\n/g)||[]).length,sL=(state.textoLimpio.match(/\n/g)||[]).length;
   const dP=pL-pO,dC=cL-cO,dE=eL-eO,dS=sL-sO;
   const pct=pO>0?(Math.abs(dP)/pO*100).toFixed(1):0;
   const clP=Math.abs(dP)<50?'ok':Math.abs(dP)<200?'warn':'err';
@@ -1863,6 +1866,19 @@ function parsear(texto,perfil){
     if(introTexto.length>10)
       estructura.push({tipo:'introduccion',contenido:introTexto,subsecciones:[],estado:'procedimental',instruccion_agente:'Preámbulo. Contexto general, no norma aplicable.'});
   }
+  // Capturar bloque seccional huérfano entre fin de intro y primer artículo
+  // Ocurre cuando TÍTULO/CAPÍTULO precede al Artículo 1 y no pertenece a ningún artículo
+  if(pi>0){
+    const bloqueHuerfano = tN.slice(0,pi);
+    const mCorteIntro = bloqueHuerfano.search(new RegExp('\\n(' + (perfil?.patronesCorteIntro?.length
+      ? perfil.patronesCorteIntro : ['TÍTULO PRIMERO','TÍTULO ÚNICO','TÍTULO SEGUNDO','Capítulo Primero','CAPÍTULO PRIMERO','CAPÍTULO ÚNICO'])
+      .map(p=>p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')'));
+    if(mCorteIntro>0){
+      const seccionHuerfana = bloqueHuerfano.slice(mCorteIntro).trim();
+      if(seccionHuerfana.length>2)
+        estructura.push({tipo:'seccion',contenido:seccionHuerfana,estado:'procedimental',instruccion_agente:'Encabezado seccional. Organiza el cuerpo normativo.'});
+    }
+  }
   ra.lastIndex=0;
   const partes=tN.split(ra).filter(Boolean);const rt=rTituloArt(perfil);
   // Regex para detectar encabezados seccionales (TÍTULO/CAPÍTULO) al final del contenido de un artículo
@@ -1984,6 +2000,7 @@ async function procesarDocumento(){
     try{
       logInfo('Inicio',`Perfil: ${state.perfilActivo?.nombre||'Genérico'}`,new Date().toLocaleTimeString());
       state.textoOriginal=texto;
+      state.textoOriginalCrudo=texto;
       // Lanzar preview antes de ejecutar la limpieza
       mostrarPreviewEtapa1(texto, state.perfilActivo);
     }catch(e){toast('Error: '+e.message,'error');logErr('Error',e.message);setLoading(false);}
