@@ -1,7 +1,7 @@
 {
   "_lumenprep_perfil": true,
-  "_version": "1.4",
-  "_descripcion": "Perfil base para leyes federales publicadas en el Diario Oficial de la Federación. Probado con: Ley de Vivienda, Ley General de Asentamientos Humanos OTDU, Ley de Obras Públicas y Servicios Relacionados con las Mismas. v1.1: agrega reglas pie_pagina para PDF del DOF. v1.2: amplía notas de reforma, decreto de reforma y ruido estructural. v1.3: el preámbulo (sello, decreto, fórmulas) se conserva como introducción estructurada via plantillaIntroduccion; ruido queda solo para elipsis de decretos y encabezados PDF v1.4: elimina elipsis (………) del ruido — son marcadores de contenido no modificado en decretos de reforma, no basura estructural.",
+  "_version": "1.5",
+  "_descripcion": "Perfil base para leyes federales publicadas en el Diario Oficial de la Federación. Probado con: Ley de Vivienda, Ley General de Asentamientos Humanos OTDU, Ley de Obras Públicas y Servicios Relacionados con las Mismas. v1.1: agrega reglas pie_pagina para PDF del DOF. v1.2: amplía notas de reforma, decreto de reforma y ruido estructural. v1.3: el preámbulo (sello, decreto, fórmulas) se conserva como introducción estructurada via plantillaIntroduccion; ruido queda solo para elipsis de decretos y encabezados PDF v1.4: elimina elipsis (………) del ruido — son marcadores de contenido no modificado en decretos de reforma, no basura estructural v1.5: agrega patronesCorteIntro — define dónde termina el preámbulo y empieza el cuerpo normativo, consumido por el parser para separar correctamente la introducción de títulos y capítulos.",
   "_generado": "2026-04-11",
   "nombre": "Ley Federal — DOF",
   "ambito": "Federal",
@@ -336,5 +336,13 @@
       "nombre": "Artículo primero",
       "color": "#eab308"
     }
+  ],
+  "patronesCorteIntro": [
+    "TÍTULO PRIMERO",
+    "TÍTULO ÚNICO",
+    "TÍTULO SEGUNDO",
+    "Capítulo Primero",
+    "CAPÍTULO PRIMERO",
+    "CAPÍTULO ÚNICO"
   ]
 }

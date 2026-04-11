@@ -1851,10 +1851,14 @@ function parsear(texto,perfil){
   const ra=rArt(perfil);const pi=tN.search(ra);
   if(pi>0){
     let introTexto=tN.slice(0,pi).trim();
-    // Recortar intro hasta antes del primer TÍTULO o Capítulo del cuerpo normativo
-    // Estos elementos pertenecen al cuerpo, no al preámbulo
-    const rCorte=/\n(TÍTULO\s+(PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|ÚNICO|[IVXLCDM]+)\b|Capítulo\s+Primero\b)/;
-    const mCorte=introTexto.search(rCorte);
+    // Recortar intro hasta antes del inicio del cuerpo normativo
+    // Usar patronesCorteIntro del perfil si existen, o predeterminados
+    const patronesCorte = perfil?.patronesCorteIntro?.length
+      ? perfil.patronesCorteIntro
+      : ['TÍTULO PRIMERO','TÍTULO ÚNICO','TÍTULO SEGUNDO','Capítulo Primero','CAPÍTULO PRIMERO','CAPÍTULO ÚNICO'];
+    const rCorteStr = patronesCorte.map(p=>p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+    const rCorte = new RegExp('\\n(' + rCorteStr + ')');
+    const mCorte = introTexto.search(rCorte);
     if(mCorte>0) introTexto=introTexto.slice(0,mCorte).trim();
     if(introTexto.length>10)
       estructura.push({tipo:'introduccion',contenido:introTexto,subsecciones:[],estado:'procedimental',instruccion_agente:'Preámbulo. Contexto general, no norma aplicable.'});
