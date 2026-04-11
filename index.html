@@ -1865,11 +1865,24 @@ function parsear(texto,perfil){
   }
   ra.lastIndex=0;
   const partes=tN.split(ra).filter(Boolean);const rt=rTituloArt(perfil);
+  // Regex para detectar encabezados seccionales (TÍTULO/CAPÍTULO) al final del contenido de un artículo
+  const rSeccion=/\n\n((?:TÍTULO\s+[\w]+(?:\s+[\w]+)*\n\n[^\n]+|CAPÍTULO\s+[\w]+(?:\s+[\w]+)*(?:\n\n[^\n]+)?)\s*)$/;
   for(const parte of partes){
     if(!parte.trim())continue;
     const mt=parte.match(rt);if(!mt)continue;
     const titulo=mt[1].trim();
     let resto=parte.slice(mt[0].length).trim();
+
+    // Detectar y extraer encabezado seccional al final del contenido
+    // Patrón: bloque TÍTULO/CAPÍTULO pegado al final antes del siguiente artículo
+    const rSec=/\n\n((?:TÍTULO\s+\S[^\n]*\n(?:\n[^\n]+)?|CAPÍTULO\s+\S[^\n]*(?:\n\n[^\n]+)?)\s*)$/;
+    const mSec = resto.match(rSec);
+    let encabezadoSeccional = null;
+    if(mSec){
+      encabezadoSeccional = mSec[1].trim();
+      resto = resto.slice(0, resto.length - mSec[0].length).trim();
+    }
+
     const {textoLimpio:restoL, notas}=extraerNotasReforma(resto);
     resto=restoL;
     const estadoArt=detectarEstadoJuridico(resto,titulo);
@@ -1898,6 +1911,16 @@ function parsear(texto,perfil){
       }
     }else{item.contenido=resto;}
     estructura.push(item);
+
+    // Insertar el encabezado seccional como elemento propio DESPUÉS del artículo
+    if(encabezadoSeccional){
+      estructura.push({
+        tipo:'seccion',
+        contenido:encabezadoSeccional,
+        estado:'procedimental',
+        instruccion_agente:'Encabezado seccional. Organiza el cuerpo normativo, no es norma aplicable.'
+      });
+    }
   }
   if(tT){
     const textoT = tT.trim();
@@ -2011,6 +2034,10 @@ function renderEstructura(){
       html+=`<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #a78bfa;border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
         <div style="font-size:10px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">✍ Firmas de promulgación</div>
         <div data-art-idx="${idx}" class="art-content-view">${escHtml(item.contenido)}</div></div>`;
+    } else if(item.tipo==='seccion'){
+      html+=`<div style="background:transparent;border:none;border-top:1px solid var(--border);padding:10px 4px 4px;margin:4px 0;">
+        <div style="font-size:10px;color:var(--frac);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Mono',monospace;">${escHtml(item.contenido)}</div>
+      </div>`;
     } else if(item.tipo==='articulo'){
       html+=renderArtCard(item,idx);
     }
