@@ -248,6 +248,14 @@ textarea:focus{border-color:var(--accent);}
 }
 .est-sel-toolbar.visible{display:flex;}
 .est-sel-label{font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;}
+/* Toolbar de resaltado en Vista — oculta por defecto */
+.highlight-toolbar{
+  display:none;position:fixed;z-index:300;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:10px;padding:6px 10px;gap:5px;
+  align-items:center;box-shadow:var(--shadow);flex-wrap:wrap;max-width:420px;
+}
+.highlight-toolbar.visible{display:flex;}
 .est-action-btn{
   display:inline-flex;align-items:center;gap:4px;
   padding:4px 9px;border-radius:20px;border:1px solid transparent;
@@ -2042,17 +2050,17 @@ function marcarComoResuelto(idx){
 function rArt(p){
   switch(p?.patronArticulo){
     case 'mayusculas':return /(?=ART[IÍ]CULO\s+\d+[°º.]?)/g;
-    case 'abreviado': return /(?=Art\.\s*\d+)/gi;
-    case 'custom':try{return new RegExp(`(?=${p.artRegexCustom})`,'gi');}catch(e){}
-    default:return /(?=Artículo\s+\d+[°º.]?)/gi;
+    case 'abreviado': return /(?=Art\.\s*\d+)/g;
+    case 'custom':try{return new RegExp(`(?=${p.artRegexCustom})`,'g');}catch(e){}
+    default:return /(?=Artículo\s+\d+[°º.]?)/g;
   }
 }
 function rTituloArt(p){
   switch(p?.patronArticulo){
-    case 'mayusculas':return /^(ART[IÍ]CULO\s+\d+[°º.]?\.?-?)/ ;
-    case 'abreviado': return /^(Art\.\s*\d+[°º.]?\.?[^\n]*)/i;
-    case 'custom':try{return new RegExp(`^(${p.artRegexCustom}[^\\n]*)`, 'i');}catch(e){}
-    default:return /^(Artículo\s+\d+[°º.]?\.?[^\n]*)/i;
+    case 'mayusculas':return /^(ART[IÍ]CULO\s+\d+[°º.]?\.?-?)/;
+    case 'abreviado': return /^(Art\.\s*\d+[°º.]?\.?-?)/;
+    case 'custom':try{return new RegExp(`^(${p.artRegexCustom}[^\\n]{0,10})`);}catch(e){}
+    default:return /^(Artículo\s+\d+[°º.]?\.?-?)/i;
   }
 }
 function rFrac(p){
