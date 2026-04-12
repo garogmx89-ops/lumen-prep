@@ -1747,14 +1747,27 @@ function renderDiff(){
   }
   // Usar el texto crudo original para el diff — no el normalizado
   const textoParaDiff = state.textoOriginalCrudo || state.textoOriginal;
-  // Eliminar marcas §NOTA§ del textoLimpio para que el diff compare contenido real, no metadata interna
-  const textoLimpioSinNotas = state.textoLimpio.replace(/§NOTA§[\s\S]*?§\/NOTA§/g, '').replace(/\s{2,}/g,' ').trim();
-  diffTokens=calcularDiffSemantico(textoParaDiff,textoLimpioSinNotas);
+  // Regex de notas de reforma — mismo patrón que extraerNotasReforma
+  const rNotasDiff = /\*?(?:P[aá]rrafo|Art[íi]culo|Fracci[oó]n|Inciso)\s+(?:reformad[ao]|adicionad[ao]|derogad[ao]|recorrid[ao])\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?|\*?Reforma\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*(?::\s*[^\.§]{0,60})?\*?|\*?Reformad[ao]\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi;
+  // Eliminar notas del original para comparar contenido normativo puro vs contenido normativo puro
+  const textoOriginalSinNotas = textoParaDiff
+    .replace(rNotasDiff, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  // Eliminar marcas §NOTA§ del textoLimpio — preservar saltos de línea
+  const textoLimpioSinNotas = state.textoLimpio
+    .replace(/§NOTA§[^\n]*?§\/NOTA§/g, '')
+    .replace(/§NOTA§[\s\S]*?§\/NOTA§/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  diffTokens=calcularDiffSemantico(textoOriginalSinNotas,textoLimpioSinNotas);
   state.tokensRestaurados=new Set();tokenSeleccionado=null;
-  const pO=contarPalabras(textoParaDiff),pL=contarPalabras(textoLimpioSinNotas);
-  const cO=textoParaDiff.length,cL=textoLimpioSinNotas.length;
-  const eO=(textoParaDiff.match(/ /g)||[]).length,eL=(textoLimpioSinNotas.match(/ /g)||[]).length;
-  const sO=(textoParaDiff.match(/\n/g)||[]).length,sL=(textoLimpioSinNotas.match(/\n/g)||[]).length;
+  const pO=contarPalabras(textoOriginalSinNotas),pL=contarPalabras(textoLimpioSinNotas);
+  const cO=textoOriginalSinNotas.length,cL=textoLimpioSinNotas.length;
+  const eO=(textoOriginalSinNotas.match(/ /g)||[]).length,eL=(textoLimpioSinNotas.match(/ /g)||[]).length;
+  const sO=(textoOriginalSinNotas.match(/\n/g)||[]).length,sL=(textoLimpioSinNotas.match(/\n/g)||[]).length;
   const dP=pL-pO,dC=cL-cO,dE=eL-eO,dS=sL-sO;
   const pct=pO>0?(Math.abs(dP)/pO*100).toFixed(1):0;
   const clP=Math.abs(dP)<50?'ok':Math.abs(dP)<200?'warn':'err';
@@ -2165,6 +2178,9 @@ function parsear(texto,perfil){
     if(!parte.trim())continue;
     const mt=parte.match(rt);if(!mt)continue;
     const titulo=mt[1].trim();
+    // Descartar si el título no contiene número — evita que notas de reforma ("Artículo reformado DOF...")
+    // sean interpretadas como artículos por el parser
+    if(!/\d/.test(titulo))continue;
     let resto=parte.slice(mt[0].length).trim();
 
     // Detectar y extraer encabezado seccional al final del contenido
@@ -3152,8 +3168,17 @@ function etapa2_NormalizacionFormato(texto){
     cambios.push({tipo:'ok', msg:`${refsPartidas} referencia(s) a artículo unidas`, detalle:'Salto de línea en medio de referencia normativa'});
 
   // Paso 2 — Normalizar saltos simples dentro de párrafos
-  const saltosFixed = (t.match(/([^.\n])\n(?!\n)/g) || []).length;
-  t = t.replace(/([^.\n])\n(?!\n)/g, '$1 ');
+  // EXCEPCIÓN: no unir líneas que son notas de reforma (Fracción reformada DOF, etc.)
+  // ni las líneas inmediatamente anteriores a una nota de reforma
+  const rEsNota = /^\*?(?:P[aá]rrafo|Art[íi]culo|Fracci[oó]n|Inciso)\s+(?:reformad[ao]|adicionad[ao]|derogad[ao]|recorrid[ao])\s+DOF|^\*?Reforma\s+DOF|^\*?Reformad[ao]\s+DOF/i;
+  // Primero marcar líneas de nota con placeholder para protegerlas
+  const MARCA_NOTA = '\x02NOTA_REFORMA\x03';
+  const lineasProtegidas = t.split('\n').map(l => rEsNota.test(l.trim()) ? MARCA_NOTA + l + MARCA_NOTA : l).join('\n');
+  // Ahora unir saltos simples pero no los que rodean MARCAs
+  const saltosFixed = (lineasProtegidas.match(/([^.\n\x02\x03])\n(?!\n)(?![^\n]*\x02)/g) || []).length;
+  const unido = lineasProtegidas.replace(/([^.\n\x02\x03])\n(?!\n)(?![^\n]*\x02)/g, '$1 ');
+  // Restaurar líneas de nota con su salto original
+  t = unido.replace(new RegExp(MARCA_NOTA + '([^\\x02\\x03]*)' + MARCA_NOTA, 'g'), '\n$1\n').replace(/\n{3,}/g, '\n\n');
   if(saltosFixed > 0)
     cambios.push({tipo:'ok', msg:'Saltos de línea normalizados', detalle:`${saltosFixed} saltos convertidos a espacio`});
 
@@ -3703,11 +3728,16 @@ function extraerNotasReforma(texto){
 
 function detectarEstadoJuridico(contenido, titulo){
   titulo = titulo || '';
-  if(!contenido) return 'vacio';
-  if(/^\s*se\s+deroga\.?\s*$/i.test(contenido.trim())) return 'derogado';
-  if(/derogado\s+dof/i.test(contenido+titulo)) return 'derogado';
-  if(/fracci[oó]n\s+derogada/i.test(contenido+titulo)) return 'derogado';
-  if(/^\s*reservado\.?\s*$/i.test(contenido.trim())) return 'reservado';
+  const texto = contenido.trim();
+  if(!texto) return 'vacio';
+  // Derogado completo — solo si TODO el contenido es la frase de derogación
+  if(/^\s*se\s+deroga\.?\s*$/i.test(texto)) return 'derogado';
+  // Reservado completo
+  if(/^\s*reservado\.?\s*$/i.test(texto)) return 'reservado';
+  // Solo marcar como derogado si el encabezado (título) dice exactamente que el artículo fue derogado
+  // NO marcar si solo algunas fracciones están derogadas (el contenido tendrá texto normal también)
+  if(/art[ií]culo\s+derogado\s+dof/i.test(titulo)) return 'derogado';
+  if(/^\s*derogado\s+dof/i.test(titulo)) return 'derogado';
   return 'vigente';
 }
 
