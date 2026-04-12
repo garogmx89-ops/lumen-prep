@@ -1665,6 +1665,7 @@ function toggleBloquesDiff(bi){
 }
 
 
+function seleccionarToken(tid){
   if(tokenSeleccionado)document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
   tokenSeleccionado=tid;
   document.querySelectorAll(`[data-tid="${tid}"]`).forEach(el=>el.classList.add('sel'));
