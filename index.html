@@ -1552,6 +1552,60 @@ function renderDiff(){
     else if(tok.tipo==='agregado'){hL+=`<span class="tok-add">${t}</span>`;agregados++;}
     else if(tok.tipo==='restaurado'){hL+=`<span class="tok-add">${t}</span>`;}
   }
+  // ── Agrupar tokens por artículo para bloques colapsables ──
+  const bloques = [];
+  let bloqueActual = null;
+  for(const tok of diffTokens){
+    const art = tok.art || '__preambulo__';
+    if(!bloqueActual || bloqueActual.art !== art){
+      bloqueActual = {art, tokens:[], tieneCambios:false};
+      bloques.push(bloqueActual);
+    }
+    bloqueActual.tokens.push(tok);
+    if(tok.tipo==='borrado'||tok.tipo==='reformateado'||tok.tipo==='agregado')
+      bloqueActual.tieneCambios = true;
+  }
+
+  // Renderizar bloques colapsables
+  let bloquesHtml = '';
+  bloques.forEach((bloque, bi) => {
+    let bO = '', bL = '';
+    let nBorrados=0, nRef=0, nAgr=0;
+    for(const tok of bloque.tokens){
+      const t = escHtml(tok.texto);
+      if(tok.tipo==='igual'){bO+=`<span class="tok-igual">${t}</span>`;bL+=`<span class="tok-igual">${t}</span>`;}
+      else if(tok.tipo==='borrado'){bO+=`<span class="tok-del" data-tid="${tok.id}" onclick="seleccionarToken('${tok.id}')">${t}</span>`;nBorrados++;}
+      else if(tok.tipo==='reformateado'){bO+=`<span class="tok-ref" data-tid="${tok.id}" onclick="seleccionarToken('${tok.id}')">${t}</span>`;nRef++;}
+      else if(tok.tipo==='agregado'){bL+=`<span class="tok-add">${t}</span>`;nAgr++;}
+      else if(tok.tipo==='restaurado'){bL+=`<span class="tok-add">${t}</span>`;}
+    }
+    const label = bloque.art === '__preambulo__' ? 'Preámbulo / Transitorios' : bloque.art;
+    const expandido = bloque.tieneCambios;
+    // Badges de cambios en el header
+    let badges = '';
+    if(nBorrados) badges += `<span style="background:#f8717122;color:#f87171;border:1px solid #f8717155;border-radius:20px;padding:1px 7px;font-size:10px;font-family:'DM Mono',monospace;">🔴 ${nBorrados}</span>`;
+    if(nRef)      badges += `<span style="background:#f7c94f22;color:#f7c94f;border:1px solid #f7c94f55;border-radius:20px;padding:1px 7px;font-size:10px;font-family:'DM Mono',monospace;">🟡 ${nRef}</span>`;
+    if(nAgr)      badges += `<span style="background:var(--diff-add-bg);color:var(--ok);border:1px solid #00c2a855;border-radius:20px;padding:1px 7px;font-size:10px;font-family:'DM Mono',monospace;">🟢 ${nAgr}</span>`;
+    if(!bloque.tieneCambios) badges += `<span style="color:var(--text-faint);font-size:10px;font-family:'DM Mono',monospace;">sin cambios</span>`;
+
+    bloquesHtml += `
+    <div class="diff-bloque" id="diff-bloque-${bi}">
+      <div class="diff-bloque-header" onclick="toggleBloquesDiff(${bi})" style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;gap:8px;margin-bottom:2px;${expandido?'border-color:var(--border2);':'opacity:.7;'}">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+          <span style="color:var(--text-faint);font-size:11px;" id="diff-bloque-arrow-${bi}">${expandido?'▾':'▸'}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${bloque.tieneCambios?'var(--text)':'var(--text-faint)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px;">${escHtml(label)}</span>
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0;">${badges}</div>
+      </div>
+      <div id="diff-bloque-body-${bi}" style="display:${expandido?'block':'none'};">
+        <div class="diff-layout" style="margin-bottom:8px;">
+          <div class="diff-col-wrap"><div class="diff-col-header orig">ORIGINAL</div><div class="diff-col-body">${bO}</div></div>
+          <div class="diff-col-wrap"><div class="diff-col-header limp">LIMPIO (tiempo real)</div><div class="diff-col-body">${bL}</div></div>
+        </div>
+      </div>
+    </div>`;
+  });
+
   el.innerHTML=`
     <div class="diff-hint">💡
       <span style="color:var(--diff-del-text);font-weight:600;">■ Rojo</span> = eliminado real &nbsp;|&nbsp;
@@ -1591,9 +1645,8 @@ function renderDiff(){
       <button class="dab dab-remove" id="dab-remove" onclick="confirmarEliminacion()" disabled>✕ Eliminar</button>
       <button class="dab dab-keep" onclick="deseleccionarToken()" style="margin-left:auto;">Deseleccionar</button>
     </div>
-    <div id="diff-layout-wrap" class="diff-layout">
-      <div class="diff-col-wrap"><div class="diff-col-header orig">ORIGINAL</div><div class="diff-col-body" id="diff-orig">${hO}</div></div>
-      <div class="diff-col-wrap"><div class="diff-col-header limp">LIMPIO (tiempo real)</div><div class="diff-col-body" id="diff-limp">${hL}</div></div>
+    <div id="diff-layout-wrap" style="display:flex;flex-direction:column;gap:6px;padding:0 14px 14px;">
+      ${bloquesHtml}
     </div>
     <div id="diff-results-wrap" style="display:none;flex:1;overflow:hidden;"></div>`;
   const tC=document.getElementById('tab-cambios');
@@ -1602,7 +1655,16 @@ function renderDiff(){
 }
 
 
-function seleccionarToken(tid){
+function toggleBloquesDiff(bi){
+  const body  = document.getElementById(`diff-bloque-body-${bi}`);
+  const arrow = document.getElementById(`diff-bloque-arrow-${bi}`);
+  if(!body) return;
+  const abierto = body.style.display !== 'none';
+  body.style.display  = abierto ? 'none' : 'block';
+  if(arrow) arrow.textContent = abierto ? '▸' : '▾';
+}
+
+
   if(tokenSeleccionado)document.querySelectorAll(`[data-tid="${tokenSeleccionado}"]`).forEach(el=>el.classList.remove('sel'));
   tokenSeleccionado=tid;
   document.querySelectorAll(`[data-tid="${tid}"]`).forEach(el=>el.classList.add('sel'));
@@ -3368,15 +3430,9 @@ function calcularDiffSemantico(orig, limp){
 }
 
 function actualizarColumnaLimpio(){
-  let hL = '';
-  for(const tok of diffTokens){
-    const t = escHtml(tok.texto);
-    if(tok.tipo==='igual') hL += `<span class="tok-igual">${t}</span>`;
-    else if(tok.tipo==='agregado') hL += `<span class="tok-add">${t}</span>`;
-    else if(tok.tipo==='restaurado') hL += `<span class="tok-add">${t}</span>`;
-  }
-  const col = document.getElementById('diff-limp');
-  if(col) col.innerHTML = hL;
+  // Con la nueva vista de bloques, re-renderizar el diff completo es más seguro
+  // que intentar actualizar columnas individuales por bloque
+  renderDiff();
 }
 
 
