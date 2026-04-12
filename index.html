@@ -3647,11 +3647,16 @@ function actualizarColumnaLimpio(){
 
 function extraerNotasReforma(texto){
   const patrones = [
-    /\*?P[aá]rrafo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
-    /\*?Art[íi]culo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
-    /\*?Fracci[oó]n\s+(?:reformada|adicionada|derogada)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
-    /\*?Inciso\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d\-\w,\s]+\*?/gi,
-    /\*?Reforma\s+DOF\s+[\d\-\w,\s:]+\*?/gi,
+    // Patrón: "Párrafo reformado DOF DD-MM-YYYY" — solo captura fecha(s), no texto posterior
+    /\*?P[aá]rrafo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
+    /\*?Art[íi]culo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
+    /\*?Fracci[oó]n\s+(?:reformada|adicionada|derogada|recorrida)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
+    /\*?Inciso\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
+    /\*?Reforma\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*(?::\s*[^\.]{0,60})?\*?/gi,
+    // Derogaciones explícitas
+    /\*?Fracci[oó]n\s+derogada\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
+    // Reformada DOF sin "Párrafo/Artículo" delante — ej: "Reformada DOF 01-04-2024"
+    /\*?Reformad[ao]\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
   ];
   const notas = [];
   let textoLimpio = texto;
