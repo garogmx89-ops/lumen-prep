@@ -729,8 +729,9 @@ textarea:focus{border-color:var(--accent);}
     </div>
     <div class="panel-section">
       <div class="pst">Documento</div>
-      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" title="Selecciona un perfil primero">
         <div class="dzi">📄</div><p><strong>Haz clic o arrastra</strong><br>PDF · Word · TXT</p>
+        <div id="drop-zone-aviso" style="display:none;margin-top:6px;font-size:10px;color:var(--err);font-family:'DM Mono',monospace;letter-spacing:.5px;">⚠ Selecciona un perfil primero</div>
       </div>
       <input type="file" id="file-input" accept=".pdf,.docx,.txt">
       <div style="text-align:center;color:var(--text-faint);font-size:11px;margin:6px 0;">— o pega texto —</div>
@@ -1054,6 +1055,7 @@ function poblarSelectPerfiles(){
     const o=document.createElement('option');
     o.value=p.id;o.textContent=`${p.nombre}${p.ambito?' · '+p.ambito:''}`;sel.appendChild(o);
   }
+  actualizarEstadoDropZone();
 }
 function seleccionarPerfil(){
   const id=document.getElementById('perfil-select').value;
@@ -1062,6 +1064,7 @@ function seleccionarPerfil(){
     document.getElementById('perfil-info').style.display='none';
     document.getElementById('btn-editar-perfil').style.display='none';
     document.getElementById('btn-borrar-perfil').style.display='none';
+    actualizarEstadoDropZone();
     renderLeyenda();return;
   }
   const p=state.perfiles.find(x=>x.id===id);if(!p)return;
@@ -1072,9 +1075,27 @@ function seleccionarPerfil(){
   document.getElementById('perfil-info').style.display='';
   document.getElementById('btn-editar-perfil').style.display='';
   document.getElementById('btn-borrar-perfil').style.display='';
+  actualizarEstadoDropZone();
   renderLeyenda();toast(`Perfil: ${p.nombre}`,'success');
   // Mostrar/ocultar botón exportar
   document.getElementById('btn-exportar-perfil').style.display=p?'':'none';
+}
+
+function actualizarEstadoDropZone(){
+  const tienePerfil = !!state.perfilActivo;
+  const dz = document.getElementById('drop-zone');
+  const aviso = document.getElementById('drop-zone-aviso');
+  const btn = document.getElementById('btn-procesar');
+  if(dz){
+    dz.style.opacity = tienePerfil ? '1' : '0.5';
+    dz.style.cursor  = tienePerfil ? 'pointer' : 'not-allowed';
+    dz.style.borderColor = tienePerfil ? '' : 'var(--err)';
+  }
+  if(aviso) aviso.style.display = tienePerfil ? 'none' : 'block';
+  if(btn){
+    btn.style.opacity = tienePerfil ? '1' : '0.5';
+    btn.title = tienePerfil ? '' : 'Selecciona un perfil primero';
+  }
 }
 
 // ══ IMPORTAR / EXPORTAR PERFIL ════════════════════════════════════
@@ -1575,6 +1596,13 @@ dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover
 dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
 dz.addEventListener('drop',async e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])await cargarArchivo(e.dataTransfer.files[0]);});
 async function cargarArchivo(file){
+  if(!state.perfilActivo){
+    toast('Selecciona un perfil antes de cargar un documento','error');
+    // Resaltar visualmente el selector de perfil
+    const sel=document.getElementById('perfil-select');
+    if(sel){sel.style.borderColor='var(--err)';sel.style.boxShadow='0 0 0 2px #f8717133';setTimeout(()=>{sel.style.borderColor='';sel.style.boxShadow='';},2000);}
+    return;
+  }
   setLoading(true);mostrarEstado(`Cargando: ${file.name}...`);
   try{
     const ext=file.name.split('.').pop().toLowerCase();
@@ -2224,6 +2252,12 @@ async function procesarDocumento(){
   // Este botón aplica cuando el usuario pega texto manualmente en el textarea
   const texto=document.getElementById('raw-input').value.trim();
   if(!texto){toast('Pega o carga un documento','error');return;}
+  if(!state.perfilActivo){
+    toast('Selecciona un perfil antes de procesar','error');
+    const sel=document.getElementById('perfil-select');
+    if(sel){sel.style.borderColor='var(--err)';sel.style.boxShadow='0 0 0 2px #f8717133';setTimeout(()=>{sel.style.borderColor='';sel.style.boxShadow='';},2000);}
+    return;
+  }
   if(state.textoLimpio)guardarSnapshot();
   setLoading(true);
   state.resaltados=[];diffTokens=[];state.tokensRestaurados=new Set();
