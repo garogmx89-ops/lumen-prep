@@ -3676,28 +3676,15 @@ function actualizarColumnaLimpio(){
 // ════════════════════════════════════════════════════════════════
 
 function extraerNotasReforma(texto){
-  const patrones = [
-    /\*?P[aá]rrafo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
-    /\*?Art[íi]culo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
-    /\*?Fracci[oó]n\s+(?:reformada|adicionada|derogada|recorrida)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
-    /\*?Inciso\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
-    /\*?Reforma\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*(?::\s*[^\.]{0,60})?\*?/gi,
-    /\*?Fracci[oó]n\s+derogada\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
-    /\*?Reformad[ao]\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
-  ];
+  // Regex unificado — una sola pasada para evitar anidamiento de marcas
+  // Orden: más específico (Párrafo/Artículo/Fracción/Inciso reformado) → menos específico (Reformada)
+  const rUnificado = /\*?(?:P[aá]rrafo|Art[íi]culo|Fracci[oó]n|Inciso)\s+(?:reformad[ao]|adicionad[ao]|derogad[ao]|recorrid[ao])\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?|\*?Reforma\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*(?::\s*[^\.§]{0,60})?\*?|\*?Reformad[ao]\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi;
   const notas = [];
-  let textoLimpio = texto;
-  for(const patron of patrones){
-    textoLimpio = textoLimpio.replace(patron, match => {
-      const nota = match.replace(/\*/g,'').trim();
-      notas.push(nota);
-      // Marcar in-situ con delimitador especial para renderizado inline
-      return `§NOTA§${nota}§/NOTA§`;
-    });
-  }
-  // Limpiar espacios múltiples que quedan alrededor de las marcas
-  textoLimpio = textoLimpio.replace(/\n\s*§NOTA§/g, '\n§NOTA§');
-  textoLimpio = textoLimpio.replace(/§\/NOTA§\s*\n/g, '§/NOTA§\n');
+  const textoLimpio = texto.replace(rUnificado, match => {
+    const nota = match.replace(/\*/g,'').trim();
+    notas.push(nota);
+    return '\u00a7NOTA\u00a7' + nota + '\u00a7/NOTA\u00a7';
+  });
   return {textoLimpio: textoLimpio.trim(), notas};
 }
 
