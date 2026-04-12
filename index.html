@@ -303,6 +303,21 @@ textarea:focus{border-color:var(--accent);}
 
 /* Contenido editable */
 .art-content-view{font-size:12px;color:var(--text-dim);line-height:1.75;cursor:text;user-select:text;}
+/* Párrafos dentro del artículo */
+.art-parrafo{margin:0 0 6px 0;}
+.art-parrafo:last-child{margin-bottom:0;}
+/* Nota de reforma inline — estilo DOF */
+.nota-reforma{
+  display:block;
+  font-size:10px;font-style:italic;
+  color:var(--text-faint);
+  font-family:'DM Mono',monospace;
+  letter-spacing:.2px;
+  margin:2px 0 4px 0;
+  padding:2px 8px;
+  border-left:2px solid var(--border2);
+  line-height:1.4;
+}
 .art-content-edit{
   width:100%;background:var(--bg);border:1px solid var(--border2);
   border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;
@@ -2550,9 +2565,9 @@ function renderArtCard(item,idx){
       </div>
     </div>
     <div class="art-body" id="art-body-${idx}">
-      ${item.introduccion?`<div class="art-intro">${escHtml(item.introduccion)}</div>`:''}
+      ${item.introduccion?`<div class="art-intro"><p class="art-parrafo">${renderConNotas(item.introduccion)}</p></div>`:''}
       ${tf?renderFracciones(item,idx):
-        `<div class="art-content-view" data-art-idx="${idx}" id="art-content-view-${idx}">${escHtml(item.contenido||'')}</div>
+        `<div class="art-content-view" data-art-idx="${idx}" id="art-content-view-${idx}"><p class="art-parrafo">${renderConNotas(item.contenido||'')}</p></div>
          <textarea class="art-content-edit" id="art-content-edit-${idx}" style="display:none;"
            rows="6"
            oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';">${escHtml(item.contenido||'')}</textarea>`
@@ -2565,11 +2580,11 @@ function renderFracciones(item,idx){
   let html='';
   for(const frac of item.fracciones){
     html+=`<div class="frac-item"><span class="frac-label">${escHtml(frac.fraccion)}</span><div class="frac-text">`;
-    if(frac.introduccion)html+=`<div style="margin-bottom:3px;font-style:italic;">${escHtml(frac.introduccion)}</div>`;
+    if(frac.introduccion)html+=`<div style="margin-bottom:3px;font-style:italic;">${renderConNotas(frac.introduccion)}</div>`;
     if(frac.incisos?.length)
       for(const inc of frac.incisos)
-        html+=`<div class="inc-item"><span class="inc-label">${escHtml(inc.inciso)}</span><span class="inc-text">${escHtml(inc.contenido)}</span></div>`;
-    else html+=escHtml(frac.contenido||'');
+        html+=`<div class="inc-item"><span class="inc-label">${escHtml(inc.inciso)}</span><span class="inc-text">${renderConNotas(inc.contenido)}</span></div>`;
+    else html+=renderConNotas(frac.contenido||'');
     html+=`</div></div>`;
   }
   return html;
@@ -3088,6 +3103,21 @@ function setLoading(on){document.getElementById('loading-bar').classList.toggle(
 function mostrarEstado(m){document.getElementById('header-status').textContent=m;}
 function escHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){if(!s)return'';return s.replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
+
+// Renderiza texto preservando notas de reforma inline al estilo DOF
+function renderConNotas(texto){
+  if(!texto) return '';
+  const partes = texto.split(/(§NOTA§[\s\S]*?§\/NOTA§)/g);
+  return partes.map(parte => {
+    if(parte.startsWith('§NOTA§')){
+      const nota = parte.replace('§NOTA§','').replace('§/NOTA§','').trim();
+      return `<span class="nota-reforma">${escHtml(nota)}</span>`;
+    }
+    // Párrafos separados por doble salto, saltos simples → espacio
+    const segmentos = parte.split(/\n\n+/);
+    return segmentos.map(s => escHtml(s.replace(/\n/g,' ').trim())).filter(Boolean).join('</p><p class="art-parrafo">');
+  }).join('');
+}
 
 // ════════════════════════════════════════════════════════════════
 // SPRINT 1 — PROCESO EN DOS ETAPAS
@@ -3647,25 +3677,27 @@ function actualizarColumnaLimpio(){
 
 function extraerNotasReforma(texto){
   const patrones = [
-    // Patrón: "Párrafo reformado DOF DD-MM-YYYY" — solo captura fecha(s), no texto posterior
     /\*?P[aá]rrafo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
     /\*?Art[íi]culo\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
     /\*?Fracci[oó]n\s+(?:reformada|adicionada|derogada|recorrida)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
     /\*?Inciso\s+(?:reformado|adicionado|derogado)\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
     /\*?Reforma\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*(?::\s*[^\.]{0,60})?\*?/gi,
-    // Derogaciones explícitas
     /\*?Fracci[oó]n\s+derogada\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
-    // Reformada DOF sin "Párrafo/Artículo" delante — ej: "Reformada DOF 01-04-2024"
     /\*?Reformad[ao]\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi,
   ];
   const notas = [];
   let textoLimpio = texto;
   for(const patron of patrones){
     textoLimpio = textoLimpio.replace(patron, match => {
-      notas.push(match.replace(/\*/g,'').trim());
-      return '';
+      const nota = match.replace(/\*/g,'').trim();
+      notas.push(nota);
+      // Marcar in-situ con delimitador especial para renderizado inline
+      return `§NOTA§${nota}§/NOTA§`;
     });
   }
+  // Limpiar espacios múltiples que quedan alrededor de las marcas
+  textoLimpio = textoLimpio.replace(/\n\s*§NOTA§/g, '\n§NOTA§');
+  textoLimpio = textoLimpio.replace(/§\/NOTA§\s*\n/g, '§/NOTA§\n');
   return {textoLimpio: textoLimpio.trim(), notas};
 }
 
