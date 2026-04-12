@@ -2446,11 +2446,11 @@ function renderEstructura(){
     } else if(item.tipo==='transitorio'){
       html+=`<div style="background:var(--diff-del-bg);border:1px solid #f8717133;border-left:3px solid var(--trans);border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
         <div style="font-size:10px;color:var(--trans);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Transitorios</div>
-        <div data-art-idx="${idx}" class="art-content-view">${escHtml(item.contenido)}</div></div>`;
+        <div data-art-idx="${idx}" class="art-content-view"><p class="art-parrafo">${renderConNotas(item.contenido)}</p></div></div>`;
     } else if(item.tipo==='firma'){
       html+=`<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #a78bfa;border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
         <div style="font-size:10px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">✍ Firmas de promulgación</div>
-        <div data-art-idx="${idx}" class="art-content-view">${escHtml(item.contenido)}</div></div>`;
+        <div data-art-idx="${idx}" class="art-content-view"><p class="art-parrafo">${renderConNotas(item.contenido)}</p></div></div>`;
     } else if(item.tipo==='seccion'){
       html+=`<div style="background:transparent;border:none;border-top:1px solid var(--border);padding:10px 4px 4px;margin:4px 0;">
         <div style="font-size:10px;color:var(--frac);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Mono',monospace;white-space:pre-wrap;">${escHtml(item.contenido)}</div>
@@ -2974,26 +2974,26 @@ function exportarEstructuraPDF(){
         html += `<div class="nota">${escHtml(item.reformas.join(' · '))}</div>`;
       }
       if(item.fracciones?.length){
-        if(item.introduccion) html += `<div class="art-body">${escHtml(item.introduccion).replace(/\n/g,'<br>')}</div>`;
+        if(item.introduccion) html += `<div class="art-body"><p style="margin:4px 0">${renderConNotasPDF(item.introduccion)}</p></div>`;
         item.fracciones.forEach(f => {
           html += `<div class="art-frac"><span class="art-frac-etq">${escHtml(f.fraccion)}</span> `;
           if(f.incisos?.length){
-            if(f.introduccion) html += escHtml(f.introduccion);
+            if(f.introduccion) html += `<p style="margin:4px 0">${renderConNotasPDF(f.introduccion)}</p>`;
             html += '</div>';
             f.incisos.forEach(inc => {
-              html += `<div class="art-inc"><span class="art-inc-etq">${escHtml(inc.inciso)}</span> ${escHtml(inc.contenido||'').replace(/\n/g,' ')}</div>`;
+              html += `<div class="art-inc"><span class="art-inc-etq">${escHtml(inc.inciso)}</span> ${renderConNotasPDF(inc.contenido||'')}</div>`;
             });
           } else {
-            html += `${escHtml(f.contenido||'').replace(/\n/g,' ')}</div>`;
+            html += `${renderConNotasPDF(f.contenido||'')}</div>`;
           }
         });
       } else {
-        html += `<div class="art-body">${escHtml(item.contenido||'').replace(/\n/g,'<br>')}</div>`;
+        html += `<div class="art-body"><p style="margin:4px 0">${renderConNotasPDF(item.contenido||'')}</p></div>`;
       }
     } else if(item.tipo === 'transitorio'){
-      html += `<div class="bloque"><div class="bloque-label">Transitorios</div>${escHtml(item.contenido).replace(/\n/g,'<br>')}</div>`;
+      html += `<div class="bloque"><div class="bloque-label">Transitorios</div><p style="margin:4px 0">${renderConNotasPDF(item.contenido)}</p></div>`;
     } else if(item.tipo === 'firma'){
-      html += `<div class="bloque"><div class="bloque-label">Firmas de promulgación</div>${escHtml(item.contenido).replace(/\n/g,'<br>')}</div>`;
+      html += `<div class="bloque"><div class="bloque-label">Firmas de promulgación</div><p style="margin:4px 0">${renderConNotasPDF(item.contenido)}</p></div>`;
     }
   });
 
@@ -3116,6 +3116,20 @@ function renderConNotas(texto){
     // Párrafos separados por doble salto, saltos simples → espacio
     const segmentos = parte.split(/\n\n+/);
     return segmentos.map(s => escHtml(s.replace(/\n/g,' ').trim())).filter(Boolean).join('</p><p class="art-parrafo">');
+  }).join('');
+}
+
+// Versión para PDF — convierte §NOTA§ a span inline con estilo de impresión
+function renderConNotasPDF(texto){
+  if(!texto) return '';
+  const partes = texto.split(/(§NOTA§[\s\S]*?§\/NOTA§)/g);
+  return partes.map(parte => {
+    if(parte.startsWith('§NOTA§')){
+      const nota = parte.replace('§NOTA§','').replace('§/NOTA§','').trim();
+      return `<span style="display:block;font-size:9px;font-style:italic;color:#888;font-family:monospace;margin:2px 0 3px 8px;padding-left:6px;border-left:2px solid #ccc;">${escHtml(nota)}</span>`;
+    }
+    const segs = parte.split(/\n\n+/);
+    return segs.map(s => escHtml(s.replace(/\n/g,' ').trim())).filter(Boolean).join('</p><p style="margin:4px 0">');
   }).join('');
 }
 
