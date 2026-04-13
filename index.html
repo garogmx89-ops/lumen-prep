@@ -2235,6 +2235,7 @@ function deshacerProcesado(){
     problemas:snap.problemas,resaltados:snap.resaltados,banco:snap.banco,
     problemasResueltos:snap.problemasResueltos,aprobado:false});
   actualizarStats();renderVista();renderDiff();renderEstructura();renderJSON();renderProblemas();
+  document.getElementById('panel-top-bar')?.classList.remove('hidden');
   if(!state.snapshots.length)document.getElementById('undo-banner').classList.remove('visible');
   toast('Procesado deshecho','success');
 }
@@ -3291,6 +3292,11 @@ function limpiarTodo(){
   document.getElementById('panel-top-bar')?.classList.add('hidden');
   const em=`<div class="empty-state"><div class="empty-state-icon">📋</div><p>Carga un nuevo documento.</p></div>`;
   ['cambios','log','estructura','json','problemas','validacion'].forEach(t=>document.getElementById(`pane-${t}`).innerHTML=em);
+  // Resetear badge log en sidebar
+  const navBadgeLog = document.getElementById('nav-badge-log');
+  if(navBadgeLog){ navBadgeLog.style.display='none'; navBadgeLog.textContent=''; }
+  const tL=document.getElementById('tab-log');
+  if(tL){ tL.textContent='Log'; tL.style.color=''; }
   document.getElementById('stats-section').style.display='none';
   document.getElementById('panel-badges').innerHTML='';
   document.getElementById('undo-banner').classList.remove('visible');
@@ -3926,6 +3932,7 @@ async function finalizarProcesado(textoLimpio){
     state.hashActual = await calcularHash(state.textoLimpio);
     logInfo('Hash',`SHA-256: ${state.hashActual.slice(0,16)}...`,'');
     actualizarStats(); renderVista(); renderDiff(); renderEstructura(); renderJSON(); renderProblemas(); renderLog();
+    document.getElementById('panel-top-bar')?.classList.remove('hidden');
     document.getElementById('stats-section').style.display='block';
     mostrarEstado(`${arts} artículos${state.perfilActivo?' · '+state.perfilActivo.nombre:''}`);
     toast('Documento procesado — 2 etapas completadas','success');
