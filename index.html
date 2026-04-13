@@ -3946,6 +3946,7 @@ async function finalizarProcesado(textoLimpio){
     logInfo('Hash',`SHA-256: ${state.hashActual.slice(0,16)}...`,'');
     actualizarStats(); renderVista(); renderDiff(); renderEstructura(); renderJSON(); renderProblemas(); renderLog();
     document.getElementById('panel-top-bar')?.classList.remove('hidden');
+    const _btnN = document.getElementById('btn-nuevo-doc'); if(_btnN) _btnN.style.display='';
     document.getElementById('stats-section').style.display='block';
     mostrarEstado(`${arts} artículos${state.perfilActivo?' · '+state.perfilActivo.nombre:''}`);
     toast('Documento procesado — 2 etapas completadas','success');
