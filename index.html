@@ -2535,7 +2535,7 @@ function renderIntroCard(item,idx){
     html+=`<div style="padding:0 13px 12px;">
       <div data-art-idx="${idx}" class="art-content-view intro-sub-content"
         style="border-left:2px solid var(--intro);padding-left:8px;font-style:italic;"
-        id="intro-contenido-${idx}">${escHtml(item.contenido)}</div>
+        id="intro-contenido-${idx}"><p class="art-parrafo">${renderParrafos(item.contenido)}</p></div>
       <textarea class="art-content-edit" id="intro-edit-${idx}" style="display:none;"
         onchange="state.estructura[${idx}].contenido=this.value;renderJSON();">${escHtml(item.contenido)}</textarea>
       <div style="font-size:11px;color:var(--text-faint);margin-top:8px;">
@@ -2551,7 +2551,7 @@ function renderIntroCard(item,idx){
         <div class="intro-sub-label" style="background:${ti.color}22;border:1px solid ${ti.color};color:${ti.color};">
           ${escHtml(ti.label)}
         </div>
-        <div class="intro-sub-content" id="intro-sub-view-${idx}-${si}">${escHtml(sub.contenido)}</div>
+        <div class="intro-sub-content" id="intro-sub-view-${idx}-${si}"><p class="art-parrafo">${renderParrafos(sub.contenido)}</p></div>
         <textarea class="intro-sub-content-edit" id="intro-sub-edit-${idx}-${si}" style="display:none;"
           onchange="state.estructura[${idx}].subsecciones[${si}].contenido=this.value;renderJSON();">${escHtml(sub.contenido)}</textarea>
       </div>`;
@@ -2560,7 +2560,7 @@ function renderIntroCard(item,idx){
     if(item.contenido&&item.contenido.trim()){
       html+=`<div class="intro-subsection" style="background:var(--surface2);">
         <div class="intro-sub-label" style="background:var(--border);border:1px solid var(--border2);color:var(--text-faint);">Sin clasificar</div>
-        <div class="intro-sub-content" data-art-idx="${idx}">${escHtml(item.contenido)}</div>
+        <div class="intro-sub-content" data-art-idx="${idx}"><p class="art-parrafo">${renderParrafos(item.contenido)}</p></div>
       </div>`;
     }
     html+=`</div>`;
@@ -3139,6 +3139,16 @@ function escHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'
 function escAttr(s){if(!s)return'';return s.replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
 
 // Renderiza texto preservando notas de reforma inline al estilo DOF
+// Renderiza texto plano respetando dobles saltos como separadores de párrafo
+// Para bloques sin marcas §NOTA§ — introducción, transitorios simples, etc.
+function renderParrafos(texto){
+  if(!texto) return '';
+  return texto.split(/\n\n+/)
+    .map(s => escHtml(s.replace(/\n/g,' ').trim()))
+    .filter(Boolean)
+    .join('</p><p class="art-parrafo">');
+}
+
 function renderConNotas(texto){
   if(!texto) return '';
   const partes = texto.split(/(§NOTA§[\s\S]*?§\/NOTA§)/g);
