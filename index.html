@@ -69,7 +69,7 @@ header{
   border-bottom:1px solid var(--border);
   background:var(--surface);
   position:sticky;top:0;z-index:100;gap:12px;
-  box-shadow:0 1px 0 var(--border),0 8px 32px #00000066;
+  box-shadow:0 1px 0 var(--border);
 }
 .logo{display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;}
 .logo-dot{width:7px;height:7px;background:var(--accent2);border-radius:1px;box-shadow:0 0 14px var(--accent2);transform:rotate(45deg);}
@@ -152,16 +152,16 @@ select{
 }
 select:focus{border-color:var(--accent);}
 .drop-zone{
-  border:1.5px dashed var(--border2);border-radius:12px;
-  padding:22px 12px;text-align:center;cursor:pointer;
-  transition:all .25s;background:var(--bg);position:relative;overflow:hidden;
+  border:1px solid var(--border);border-radius:14px;
+  padding:32px 24px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;
+  background:var(--surface);position:relative;overflow:hidden;
 }
 .drop-zone:hover,.drop-zone.dragover{
-  border-color:var(--accent2);background:var(--accent2-dim);
-  box-shadow:0 0 24px var(--accent2-dim);
+  border-color:var(--accent);background:var(--accent-dim);
 }
 .dzi{font-size:22px;margin-bottom:5px;}
-.drop-zone p{font-size:11px;color:var(--text-dim);line-height:1.5;}
+.drop-zone p{font-size:12px;color:var(--text-dim);line-height:1.5;}
 .drop-zone strong{color:var(--accent);}
 #file-input{display:none;}
 textarea{
@@ -223,10 +223,10 @@ textarea:focus{border-color:var(--accent);}
 .panel-right{display:flex;flex-direction:column;overflow:hidden;}
 .panel-top{
   display:flex;align-items:center;justify-content:space-between;
-  padding:8px 18px;border-bottom:1px solid var(--border);
+  padding:6px 18px;border-bottom:1px solid var(--border);
   background:var(--surface);flex-shrink:0;gap:10px;flex-wrap:wrap;
-  box-shadow:0 1px 0 var(--border);
 }
+.panel-top.hidden{display:none;}
 .tab-group{
   display:flex;gap:2px;background:var(--bg);
   border-radius:20px;padding:3px;border:1px solid var(--border);flex-wrap:wrap;
@@ -851,7 +851,7 @@ textarea:focus{border-color:var(--accent);}
 
   <!-- PANEL DERECHO -->
   <div class="panel-right">
-    <div class="panel-top">
+    <div class="panel-top hidden" id="panel-top-bar">
       <div class="tab-group">
         <button class="tab active" onclick="switchTab('vista')"      id="tab-vista">Vista</button>
         <button class="tab"        onclick="switchTab('cambios')"    id="tab-cambios">Cambios</button>
@@ -870,27 +870,16 @@ textarea:focus{border-color:var(--accent);}
           <div style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:20px;">
 
             <!-- Cabecera -->
-            <div style="text-align:center;margin-bottom:4px;">
-              <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:.3px;color:var(--text);margin-bottom:6px;">
-                Carga tu documento legal
+            <div style="margin-bottom:4px;">
+              <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px;">
+                Documento
               </div>
-              <div style="font-size:13px;color:var(--text-faint);">
-                Selecciona un perfil y sube el archivo para comenzar el procesamiento
+              <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;">
+                Carga tu documento
               </div>
-            </div>
-
-            <!-- Selector de perfil inline (solo si no hay perfil activo) -->
-            <div id="welcome-perfil-row" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
-              <div style="flex-shrink:0;">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.5" stroke="var(--accent)" stroke-width="1.4"/><rect x="10" y="2" width="6" height="6" rx="1.5" stroke="var(--border2)" stroke-width="1.4"/><rect x="2" y="10" width="6" height="6" rx="1.5" stroke="var(--border2)" stroke-width="1.4"/><rect x="10" y="10" width="6" height="6" rx="1.5" stroke="var(--border2)" stroke-width="1.4"/></svg>
+              <div style="font-size:12px;color:var(--text-faint);">
+                Selecciona un perfil en el panel izquierdo y sube el archivo para comenzar
               </div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Mono',monospace;margin-bottom:5px;">Perfil de documento</div>
-                <select id="perfil-select-welcome" onchange="sincronizarPerfilDesdeWelcome(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;font-size:12px;padding:7px 10px;outline:none;cursor:pointer;">
-                  <option value="">— Sin perfil (genérico) —</option>
-                </select>
-              </div>
-              <div id="welcome-perfil-badge" style="display:none;font-size:10px;font-family:'DM Mono',monospace;background:var(--accent-dim);color:var(--accent);border-radius:20px;padding:3px 10px;border:1px solid var(--accent);white-space:nowrap;"></div>
             </div>
 
             <!-- Drop zone principal -->
@@ -914,7 +903,7 @@ textarea:focus{border-color:var(--accent);}
             <textarea id="raw-input" rows="3" placeholder="Pega aquí el texto de la ley..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;padding:11px;resize:vertical;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
 
             <!-- Botón procesar -->
-            <button class="btn btn-primary" id="btn-procesar" onclick="procesarDocumento()" style="font-size:14px;padding:13px;border-radius:12px;">
+            <button class="btn btn-primary" id="btn-procesar" onclick="procesarDocumento()" style="font-size:13px;padding:11px;border-radius:10px;">
               ⚡ Procesar documento
             </button>
 
@@ -1194,7 +1183,8 @@ function poblarSelectPerfiles(){
     o.value=p.id;o.textContent=`${p.nombre}${p.ambito?' · '+p.ambito:''}`;sel.appendChild(o);
   }
   actualizarEstadoDropZone();
-  poblarSelectWelcome();
+  // Pequeño defer para asegurar que el DOM del sidebar ya tiene las opciones
+  setTimeout(poblarSelectWelcome, 0);
 }
 function sincronizarPerfilDesdeWelcome(val){
   // Sincroniza el select del sidebar con el del welcome screen
@@ -2488,6 +2478,8 @@ function renderVista(){
   const vc = document.getElementById('vista-content');
   if(ws) ws.style.display = 'none';
   if(vc){ vc.style.display = ''; vc.innerHTML = `<div id="viewer">${t}</div>`; }
+  // Mostrar tabs superiores
+  document.getElementById('panel-top-bar')?.classList.remove('hidden');
 }
 
 
@@ -3258,10 +3250,11 @@ function switchTab(tab){
   ['vista','cambios','log','estructura','json','problemas','validacion'].forEach(t=>{
     document.getElementById(`pane-${t}`).style.display=t===tab?'':'none';
     document.getElementById(`tab-${t}`).classList.toggle('active',t===tab);
-    // Sincronizar nav-items del sidebar
     const navEl = document.getElementById(`nav-${t}`);
     if(navEl) navEl.classList.toggle('active', t===tab);
   });
+  // Mostrar panel-top si hay documento procesado
+  if(state.textoLimpio) document.getElementById('panel-top-bar')?.classList.remove('hidden');
   if(tab==='validacion')renderValidacion();
 }
 function actualizarStats(){
@@ -3294,6 +3287,8 @@ function limpiarTodo(){
   const vcEl = document.getElementById('vista-content');
   if(wsEl) wsEl.style.display = 'flex';
   if(vcEl){ vcEl.style.display = 'none'; vcEl.innerHTML = ''; }
+  // Ocultar tabs superiores
+  document.getElementById('panel-top-bar')?.classList.add('hidden');
   const em=`<div class="empty-state"><div class="empty-state-icon">📋</div><p>Carga un nuevo documento.</p></div>`;
   ['cambios','log','estructura','json','problemas','validacion'].forEach(t=>document.getElementById(`pane-${t}`).innerHTML=em);
   document.getElementById('stats-section').style.display='none';
