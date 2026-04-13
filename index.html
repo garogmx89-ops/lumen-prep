@@ -3682,13 +3682,16 @@ function calcularDiffSemantico(orig, limp){
   const setBp = new Set(palabrasB.map(p=>p.toLowerCase()));
 
   // Mapa de línea → artículo para contexto de navegación
-  // Requiere número explícito O palabra clave (ÚNICO/PRIMERO/etc), excluye "reformado/derogado"
   // m[1] captura solo "ARTÍCULO N.-" sin el texto del artículo — es el label del bloque colapsable
+  // También detecta TRANSITORIOS como corte de sección (evita fusión con el último artículo)
   const reArtLinea = /^\*{0,2}(ART[IÍ]CULO\s+(?:\d+|ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO)[.\-]?)\*{0,2}/i;
+  const kwsTransitorios = (perfil && perfil.transitorios) ? perfil.transitorios : ['TRANSITORIOS','Transitorios','TRANSITORIO','Transitorio'];
+  const reTransLinea = new RegExp('^(' + kwsTransitorios.map(k => k.replace(/[.*+?^${}()|[\]\\]/g,'\\\\$&')).join('|') + ')\\s*$');
   let artActual = '';
   const artPorLinea = lineasA.map(l => {
-    const m = l.match(reArtLinea);
-    if(m) artActual = m[1].trim();
+    const mArt = l.match(reArtLinea);
+    if(mArt){ artActual = mArt[1].trim(); return artActual; }
+    if(l.trim().match(reTransLinea)){ artActual = l.trim(); return artActual; }
     return artActual;
   });
 
