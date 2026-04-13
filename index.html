@@ -3256,6 +3256,14 @@ function switchTab(tab){
   });
   // Mostrar panel-top si hay documento procesado
   if(state.textoLimpio) document.getElementById('panel-top-bar')?.classList.remove('hidden');
+  // Re-renderizar módulos lazy si hay datos pero el pane fue reseteado
+  if(state.textoLimpio){
+    if(tab==='estructura' && state.estructura.length) renderEstructura();
+    if(tab==='cambios') renderDiff();
+    if(tab==='log') renderLog();
+    if(tab==='json') renderJSON();
+    if(tab==='problemas') renderProblemas();
+  }
   if(tab==='validacion')renderValidacion();
 }
 function actualizarStats(){
