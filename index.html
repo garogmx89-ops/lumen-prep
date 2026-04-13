@@ -1805,7 +1805,7 @@ function renderDiff(){
       else if(tok.tipo==='agregado'){bL+=`<span class="tok-add">${t}</span>`;nAgr++;}
       else if(tok.tipo==='restaurado'){bL+=`<span class="tok-add">${t}</span>`;}
     }
-    const label = bloque.art === '__preambulo__' ? 'Preámbulo / Transitorios' : bloque.art;
+    const label = bloque.art === '__preambulo__' ? 'Preámbulo' : bloque.art;
     const expandido = false;
     // Badges de cambios en el header
     let badges = '';
@@ -3705,14 +3705,21 @@ function calcularDiffSemantico(orig, limp){
   // Mapa de línea → artículo para contexto de navegación
   // m[1] captura solo "ARTÍCULO N.-" sin el texto del artículo — es el label del bloque colapsable
   // También detecta TRANSITORIOS como corte de sección (evita fusión con el último artículo)
+  // Una vez detectado el inicio del historial de decretos, todas las líneas siguientes
+  // quedan bajo el label fijo "Historial de decretos" — sin crear sub-bloques por artículo interno
   const reArtLinea = /^\*{0,2}(ART[IÍ]CULO\s+(?:\d+|ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO)[.\-]?)\*{0,2}/i;
-  // Detecta sección de transitorios como corte de bloque — regex literal, sin construcción dinámica
   const reTransLinea = /^(TRANSITORIOS|Transitorios|TRANSITORIO|Transitorio)\s*$/;
+  const reInicioHistorial = /^(?:ARTÍCULOS TRANSITORIOS DE DECRETOS DE REFORMA|DECRETO por el que se)/;
   let artActual = '';
+  let enHistorial = false;
   const artPorLinea = lineasA.map(l => {
-    const mArt = l.match(reArtLinea);
+    const lt = l.trim();
+    // Una vez en zona de historial, todo queda bajo el mismo bloque
+    if(enHistorial){ return 'Historial de decretos'; }
+    if(lt.match(reInicioHistorial)){ enHistorial = true; artActual = 'Historial de decretos'; return artActual; }
+    const mArt = lt.match(reArtLinea);
     if(mArt){ artActual = mArt[1].trim(); return artActual; }
-    if(l.trim().match(reTransLinea)){ artActual = l.trim(); return artActual; }
+    if(lt.match(reTransLinea)){ artActual = lt; return artActual; }
     return artActual;
   });
 
