@@ -93,18 +93,38 @@ header{
 .theme-btn:hover{border-color:var(--accent2);color:var(--accent2);}
 
 /* ── LAYOUT ── */
-.app{display:grid;grid-template-columns:280px 1fr;flex:1;height:calc(100vh - 52px);overflow:hidden;}
+.app{display:grid;grid-template-columns:220px 1fr;flex:1;height:calc(100vh - 52px);overflow:hidden;}
 .panel-left{
   border-right:1px solid var(--border);background:var(--surface);
   display:flex;flex-direction:column;overflow-y:auto;
   scrollbar-width:thin;scrollbar-color:var(--border2) transparent;
 }
-.panel-section{padding:14px 16px;border-bottom:1px solid var(--border);}
+.panel-section{padding:10px 10px;border-bottom:1px solid var(--border);}
 .pst{
-  font-family:'DM Mono',monospace;font-size:9px;font-weight:600;
-  letter-spacing:3px;text-transform:uppercase;color:var(--text-faint);
-  margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);
+  font-family:'DM Mono',monospace;font-size:8px;font-weight:600;
+  letter-spacing:2.5px;text-transform:uppercase;color:var(--text-faint);
+  margin-bottom:6px;padding:6px 6px 5px;
 }
+/* ── NAV ITEMS ── */
+.nav-item{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 8px;border-radius:8px;cursor:pointer;
+  font-size:11px;color:var(--text-dim);
+  transition:background .15s,color .15s;
+  position:relative;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);}
+.nav-item svg{width:13px;height:13px;flex-shrink:0;opacity:.7;}
+.nav-item.active svg{opacity:1;}
+.nav-badge{
+  margin-left:auto;font-size:8px;font-family:'DM Mono',monospace;
+  background:var(--surface2);color:var(--text-faint);
+  padding:1px 5px;border-radius:10px;
+}
+.nav-badge.warn{background:#f7c94f22;color:#f7c94f;}
+.nav-badge.err{background:#f8717122;color:#f87171;}
+.nav-badge.ok{background:var(--accent2-dim);color:var(--accent2);}
 
 /* ── PERFIL ACTIVO ── */
 .perfil-activo{
@@ -727,8 +747,10 @@ textarea:focus{border-color:var(--accent);}
 <div class="app">
   <!-- PANEL IZQUIERDO -->
   <aside class="panel-left">
+
+    <!-- GRUPO: PERFIL -->
     <div class="panel-section">
-      <div class="pst">Perfil de documento</div>
+      <div class="pst">Perfil</div>
       <select id="perfil-select" onchange="seleccionarPerfil()">
         <option value="">— Sin perfil (genérico) —</option>
       </select>
@@ -737,11 +759,13 @@ textarea:focus{border-color:var(--accent);}
         <span class="pb" id="perfil-ambito-badge">—</span>
       </div>
       <div class="btn-row">
-        <button class="btn btn-ghost"  onclick="abrirModalPerfil()">＋ Nuevo</button>
-        <button class="btn btn-ghost"  id="btn-editar-perfil" onclick="editarPerfilActual()" style="display:none;">✏ Editar</button>
-        <button class="btn btn-danger" id="btn-borrar-perfil" onclick="borrarPerfilActual()" style="display:none;">🗑</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalPerfil()">＋ Nuevo</button>
+        <button class="btn btn-ghost btn-sm" id="btn-editar-perfil" onclick="editarPerfilActual()" style="display:none;">✏ Editar</button>
+        <button class="btn btn-danger btn-sm" id="btn-borrar-perfil" onclick="borrarPerfilActual()" style="display:none;">🗑</button>
       </div>
     </div>
+
+    <!-- GRUPO: DOCUMENTO -->
     <div class="panel-section">
       <div class="pst">Documento</div>
       <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" title="Selecciona un perfil primero">
@@ -750,25 +774,75 @@ textarea:focus{border-color:var(--accent);}
       </div>
       <input type="file" id="file-input" accept=".pdf,.docx,.txt">
       <div style="text-align:center;color:var(--text-faint);font-size:11px;margin:6px 0;">— o pega texto —</div>
-      <textarea id="raw-input" rows="4" placeholder="Pega aquí el texto..."></textarea>
+      <textarea id="raw-input" rows="3" placeholder="Pega aquí el texto..."></textarea>
       <button class="btn btn-primary" id="btn-procesar" onclick="procesarDocumento()" style="margin-top:8px;">⚡ Procesar documento</button>
     </div>
+
+    <!-- GRUPO: ANÁLISIS (nav items) -->
+    <div class="panel-section">
+      <div class="pst">Análisis</div>
+      <div class="nav-item" id="nav-vista" onclick="switchTab('vista')">
+        <svg viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="7.5" y="1" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="7.5" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+        Vista
+      </div>
+      <div class="nav-item" id="nav-cambios" onclick="switchTab('cambios')">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M2 6h3l2-4 2 8 2-4h1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Cambios
+        <span class="nav-badge" id="nav-badge-cambios"></span>
+      </div>
+      <div class="nav-item" id="nav-log" onclick="switchTab('log')">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M2 6.5h9M2 9.5h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Log
+        <span class="nav-badge warn" id="nav-badge-log" style="display:none;"></span>
+      </div>
+      <div class="nav-item" id="nav-estructura" onclick="switchTab('estructura')">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M2 2h9v9H2z" stroke="currentColor" stroke-width="1.2"/><path d="M2 5h9M5 5v6" stroke="currentColor" stroke-width="1.2"/></svg>
+        Estructura
+        <span class="nav-badge ok" id="nav-badge-estructura"></span>
+      </div>
+      <div class="nav-item" id="nav-json" onclick="switchTab('json')">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M4 2C3 2 2 3 2 4v1c0 1-1 1.5-1 1.5S2 7 2 8v1c0 1 1 2 2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M9 2c1 0 2 1 2 2v1c0 1 1 1.5 1 1.5S11 7 11 8v1c0 1-1 2-2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        JSON
+      </div>
+      <div class="nav-item" id="nav-problemas" onclick="switchTab('problemas')">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M6.5 2L1 11h11L6.5 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M6.5 5v3M6.5 9.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Problemas
+        <span class="nav-badge err" id="nav-badge-problemas" style="display:none;"></span>
+      </div>
+    </div>
+
+    <!-- GRUPO: ACCIONES -->
     <div class="panel-section">
       <div class="pst">Acciones</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <button class="btn btn-ghost"  id="btn-ia" onclick="corregirConIA()">🤖 Corregir con IA</button>
-        <button class="btn btn-ghost"  onclick="switchTab('validacion')">🛡 Validar y exportar</button>
-        <button class="btn btn-danger" onclick="limpiarTodo()">🗑 Limpiar todo</button>
+      <div class="nav-item" onclick="corregirConIA()" id="btn-ia">
+        <svg viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 6.5h4M6.5 4.5v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Corregir con IA
       </div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
-        <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;">Biblioteca de perfiles</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <button class="btn btn-ghost" onclick="abrirImportarPerfil()" style="font-size:11px;">📥 Importar perfil (.json)</button>
-          <button class="btn btn-ghost" id="btn-exportar-perfil" onclick="exportarPerfilActual()" style="font-size:11px;display:none;">📤 Exportar perfil activo</button>
-        </div>
+      <div class="nav-item" id="nav-validacion" onclick="switchTab('validacion')">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 10l6-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Validar y exportar
+      </div>
+      <div class="nav-item" onclick="limpiarTodo()" style="color:var(--err);">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M5 3.5V2.5h3v1M10.5 3.5l-.7 7H3.2l-.7-7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Limpiar todo
+      </div>
+    </div>
+
+    <!-- GRUPO: BIBLIOTECA -->
+    <div class="panel-section">
+      <div class="pst">Biblioteca</div>
+      <div class="nav-item" onclick="abrirImportarPerfil()">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M6.5 2v7M3.5 6l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M2 11h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Importar perfil
+      </div>
+      <div class="nav-item" id="btn-exportar-perfil" onclick="exportarPerfilActual()" style="display:none;">
+        <svg viewBox="0 0 13 13" fill="none"><path d="M6.5 9V2M3.5 5l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M2 11h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Exportar perfil
       </div>
       <input type="file" id="importar-perfil-input" accept=".json" style="display:none;" onchange="procesarImportarPerfil(event)">
     </div>
+
+    <!-- GRUPO: LEYENDA + STATS -->
     <div class="panel-section">
       <div class="pst">Leyenda</div>
       <div class="legend" id="legend-container"></div>
@@ -782,6 +856,7 @@ textarea:focus{border-color:var(--accent);}
         <div class="stat-card"><div class="stat-value" id="stat-problemas">0</div><div class="stat-label">Problemas</div></div>
       </div>
     </div>
+
   </aside>
 
   <!-- PANEL DERECHO -->
@@ -1878,6 +1953,14 @@ function renderDiff(){
   const tC=document.getElementById('tab-cambios');
   if(borrados>0){tC.textContent=`Cambios (${borrados})`;tC.style.color='#f7c94f';}
   else{tC.textContent='Cambios ✓';tC.style.color='var(--frac)';}
+  // Badge sidebar Cambios
+  const bCamb = document.getElementById('nav-badge-cambios');
+  if(bCamb){
+    const total = borrados + nRef;
+    bCamb.textContent = total > 0 ? total : '';
+    bCamb.className = 'nav-badge' + (borrados > 0 ? ' warn' : total > 0 ? '' : '');
+    bCamb.style.display = total > 0 ? '' : 'none';
+  }
 }
 
 
@@ -3102,6 +3185,9 @@ function switchTab(tab){
   ['vista','cambios','log','estructura','json','problemas','validacion'].forEach(t=>{
     document.getElementById(`pane-${t}`).style.display=t===tab?'':'none';
     document.getElementById(`tab-${t}`).classList.toggle('active',t===tab);
+    // Sincronizar nav-items del sidebar
+    const navEl = document.getElementById(`nav-${t}`);
+    if(navEl) navEl.classList.toggle('active', t===tab);
   });
   if(tab==='validacion')renderValidacion();
 }
@@ -3114,6 +3200,11 @@ function actualizarStats(){
   document.getElementById('stat-fracciones').textContent=fracs;
   document.getElementById('stat-incisos').textContent=incs;
   document.getElementById('stat-problemas').textContent=probActivos;
+  // Badges del sidebar
+  const bEst = document.getElementById('nav-badge-estructura');
+  if(bEst) { bEst.textContent = arts.length > 0 ? arts.length : ''; bEst.style.display = arts.length > 0 ? '' : 'none'; }
+  const bProb = document.getElementById('nav-badge-problemas');
+  if(bProb) { bProb.textContent = probActivos > 0 ? probActivos : ''; bProb.style.display = probActivos > 0 ? '' : 'none'; }
   const b=document.getElementById('panel-badges');
   const old=b.querySelector('.problem-badge');if(old)old.remove();
   if(probActivos)b.innerHTML=`<span class="problem-badge">⚠ ${probActivos}</span>`+b.innerHTML;
