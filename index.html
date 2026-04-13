@@ -2235,7 +2235,9 @@ function parsear(texto,perfil){
     const textoT = tT.trim();
     // Detectar inicio del historial de decretos de reforma
     // Todo lo que venga después es contexto histórico, no norma vigente
-    const reDecretoHistorial = /\nDECRETO por el que se/;
+    // El historial puede iniciar con un encabezado "ARTÍCULOS TRANSITORIOS DE DECRETOS DE REFORMA"
+    // antes del primer DECRETO — ese encabezado debe ir al historial, no a la firma
+    const reDecretoHistorial = /\n(?:ARTÍCULOS TRANSITORIOS DE DECRETOS DE REFORMA|DECRETO por el que se)/
     const corteDecretoHistorial = textoT.search(reDecretoHistorial);
     const zonaOriginal = corteDecretoHistorial > 0 ? textoT.slice(0, corteDecretoHistorial).trim() : textoT;
     const zonaHistorial = corteDecretoHistorial > 0 ? textoT.slice(corteDecretoHistorial).trim() : '';
