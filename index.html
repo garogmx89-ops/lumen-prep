@@ -60,7 +60,11 @@ window._deleteDoc=deleteDoc; window._dbReady=true;
   --glow:0 0 20px #1a56db22;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;min-height:100vh;display:flex;flex-direction:column;transition:background .25s,color .25s;}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;min-height:100vh;display:flex;flex-direction:column;transition:background .3s,color .3s;}
+/* Transición suave de tema en todos los elementos */
+*,*::before,*::after{transition:background-color .3s,border-color .3s,color .2s,box-shadow .3s;}
+/* Excluir elementos donde la transición interfiere con animaciones propias */
+.btn,.nav-item,.tab,.drop-zone,.marca-eliminar,.art-card,.log-entry{transition:background-color .3s,border-color .2s,color .2s,box-shadow .2s,transform .15s,opacity .15s,filter .15s;}
 
 /* ── HEADER ── */
 header{
@@ -1223,9 +1227,10 @@ function renderPanelAyuda(modulo){
     else if(warns <= 2){ color='#f7c94f'; estado=warns+' advertencia(s) — revisar'; }
     else { color='var(--err)'; estado=warns+' alertas — requiere atención'; }
     items = [
-      {dot:'var(--ok)', texto:'<strong>Entradas verdes:</strong> Operaciones exitosas. Sellos eliminados, artículos verificados, hash calculado.'},
-      {dot:'#f7c94f', texto:'<strong>Entradas amarillas (warn):</strong> Situaciones que merecen revisión pero no impiden el proceso. Por ejemplo, diferencia de palabras moderada.'},
-      {dot:'var(--err)', texto:'<strong>Entradas rojas (err):</strong> Problemas que sí pueden afectar el resultado. La más importante: "Artículos faltantes" indica que el parser no encontró artículos que existían en el original.'},
+      {dot:'var(--ok)', texto:'✅ <strong>Entradas verdes:</strong> Operaciones exitosas. Sellos eliminados, artículos verificados, hash calculado.'},
+      {dot:'#f7c94f', texto:'⚠️ <strong>Entradas amarillas (warn):</strong> Situaciones que merecen revisión pero no impiden el proceso. Por ejemplo, diferencia de palabras moderada.'},
+      {dot:'var(--err)', texto:'❌ <strong>Entradas rojas (err):</strong> Problemas que sí pueden afectar el resultado. La más importante: "Artículos faltantes" indica que el parser no encontró artículos que existían en el original.'},
+      {dot:'var(--accent)', texto:'ℹ️ <strong>Entradas informativas:</strong> Datos del proceso: perfil usado, hash SHA-256, conteo de artículos y fracciones. No requieren acción.'},
     ];
   }
 
@@ -3173,7 +3178,12 @@ function renderJSON(){
     .replace(/("[\w\sáéíóúüñÁÉÍÓÚÜÑ_]+")(\s*:)/g,'<span class="json-key">$1</span>$2')
     .replace(/:\s*(".*?")/g,': <span class="json-string">$1</span>')
     .replace(/:\s*(\d+)/g,': <span class="json-number">$1</span>');
-  document.getElementById('pane-json').innerHTML=_ayudaJSON+`<pre id="json-view">${col}</pre>`;
+  const _btnDescargaJSON = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+    <button onclick="exportarJSONAprobado()" class="btn btn-ghost btn-sm" style="font-size:11px;">
+      ⬇ Descargar JSON
+    </button>
+  </div>`;
+  document.getElementById('pane-json').innerHTML=_ayudaJSON+_btnDescargaJSON+`<pre id="json-view">${col}</pre>`;
 }
 
 
