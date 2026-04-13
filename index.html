@@ -206,6 +206,50 @@ textarea:focus{border-color:var(--accent);}
 .btn-sm{padding:3px 10px;font-size:11px;}
 .btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
 
+/* ── PANEL DE AYUDA CONTEXTUAL ── */
+.ayuda-panel{
+  border:1px solid var(--border);border-radius:10px;
+  margin:0 0 14px;overflow:hidden;
+  transition:all .2s;
+}
+.ayuda-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:var(--surface2);
+  cursor:pointer;user-select:none;gap:10px;
+}
+.ayuda-header:hover{background:var(--border);}
+.ayuda-semaforo{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.ayuda-titulo{
+  font-size:10px;font-family:'DM Mono',monospace;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--text-faint);
+  flex:1;
+}
+.ayuda-estado{
+  font-size:11px;font-weight:600;
+}
+.ayuda-toggle{
+  font-size:10px;color:var(--text-faint);flex-shrink:0;
+}
+.ayuda-body{
+  padding:12px 14px;border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:10px;
+}
+.ayuda-body.collapsed{display:none;}
+.ayuda-item{
+  display:flex;align-items:flex-start;gap:10px;
+  font-size:12px;color:var(--text-dim);line-height:1.5;
+}
+.ayuda-item-dot{
+  width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;
+}
+.ayuda-seccion{
+  font-size:9px;font-family:'DM Mono',monospace;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--text-faint);
+  margin-bottom:4px;margin-top:4px;
+}
+
 /* ── STATS PANEL ── */
 .legend{display:flex;flex-wrap:wrap;gap:6px;}
 .legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-dim);}
@@ -1145,9 +1189,147 @@ function logOk(t,d,c=''){state.log.push({tipo:'ok',titulo:t,detalle:d,count:c,ts
 function logWarn(t,d,c=''){state.log.push({tipo:'warn',titulo:t,detalle:d,count:c,ts:new Date().toLocaleTimeString()});}
 function logErr(t,d,c=''){state.log.push({tipo:'err',titulo:t,detalle:d,count:c,ts:new Date().toLocaleTimeString()});}
 
+// ════════════════════════════════════════════════════════════════
+// PANEL DE AYUDA CONTEXTUAL
+// ════════════════════════════════════════════════════════════════
+function renderPanelAyuda(modulo){
+  // Leer preferencia de colapso desde localStorage
+  const colapsado = localStorage.getItem('ayuda_colapsada_' + modulo) === '1';
+  const toggle = colapsado ? '▸ Ver guía' : '▾ Ocultar guía';
+
+  // ── Calcular semáforo y estado dinámico por módulo ──
+  let color = '#4a5568', estado = '', items = [], itemsAtencion = [];
+
+  if(modulo === 'cambios'){
+    const pO = contarPalabras(state.textoOriginalCrudo||state.textoOriginal||'');
+    const pL = contarPalabras(state.textoLimpio||'');
+    const diff = Math.abs(pL - pO);
+    const pct = pO > 0 ? (diff/pO*100).toFixed(1) : 0;
+    if(diff <= 50){ color='var(--ok)'; estado='Diferencia dentro del rango normal'; }
+    else if(diff <= 200){ color='#f7c94f'; estado='Diferencia moderada — revisar'; }
+    else { color='var(--err)'; estado='Diferencia alta — posible pérdida de texto'; }
+    items = [
+      {dot:'var(--ok)', texto:'<strong>Diferencia de palabras:</strong> Lo que importa revisar. Idealmente 0 o menor a 50. Refleja si el proceso de limpieza eliminó texto normativo real (no solo saltos de línea).'},
+      {dot:'var(--text-faint)', texto:'<strong>Eliminados (rojo):</strong> Incluye saltos de línea normalizados, no solo texto borrado. Un número alto de eliminados es normal si la diferencia de palabras es 0.'},
+      {dot:'var(--text-faint)', texto:'<strong>Reformateados (amarillo):</strong> Texto que cambió de forma pero conserva el mismo contenido. Generalmente reformateo de espacios o puntuación.'},
+      {dot:'#f7c94f', texto:'<strong>Presta atención si:</strong> La diferencia de palabras supera 50, o si ves bloques rojos que contienen texto normativo real (artículos, fracciones, definiciones).'},
+    ];
+  }
+
+  else if(modulo === 'log'){
+    const warns = state.log.filter(e=>e.tipo==='warn'||e.tipo==='err').length;
+    if(warns === 0){ color='var(--ok)'; estado='Sin advertencias — proceso limpio'; }
+    else if(warns <= 2){ color='#f7c94f'; estado=warns+' advertencia(s) — revisar'; }
+    else { color='var(--err)'; estado=warns+' alertas — requiere atención'; }
+    items = [
+      {dot:'var(--ok)', texto:'<strong>Entradas verdes:</strong> Operaciones exitosas. Sellos eliminados, artículos verificados, hash calculado.'},
+      {dot:'#f7c94f', texto:'<strong>Entradas amarillas (warn):</strong> Situaciones que merecen revisión pero no impiden el proceso. Por ejemplo, diferencia de palabras moderada.'},
+      {dot:'var(--err)', texto:'<strong>Entradas rojas (err):</strong> Problemas que sí pueden afectar el resultado. La más importante: "Artículos faltantes" indica que el parser no encontró artículos que existían en el original.'},
+    ];
+  }
+
+  else if(modulo === 'estructura'){
+    const integ = calcularIntegridadEstructura();
+    const pct = integ ? parseFloat(integ.pct) : 100;
+    if(pct >= 100 && pct <= 110){ color='var(--ok)'; estado='Integridad normal ('+pct+'%)'; }
+    else if(pct >= 95 && pct < 100){ color='#f7c94f'; estado='Integridad ligeramente baja ('+pct+'%) — revisar'; }
+    else if(pct > 110 && pct <= 115){ color='#f7c94f'; estado='Integridad ligeramente alta ('+pct+'%) — normal con muchas reformas'; }
+    else { color='var(--err)'; estado='Integridad fuera de rango ('+pct+'%) — revisar parser'; }
+    items = [
+      {dot:'var(--ok)', texto:'<strong>Integridad 100–110%:</strong> Rango normal. La estructura reconstruida siempre es un poco mayor que el texto limpio porque el parser agrega metadatos: estado jurídico de cada artículo (vigente/derogado), instrucción para el agente IA, y notas de reforma integradas inline. Todo eso suma palabras que no estaban en el original.'},
+      {dot:'#f7c94f', texto:'<strong>Integridad 110–115%:</strong> Aceptable en leyes con muchas reformas acumuladas. Las notas de reforma integradas en artículos muy reformados pueden elevar el porcentaje.'},
+      {dot:'var(--err)', texto:'<strong>Integridad por debajo de 95%:</strong> El parser puede haber perdido texto normativo. Revisar artículos con contenido muy corto o vacío.'},
+      {dot:'var(--err)', texto:'<strong>Integridad por encima de 115%:</strong> El parser puede estar duplicando contenido. Revisar si hay artículos con texto repetido.'},
+      {dot:'var(--text-faint)', texto:'<strong>Uso sugerido:</strong> Revisa que todos los artículos tengan contenido. Los artículos con fracciones (I, II, III...) se muestran expandibles. Los artículos derogados aparecen en gris con la etiqueta "DEROGADO".'},
+    ];
+  }
+
+  else if(modulo === 'json'){
+    const arts = state.estructura.filter(e=>e.tipo==='articulo').length;
+    const tieneHist = state.estructura.some(e=>e.tipo==='decreto_historial');
+    const tieneTrans = state.estructura.some(e=>e.tipo==='transitorio');
+    color = arts > 0 ? 'var(--ok)' : 'var(--err)';
+    estado = arts > 0 ? arts+' artículos listos para exportar' : 'Sin artículos — procesa primero';
+    items = [
+      {dot:'var(--ok)', texto:'<strong>articulos:</strong> Array con todos los artículos parseados. Cada uno incluye título, contenido o fracciones, estado jurídico (vigente/derogado/reservado) e instrucción para el agente IA.'},
+      {dot:'var(--ok)', texto:'<strong>transitorios:</strong> Bloque con los transitorios originales de la ley (los que acompañaron la publicación inicial). '+(tieneTrans?'✓ Detectado':'⚠ No detectado en este documento.')},
+      {dot:'var(--ok)', texto:'<strong>decreto_historial:</strong> Bloque con el historial acumulado de decretos de reforma. El agente IA sabe que este bloque es contexto histórico, no norma vigente. '+(tieneHist?'✓ Detectado':'No aplica o no detectado.')},
+      {dot:'#f7c94f', texto:'<strong>Presta atención si:</strong> El campo "articulos" tiene menos elementos de los esperados, o si faltan secciones que sí existen en el documento (transitorios, firmas).'},
+    ];
+  }
+
+  else if(modulo === 'problemas'){
+    const total = state.problemas.length;
+    const activos = state.problemas.filter(p=>!state.problemasResueltos.has(p.articulo)).length;
+    const truncados = state.problemas.filter(p=>!state.problemasResueltos.has(p.articulo)&&p.problema&&p.problema.includes('truncado')).length;
+    const largos = state.problemas.filter(p=>!state.problemasResueltos.has(p.articulo)&&p.problema&&p.problema.includes('largo')).length;
+    if(truncados > 0){ color='var(--err)'; estado=truncados+' artículo(s) posiblemente truncado(s) — requieren revisión'; }
+    else if(activos > 0){ color='#f7c94f'; estado=largos+' artículo(s) largos sin estructura — validar'; }
+    else { color='var(--ok)'; estado='Todos los problemas validados'; }
+    items = [
+      {dot:'#f7c94f', texto:'<strong>Artículo largo sin estructura:</strong> El artículo tiene más de 300 caracteres pero no se detectaron fracciones (I, II, III). Puede ser correcto — algunas leyes tienen artículos con párrafos extensos sin numerar. Haz clic en ✓ OK si el contenido se ve completo en Estructura.'},
+      {dot:'var(--err)', texto:'<strong>El artículo no termina con punto — puede estar truncado:</strong> El contenido del artículo termina de forma abrupta. Revisa ese artículo en Estructura para confirmar si el texto está completo.'},
+      {dot:'var(--text-faint)', texto:'<strong>Cómo resolver:</strong> Para cada problema, haz clic en "Revisar en Estructura" para ver el artículo completo, o en "Usar corrección IA" para que el sistema lo analice. Si el resultado te parece correcto, haz clic en ✓ OK para marcarlo como validado.'},
+    ];
+  }
+
+  else if(modulo === 'validacion'){
+    const arts = state.estructura.filter(e=>e.tipo==='articulo').length;
+    const probActivos = state.problemas.filter(p=>!state.problemasResueltos.has(p.articulo)).length;
+    if(arts===0){ color='var(--text-faint)'; estado='Sin documento procesado'; }
+    else if(probActivos>0){ color='#f7c94f'; estado=probActivos+' problema(s) pendientes de validar'; }
+    else { color='var(--ok)'; estado='Listo para exportar'; }
+    items = [
+      {dot:'var(--ok)', texto:'<strong>Qué hace este módulo:</strong> Verifica la integridad final del documento y habilita la exportación. Calcula un hash SHA-256 que sirve como huella digital para comprobar que el documento no fue alterado.'},
+      {dot:'#f7c94f', texto:'<strong>Antes de aprobar:</strong> Revisa que los problemas en el módulo Problemas estén validados (✓ OK). No es obligatorio resolver todos, pero sí conviene entender cada uno.'},
+      {dot:'var(--ok)', texto:'<strong>Al aprobar:</strong> Se habilita la exportación a JSON y el envío a Lumen. El hash queda registrado como garantía de integridad del proceso.'},
+    ];
+  }
+
+  else if(modulo === 'vista'){
+    const arts = state.estructura.filter(e=>e.tipo==='articulo').length;
+    color = arts > 0 ? 'var(--ok)' : 'var(--text-faint)';
+    estado = arts > 0 ? 'Texto limpio con '+arts+' artículos resaltados' : 'Sin documento procesado';
+    items = [
+      {dot:'var(--ok)', texto:'<strong>Qué muestra:</strong> El texto limpio después de la Etapa 1 (limpieza estructural) y Etapa 2 (normalización de formato), con resaltado de artículos, fracciones e incisos según el perfil activo.'},
+      {dot:'var(--text-faint)', texto:'<strong>Colores:</strong> Cada tipo de elemento tiene un color en la leyenda inferior. Los artículos aparecen resaltados, igual que las fracciones e incisos.'},
+      {dot:'#f7c94f', texto:'<strong>Presta atención si:</strong> Ves bloques de texto sin resaltar donde debería haber artículos, o si el texto tiene ruido visible (encabezados de página, sellos digitales) que no fue eliminado en la limpieza.'},
+    ];
+  }
+
+  const itemsHtml = items.map(it =>
+    \`<div class="ayuda-item">
+      <div class="ayuda-item-dot" style="background:\${it.dot};"></div>
+      <div>\${it.texto}</div>
+    </div>\`
+  ).join('');
+
+  return \`<div class="ayuda-panel" id="ayuda-\${modulo}">
+    <div class="ayuda-header" onclick="toggleAyuda('\${modulo}')">
+      <div class="ayuda-semaforo" style="background:\${color};box-shadow:0 0 6px \${color}44;"></div>
+      <div class="ayuda-titulo">Guía del módulo</div>
+      <div class="ayuda-estado" style="color:\${color};">\${estado}</div>
+      <div class="ayuda-toggle" id="ayuda-toggle-\${modulo}">\${toggle}</div>
+    </div>
+    <div class="ayuda-body\${colapsado?' collapsed':''}" id="ayuda-body-\${modulo}">
+      \${itemsHtml}
+    </div>
+  </div>\`;
+}
+
+function toggleAyuda(modulo){
+  const body = document.getElementById('ayuda-body-'+modulo);
+  const tog = document.getElementById('ayuda-toggle-'+modulo);
+  if(!body) return;
+  const colapsado = body.classList.toggle('collapsed');
+  if(tog) tog.textContent = colapsado ? '▸ Ver guía' : '▾ Ocultar guía';
+  localStorage.setItem('ayuda_colapsada_'+modulo, colapsado ? '1' : '0');
+}
+
 function renderLog(){
   const el=document.getElementById('pane-log');
   if(!state.log.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">📋</div><p>El registro aparecerá aquí.</p></div>`;return;}
+  const _ayudaLog = renderPanelAyuda('log');
   const iconos={info:'ℹ️',ok:'✅',warn:'⚠️',err:'❌'};
   let html=`<div style="font-size:11px;color:var(--text-faint);margin-bottom:12px;font-family:'IBM Plex Mono',monospace;">${state.log.length} entrada(s)</div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;">`;
@@ -1158,7 +1340,7 @@ function renderLog(){
       <div class="log-count">${e.count?escHtml(String(e.count)):''}<br><span style="font-size:10px;">${e.ts}</span></div>
     </div>`;
   html+=`</div>`;
-  el.innerHTML=html;
+  el.innerHTML=_ayudaLog+html;
   const warns=state.log.filter(e=>e.tipo==='warn'||e.tipo==='err').length;
   const tL=document.getElementById('tab-log');
   if(warns>0){tL.textContent='Log ⚠';tL.style.color='#f7c94f';}
@@ -1905,6 +2087,7 @@ function renderDiff(){
   const pct=pO>0?(Math.abs(dP)/pO*100).toFixed(1):0;
   const clP=Math.abs(dP)<50?'ok':Math.abs(dP)<200?'warn':'err';
   let hO='',hL='',borrados=0,reformateados=0,agregados=0;
+  const _ayudaCambios = renderPanelAyuda('cambios');
   for(const tok of diffTokens){
     const t=escHtml(tok.texto);
     if(tok.tipo==='igual'){hO+=`<span class="tok-igual">${t}</span>`;hL+=`<span class="tok-igual">${t}</span>`;}
@@ -1967,7 +2150,7 @@ function renderDiff(){
     </div>`;
   });
 
-  el.innerHTML=`
+  el.innerHTML=_ayudaCambios+`
     <div class="diff-hint">💡
       <span style="color:var(--diff-del-text);font-weight:600;">■ Rojo</span> = eliminado real &nbsp;|&nbsp;
       <span style="color:#f7c94f;font-weight:600;">■ Amarillo</span> = reformateado (mismo contenido) &nbsp;|&nbsp;
@@ -2465,6 +2648,7 @@ async function procesarDocumento(){
 
 // ══ RENDER VISTA ═════════════════════════════════════════════════
 function renderVista(){
+  const _ayudaVista = renderPanelAyuda('vista');
   let t=state.textoLimpio;
   const kws=state.perfilActivo?.transitorios||['TRANSITORIOS','Transitorios'];
   for(const kw of kws)t=t.replace(new RegExp(`\\b${escapeRegex(kw)}\\b`,'g'),`<span class="hl-transitorio">${kw}</span>`);
@@ -2481,7 +2665,7 @@ function renderVista(){
   const ws = document.getElementById('welcome-screen');
   const vc = document.getElementById('vista-content');
   if(ws) ws.style.display = 'none';
-  if(vc){ vc.style.display = ''; vc.innerHTML = `<div id="viewer">${t}</div>`; }
+  if(vc){ vc.style.display = ''; vc.innerHTML = _ayudaVista+`<div id="viewer">${t}</div>`; }
   // Mostrar tabs superiores
   document.getElementById('panel-top-bar')?.classList.remove('hidden');
 }
@@ -2547,6 +2731,7 @@ function renderEstructura(){
   if(!state.estructura.length)return;
 
   // Calcular integridad
+  const _ayudaEst = renderPanelAyuda('estructura');
   const integ = calcularIntegridadEstructura();
   const arts  = state.estructura.filter(e=>e.tipo==='articulo').length;
 
@@ -2602,7 +2787,7 @@ function renderEstructura(){
     </div>`;
   }
 
-  let html=`
+  let html=_ayudaEst+`
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <div style="font-size:11px;color:var(--text-faint);">
@@ -2979,6 +3164,7 @@ function eliminarDeBanco(idx){
 
 // ══ RENDER JSON ═══════════════════════════════════════════════════
 function renderJSON(){
+  const _ayudaJSON = renderPanelAyuda('json');
   const output=construirOutputFinal();
   const salida=[...output.contenido];
   const json=JSON.stringify(salida,null,2);
@@ -2986,15 +3172,16 @@ function renderJSON(){
     .replace(/("[\w\sáéíóúüñÁÉÍÓÚÜÑ_]+")(\s*:)/g,'<span class="json-key">$1</span>$2')
     .replace(/:\s*(".*?")/g,': <span class="json-string">$1</span>')
     .replace(/:\s*(\d+)/g,': <span class="json-number">$1</span>');
-  document.getElementById('pane-json').innerHTML=`<pre id="json-view">${col}</pre>`;
+  document.getElementById('pane-json').innerHTML=_ayudaJSON+`<pre id="json-view">${col}</pre>`;
 }
 
 
 // ══ RENDER PROBLEMAS ═════════════════════════════════════════════
 function renderProblemas(){
+  const _ayudaProb = renderPanelAyuda('problemas');
   const el=document.getElementById('pane-problemas');
   const activos=state.problemas.filter(p=>!state.problemasResueltos.has(p.articulo));
-  if(!activos.length&&!state.problemas.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">✅</div><p>Sin problemas.</p></div>`;return;}
+  if(!activos.length&&!state.problemas.length){el.innerHTML=_ayudaProb+`<div class="empty-state"><div class="empty-state-icon">✅</div><p>Sin problemas.</p></div>`;return;}
   let html='';
   if(activos.length)html+=`<div style="margin-bottom:11px;font-size:13px;color:var(--text-dim);"><strong style="color:#f87171;">${activos.length} problema(s)</strong></div>`;
   state.problemas.forEach((p,i)=>{
@@ -3005,14 +3192,15 @@ function renderProblemas(){
       ${!res?`<button class="btn btn-success btn-sm" onclick="marcarComoResuelto(${i})">✓ OK</button>`:''}
     </div>`;
   });
-  el.innerHTML=html;
+  el.innerHTML=_ayudaProb+html;
 }
 
 
 // ══ VALIDACIÓN ═══════════════════════════════════════════════════
 async function renderValidacion(){
+  const _ayudaVal = renderPanelAyuda('validacion');
   const el=document.getElementById('pane-validacion');
-  if(!state.estructura.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🛡</div><p>Procesa un documento primero.</p></div>`;return;}
+  if(!state.estructura.length){el.innerHTML=_ayudaVal+`<div class="empty-state"><div class="empty-state-icon">🛡</div><p>Procesa un documento primero.</p></div>`;return;}
   const arts=state.estructura.filter(e=>e.tipo==='articulo');
   const fracs=arts.reduce((n,a)=>n+(a.fracciones?.length||0),0);
   const incs=arts.reduce((n,a)=>n+(a.fracciones?.reduce((m,f)=>m+(f.incisos?.length||0),0)||0),0);
@@ -3103,7 +3291,7 @@ async function renderValidacion(){
       <button class="btn btn-approve" onclick="aprobarDocumento()" ${faltantes.length>0?'disabled':''}>🛡 Aprobar y habilitar exportación</button>
     </div>`;
   }
-  el.innerHTML=html;
+  el.innerHTML=_ayudaVal+html;
   renderTemas();
 }
 
