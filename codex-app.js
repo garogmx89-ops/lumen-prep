@@ -1190,7 +1190,8 @@ function renderProblemas(){
     const res=state.problemasResueltos.has(p.articulo);
     const esTruncado = p.problema&&p.problema.includes('truncado');
     const borderColor = res?'var(--border)':esTruncado?'var(--err-text)':'var(--warn-text)';
-    html+=`<div class="problem-item${res?' resuelto':''}" style="border-left-color:${borderColor};">
+    const bgColor = res?'var(--diff-add-bg)':esTruncado?'var(--err-bg)':'var(--warn-bg)';
+    html+=`<div class="problem-item${res?' resuelto':''}" style="border-left-color:${borderColor};background:${bgColor};">
       <div><strong>${escHtml(p.articulo)}</strong><span>${res?'✓ Correcto':escHtml(p.problema)}</span>
       ${!res&&p.sugerencia?`<div style="margin-top:4px;font-size:11px;color:var(--accent);">💡 ${escHtml(p.sugerencia)}</div>`:''}</div>
       ${!res?`<button class="btn btn-success btn-sm" onclick="marcarComoResuelto(${i})">✓ OK</button>`:''}
