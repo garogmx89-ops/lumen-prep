@@ -2477,9 +2477,13 @@ function renderEstructura(){
         <div style="font-size:10px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">✍ Firmas de promulgación</div>
         <div data-art-idx="${idx}" class="art-content-view"><p class="art-parrafo">${renderConNotas(item.contenido)}</p></div></div>`;
     } else if(item.tipo==='decreto_historial'){
+      // Insertar separador visual entre cada decreto del historial
+      const contenidoDecretoHtml = renderConNotas(item.contenido)
+        .replace(/\n(DECRETO por el que se)/g,
+          '\n<hr style="border:none;border-top:1px solid #ec489944;margin:14px 0;">$1');
       html+=`<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #ec4899;border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
         <div style="font-size:10px;color:#ec4899;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">📋 Historial de decretos de reforma</div>
-        <div data-art-idx="${idx}" class="art-content-view"><p class="art-parrafo">${renderConNotas(item.contenido)}</p></div></div>`;
+        <div data-art-idx="${idx}" class="art-content-view"><p class="art-parrafo">${contenidoDecretoHtml}</p></div></div>`;
     } else if(item.tipo==='seccion'){
       html+=`<div style="background:transparent;border:none;border-top:1px solid var(--border);padding:10px 4px 4px;margin:4px 0;">
         <div style="font-size:10px;color:var(--frac);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Mono',monospace;white-space:pre-wrap;">${escHtml(item.contenido)}</div>
