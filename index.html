@@ -3296,9 +3296,89 @@ function mostrarPreviewEtapa1(texto, perfil){
   // ── Vista marcada (usa el original + set de líneas a eliminar) ──
   renderDocumentoMarcadoDesdePreview(texto, preview.lineasEliminar);
 
+  // ── Alertas de compatibilidad con perfil ──────────────────
+  const alertasEl = document.getElementById('etapa1-alertas-perfil');
+  if(alertasEl){
+    const alertas = detectarAlertasPerfil(texto, perfil);
+    if(alertas.length === 0){
+      alertasEl.innerHTML = '';
+    } else {
+      alertasEl.innerHTML = alertas.map(a => `
+        <div style="background:#f7c94f18;border:1px solid #f7c94f55;border-left:3px solid #f7c94f;
+          border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:12px;">
+          <div style="font-weight:700;color:#f7c94f;margin-bottom:4px;">⚠ ${escHtml(a.titulo)}</div>
+          <div style="color:var(--text-dim);">${escHtml(a.detalle)}</div>
+          ${a.sugerencia ? `<div style="color:var(--text-faint);font-size:11px;margin-top:4px;">💡 ${escHtml(a.sugerencia)}</div>` : ''}
+        </div>`).join('');
+    }
+  }
+
   // Mostrar vista marcada por defecto
   switchVistaEtapa('marcada');
   document.getElementById('modal-etapa1').classList.remove('hidden');
+}
+
+// Detecta señales de que el perfil activo puede no ser adecuado para este documento
+function detectarAlertasPerfil(texto, perfil){
+  const alertas = [];
+  const lineas = texto.split('\n');
+
+  // ── Señal A: patrón de artículos vs patronArticulo del perfil ──
+  const countMayus  = (texto.match(/^ARTÍCULO\s+\d+/gm) || []).length;
+  const countStd    = (texto.match(/^Artículo\s+\d+/gm) || []).length;
+  const totalArts   = countMayus + countStd;
+  if(totalArts > 0 && perfil){
+    const perfilEsMayus = perfil.patronArticulo === 'mayusculas';
+    const docEsMayus    = countMayus > countStd;
+    if(perfilEsMayus && !docEsMayus && countStd > 3){
+      alertas.push({
+        titulo: 'Patrón de artículos no coincide con el perfil',
+        detalle: `El documento usa "Artículo N." (${countStd} ocurrencias) pero el perfil está configurado para "ARTÍCULO N.-" (mayúsculas). El parser puede no detectar los artículos correctamente.`,
+        sugerencia: 'Considera cambiar el patronArticulo del perfil a "standard", o usar un perfil Estatal.'
+      });
+    } else if(!perfilEsMayus && docEsMayus && countMayus > 3){
+      alertas.push({
+        titulo: 'Patrón de artículos no coincide con el perfil',
+        detalle: `El documento usa "ARTÍCULO N.-" (${countMayus} ocurrencias) pero el perfil está configurado para "Artículo N." (estándar). El parser puede no detectar los artículos correctamente.`,
+        sugerencia: 'Considera cambiar el patronArticulo del perfil a "mayusculas", o usar el perfil Ley Federal — DOF.'
+      });
+    }
+  }
+
+  // ── Señal B: saltos en la numeración de artículos ──
+  const numeros = [];
+  lineas.forEach(l => {
+    const m = l.match(/^(?:ARTÍCULO|Artículo)\s+(\d+)/);
+    if(m) numeros.push(parseInt(m[1]));
+  });
+  if(numeros.length > 2){
+    const saltos = [];
+    for(let i = 1; i < numeros.length; i++){
+      const diff = numeros[i] - numeros[i-1];
+      if(diff > 10 && diff < 5000){ // salto grande pero no el salto al historial de decretos
+        saltos.push({ de: numeros[i-1], a: numeros[i], diff });
+      }
+    }
+    if(saltos.length > 0){
+      const ejemplos = saltos.slice(0,3).map(s => `Art. ${s.de} → Art. ${s.a}`).join(', ');
+      alertas.push({
+        titulo: `Saltos en la numeración de artículos (${saltos.length} detectado${saltos.length>1?'s':''})`,
+        detalle: `Se detectaron saltos grandes en la secuencia numérica: ${ejemplos}. Puede indicar artículos con formato diferente, secciones no reconocidas, o un documento con estructura atípica.`,
+        sugerencia: 'Revisa el módulo Estructura después de procesar para verificar que todos los artículos fueron detectados correctamente.'
+      });
+    }
+  }
+
+  // ── Señal C: documento sin patrón de artículos reconocible ──
+  if(totalArts === 0 && texto.length > 500){
+    alertas.push({
+      titulo: 'No se detectaron artículos con el formato esperado',
+      detalle: 'El texto no contiene líneas que comiencen con "ARTÍCULO N" o "Artículo N". Es posible que el documento use un formato diferente al del perfil seleccionado.',
+      sugerencia: 'Verifica que el perfil corresponda al tipo de documento, o revisa si el documento requiere un perfil personalizado.'
+    });
+  }
+
+  return alertas;
 }
 
 // Calcula qué líneas serán eliminadas sin modificar el texto todavía
@@ -4104,6 +4184,9 @@ function toast(msg,tipo=''){const el=document.getElementById('toast');el.textCon
 
     <!-- ADVERTENCIA artículos -->
     <div class="etapa-warn-box" id="etapa1-warn"></div>
+
+    <!-- ALERTAS DE COMPATIBILIDAD CON PERFIL -->
+    <div id="etapa1-alertas-perfil"></div>
 
     <!-- VISTA MARCADA -->
     <div id="vista-marcada-container">
