@@ -3685,8 +3685,8 @@ function calcularDiffSemantico(orig, limp){
   // m[1] captura solo "ARTÍCULO N.-" sin el texto del artículo — es el label del bloque colapsable
   // También detecta TRANSITORIOS como corte de sección (evita fusión con el último artículo)
   const reArtLinea = /^\*{0,2}(ART[IÍ]CULO\s+(?:\d+|ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO)[.\-]?)\*{0,2}/i;
-  const kwsTransitorios = (perfil && perfil.transitorios) ? perfil.transitorios : ['TRANSITORIOS','Transitorios','TRANSITORIO','Transitorio'];
-  const reTransLinea = new RegExp('^(' + kwsTransitorios.map(k => k.replace(/[.*+?^${}()|[\]\\]/g,'\\\\$&')).join('|') + ')\\s*$');
+  // Detecta sección de transitorios como corte de bloque — regex literal, sin construcción dinámica
+  const reTransLinea = /^(TRANSITORIOS|Transitorios|TRANSITORIO|Transitorio)\s*$/;
   let artActual = '';
   const artPorLinea = lineasA.map(l => {
     const mArt = l.match(reArtLinea);
