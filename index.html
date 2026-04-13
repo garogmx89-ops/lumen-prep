@@ -12,6 +12,9 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+// ── Configuración Firebase ────────────────────────────────────────
 const firebaseConfig = {
   apiKey:"AIzaSyAMQAqZFTya_IRLNaw4nO8rCR6S6HKLcKU",
   authDomain:"lumen-app-ff839.firebaseapp.com",
@@ -20,11 +23,44 @@ const firebaseConfig = {
   messagingSenderId:"71807741500",
   appId:"1:71807741500:web:d6b83565b5c62422625d39"
 };
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const auth = getAuth(app);
+
+// ── Exponer Firestore globalmente ─────────────────────────────────
 window._db=db; window._collection=collection; window._addDoc=addDoc;
 window._getDocs=getDocs; window._doc=doc; window._updateDoc=updateDoc;
-window._deleteDoc=deleteDoc; window._dbReady=true;
+window._deleteDoc=deleteDoc;
+// _dbReady se activa SOLO después de autenticar (ver onAuthStateChanged abajo)
+
+// ── Autenticación silenciosa ──────────────────────────────────────
+// Codex no tiene pantalla de login propia — usa la sesión de Google
+// que el navegador ya tiene activa del mismo proyecto Firebase (Lumen).
+// Si ya hay sesión: se activa sin interrumpir al usuario.
+// Si no hay sesión: se abre un popup de Google una sola vez.
+// El UID real del usuario autenticado se guarda en localStorage
+// para que enviarALumen() lo use al construir la ruta en Firestore.
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    // Sesión activa — guardar UID y habilitar Firestore
+    localStorage.setItem('lumenprep_uid', user.uid);
+    window._dbReady = true;
+    console.log('[Lumen Codex] Auth OK —', user.email);
+    // Notificar a codex-core.js que Firestore ya está listo
+    window.dispatchEvent(new CustomEvent('codex:auth-ready'));
+  } else {
+    // Sin sesión — pedir login con Google (popup silencioso)
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged se vuelve a disparar con el usuario
+    } catch(e) {
+      console.warn('[Lumen Codex] Login cancelado —', e.message);
+    }
+  }
+});
+
 // cargarPerfilesFirestore se llama desde el script principal
 </script>
 
