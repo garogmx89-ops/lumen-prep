@@ -1189,7 +1189,7 @@ function renderProblemas(){
   state.problemas.forEach((p,i)=>{
     const res=state.problemasResueltos.has(p.articulo);
     const esTruncado = p.problema&&p.problema.includes('truncado');
-    const borderColor = res?'var(--border)':esTruncado?'#f87171':'#f7c94f44';
+    const borderColor = res?'var(--border)':esTruncado?'var(--err-text)':'var(--warn-text)';
     html+=`<div class="problem-item${res?' resuelto':''}" style="border-left-color:${borderColor};">
       <div><strong>${escHtml(p.articulo)}</strong><span>${res?'✓ Correcto':escHtml(p.problema)}</span>
       ${!res&&p.sugerencia?`<div style="margin-top:4px;font-size:11px;color:var(--accent);">💡 ${escHtml(p.sugerencia)}</div>`:''}</div>
