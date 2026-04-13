@@ -4064,7 +4064,10 @@ function generarInstruccionAgente(estado, notas){
 function detectarCorteArticulo(item, siguiente){
   const alertas = [];
   const contenido = (item.contenido || '').trim();
-  if(contenido && !/[.;:]\s*$/.test(contenido) && contenido.length > 50)
+  // Solo verificar el punto final en artículos sin fracciones — los artículos con fracciones
+  // no tienen contenido plano al final y generarían falsos positivos
+  const tieneFracciones = item.fracciones && item.fracciones.length > 0;
+  if(!tieneFracciones && contenido && !/[.;:]\s*$/.test(contenido) && contenido.length > 50)
     alertas.push('El artículo no termina con punto — puede estar truncado');
   if(contenido.length > 0 && contenido.length < 30 && !/se\s+deroga/i.test(contenido))
     alertas.push('Contenido muy breve — verificar si está completo');
