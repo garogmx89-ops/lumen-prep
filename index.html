@@ -2233,27 +2233,36 @@ function parsear(texto,perfil){
   }
   if(tT){
     const textoT = tT.trim();
-    // Separar transitorios de firmas
-    // Patrones de inicio de bloque de firmas (consistentes en leyes DOF)
+    // Detectar inicio del historial de decretos de reforma
+    // Todo lo que venga después es contexto histórico, no norma vigente
+    const reDecretoHistorial = /\nDECRETO por el que se/;
+    const corteDecretoHistorial = textoT.search(reDecretoHistorial);
+    const zonaOriginal = corteDecretoHistorial > 0 ? textoT.slice(0, corteDecretoHistorial).trim() : textoT;
+    const zonaHistorial = corteDecretoHistorial > 0 ? textoT.slice(corteDecretoHistorial).trim() : '';
+    // Dentro de la zona original: separar transitorios de firmas
     const patronesFirma = [
       /\n(Ciudad de México, a \d)/,
       /\n(En cumplimiento de lo dispuesto por la fracción I)/
     ];
     let corte = -1;
     for(const pat of patronesFirma){
-      const m = textoT.search(pat);
+      const m = zonaOriginal.search(pat);
       if(m !== -1 && (corte === -1 || m < corte)) corte = m;
     }
     if(corte > 0){
-      const textoTransitorio = textoT.slice(0, corte).trim();
-      const textoFirma = textoT.slice(corte).trim();
+      const textoTransitorio = zonaOriginal.slice(0, corte).trim();
+      const textoFirma = zonaOriginal.slice(corte).trim();
       if(textoTransitorio)
-        estructura.push({tipo:'transitorio', contenido:textoTransitorio, estado:'procedimental', instruccion_agente:'Transitorios. Solo para entender cronología de vigencia.'});
+        estructura.push({tipo:'transitorio', contenido:textoTransitorio, estado:'procedimental', instruccion_agente:'Transitorios originales de la ley. Determinan vigencia y derogaciones al momento de la publicación.'});
       if(textoFirma)
         estructura.push({tipo:'firma', contenido:textoFirma, estado:'procedimental', instruccion_agente:'Firmas de promulgación. Parte del instrumento jurídico formal, no norma aplicable.'});
     } else {
-      estructura.push({tipo:'transitorio', contenido:textoT, estado:'procedimental', instruccion_agente:'Transitorios. Solo para entender cronología de vigencia.'});
+      if(zonaOriginal)
+        estructura.push({tipo:'transitorio', contenido:zonaOriginal, estado:'procedimental', instruccion_agente:'Transitorios originales de la ley. Determinan vigencia y derogaciones al momento de la publicación.'});
     }
+    // Zona de decretos de reforma: historial acumulado de modificaciones
+    if(zonaHistorial)
+      estructura.push({tipo:'decreto_historial', contenido:zonaHistorial, estado:'historial', instruccion_agente:'Historial de decretos de reforma. Contexto histórico de modificaciones. NO es norma vigente de la ley — NUNCA usar para interpretar el texto actual.'});
   }
   return estructura;
 }
@@ -2356,7 +2365,7 @@ function reconstruirTextoDesdeEstructura(){
         bloque += ' ' + (item.contenido || '');
       }
       partes.push(bloque.trim());
-    } else if(item.tipo === 'transitorio' || item.tipo === 'firma'){
+    } else if(item.tipo === 'transitorio' || item.tipo === 'firma' || item.tipo === 'decreto_historial'){
       partes.push(item.contenido || '');
     }
   }
@@ -2466,6 +2475,10 @@ function renderEstructura(){
     } else if(item.tipo==='firma'){
       html+=`<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #a78bfa;border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
         <div style="font-size:10px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">✍ Firmas de promulgación</div>
+        <div data-art-idx="${idx}" class="art-content-view"><p class="art-parrafo">${renderConNotas(item.contenido)}</p></div></div>`;
+    } else if(item.tipo==='decreto_historial'){
+      html+=`<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #ec4899;border-radius:6px;padding:11px 13px;font-size:12px;color:var(--text-dim);">
+        <div style="font-size:10px;color:#ec4899;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">📋 Historial de decretos de reforma</div>
         <div data-art-idx="${idx}" class="art-content-view"><p class="art-parrafo">${renderConNotas(item.contenido)}</p></div></div>`;
     } else if(item.tipo==='seccion'){
       html+=`<div style="background:transparent;border:none;border-top:1px solid var(--border);padding:10px 4px 4px;margin:4px 0;">
@@ -3007,6 +3020,8 @@ function exportarEstructuraPDF(){
       html += `<div class="bloque"><div class="bloque-label">Transitorios</div><p style="margin:4px 0">${renderConNotasPDF(item.contenido)}</p></div>`;
     } else if(item.tipo === 'firma'){
       html += `<div class="bloque"><div class="bloque-label">Firmas de promulgación</div><p style="margin:4px 0">${renderConNotasPDF(item.contenido)}</p></div>`;
+    } else if(item.tipo === 'decreto_historial'){
+      html += `<div class="bloque"><div class="bloque-label">Historial de decretos de reforma</div><p style="margin:4px 0">${renderConNotasPDF(item.contenido)}</p></div>`;
     }
   });
 
@@ -3888,6 +3903,7 @@ async function enviarALumen(){
       introduccion:   output.contenido.find(e=>e.tipo==='introduccion')||null,
       transitorios:   output.contenido.filter(e=>e.tipo==='transitorio'),
     firmas:        output.contenido.filter(e=>e.tipo==='firma'),
+    decreto_historial: output.contenido.find(e=>e.tipo==='decreto_historial')||null,
       meta:           output.meta,
       hashContenido:  state.hashActual||'',
       temas:          state.temasGenerados||[],
