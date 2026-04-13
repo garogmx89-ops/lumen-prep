@@ -3683,11 +3683,12 @@ function calcularDiffSemantico(orig, limp){
 
   // Mapa de línea → artículo para contexto de navegación
   // Requiere número explícito O palabra clave (ÚNICO/PRIMERO/etc), excluye "reformado/derogado"
-  const reArtLinea = /^\*{0,2}(ART[IÍ]CULO\s+(?:\d+|ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO)[^\n]*?)\*{0,2}$/i;
+  // m[1] captura solo "ARTÍCULO N.-" sin el texto del artículo — es el label del bloque colapsable
+  const reArtLinea = /^\*{0,2}(ART[IÍ]CULO\s+(?:\d+|ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO)[.\-]?)\*{0,2}/i;
   let artActual = '';
   const artPorLinea = lineasA.map(l => {
     const m = l.match(reArtLinea);
-    if(m) artActual = m[1].slice(0,60).trim();
+    if(m) artActual = m[1].trim();
     return artActual;
   });
 
