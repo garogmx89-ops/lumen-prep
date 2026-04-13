@@ -1746,28 +1746,26 @@ function renderDiff(){
     el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Procesa un documento.</p></div>`;return;
   }
   // Usar el texto crudo original para el diff — no el normalizado
-  const textoParaDiff = state.textoOriginalCrudo || state.textoOriginal;
-  // Regex de notas de reforma — mismo patrón que extraerNotasReforma
-  const rNotasDiff = /\*?(?:P[aá]rrafo|Art[íi]culo|Fracci[oó]n|Inciso)\s+(?:reformad[ao]|adicionad[ao]|derogad[ao]|recorrid[ao])\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?|\*?Reforma\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*(?::\s*[^\.§]{0,60})?\*?|\*?Reformad[ao]\s+DOF\s+[\d]{2}-[\d]{2}-[\d]{4}(?:\s*,\s*[\d]{2}-[\d]{2}-[\d]{4})*\*?/gi;
-  // Eliminar notas del original para comparar contenido normativo puro vs contenido normativo puro
-  const textoOriginalSinNotas = textoParaDiff
-    .replace(rNotasDiff, '')
+  // IMPORTANTE: aplicar la misma limpieza de markdown que hace etapa2 Paso 0,
+  // para que el LCS encuentre coincidencias entre original y limpio.
+  // Sin esto, "**ARTÍCULO 1.-**" nunca iguala "ARTÍCULO 1.-" y todo se clasifica como borrado.
+  const textoParaDiff = (state.textoOriginalCrudo || state.textoOriginal)
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')   // quitar **negrita** de pandoc
+    .replace(/\*([^*\n]+)\*/g, '$1')        // quitar *cursiva* de pandoc
+    .replace(/[ \t]{2,}/g, ' ');            // normalizar espacios múltiples
+  // Eliminar solo las marcas §NOTA§ del textoLimpio preservando el contenido de las notas y los saltos
+  // Esto permite que el diff vea el texto con notas inline como texto plano, no como markup
+  const textoLimpioParaDiff = state.textoLimpio
+    .replace(/§NOTA§/g, '')
+    .replace(/§\/NOTA§/g, '')
     .replace(/[ \t]{2,}/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
     .trim();
-  // Eliminar marcas §NOTA§ del textoLimpio — preservar saltos de línea
-  const textoLimpioSinNotas = state.textoLimpio
-    .replace(/§NOTA§[^\n]*?§\/NOTA§/g, '')
-    .replace(/§NOTA§[\s\S]*?§\/NOTA§/g, '')
-    .replace(/[ \t]{2,}/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  diffTokens=calcularDiffSemantico(textoOriginalSinNotas,textoLimpioSinNotas);
+  diffTokens=calcularDiffSemantico(textoParaDiff, textoLimpioParaDiff);
   state.tokensRestaurados=new Set();tokenSeleccionado=null;
-  const pO=contarPalabras(textoOriginalSinNotas),pL=contarPalabras(textoLimpioSinNotas);
-  const cO=textoOriginalSinNotas.length,cL=textoLimpioSinNotas.length;
-  const eO=(textoOriginalSinNotas.match(/ /g)||[]).length,eL=(textoLimpioSinNotas.match(/ /g)||[]).length;
-  const sO=(textoOriginalSinNotas.match(/\n/g)||[]).length,sL=(textoLimpioSinNotas.match(/\n/g)||[]).length;
+  const pO=contarPalabras(textoParaDiff),pL=contarPalabras(textoLimpioParaDiff);
+  const cO=textoParaDiff.length,cL=textoLimpioParaDiff.length;
+  const eO=(textoParaDiff.match(/ /g)||[]).length,eL=(textoLimpioParaDiff.match(/ /g)||[]).length;
+  const sO=(textoParaDiff.match(/\n/g)||[]).length,sL=(textoLimpioParaDiff.match(/\n/g)||[]).length;
   const dP=pL-pO,dC=cL-cO,dE=eL-eO,dS=sL-sO;
   const pct=pO>0?(Math.abs(dP)/pO*100).toFixed(1):0;
   const clP=Math.abs(dP)<50?'ok':Math.abs(dP)<200?'warn':'err';
@@ -3156,6 +3154,16 @@ function etapa2_NormalizacionFormato(texto){
   let t = texto;
   const cambios = [];
 
+  // Paso 0 — Limpiar formato Markdown (asteriscos de pandoc/docx)
+  // **texto** → texto (negrita), *texto* → texto (cursiva/itálica)
+  // Estas marcas aparecen cuando el docx se convierte con pandoc
+  const antMd = t.length;
+  t = t.replace(/\*\*([^*\n]+)\*\*/g, '$1');  // **negrita**
+  t = t.replace(/\*([^*\n]+)\*/g, '$1');       // *cursiva*
+  const diffMd = antMd - t.length;
+  if(diffMd > 0)
+    cambios.push({tipo:'ok', msg:`Formato Markdown eliminado`, detalle:`${diffMd} chars de marcado ** y * removidos`});
+
   // Paso 1 — Unir referencias a artículo/fracción/inciso partidas por salto de línea
   // Patrón inequívoco: línea termina en preposición + salto simple + "artículo/fracción/inciso N"
   // Ej: "...conforme a lo dispuesto en el\nartículo 134 de la Constitución..."
@@ -3674,7 +3682,8 @@ function calcularDiffSemantico(orig, limp){
   const setBp = new Set(palabrasB.map(p=>p.toLowerCase()));
 
   // Mapa de línea → artículo para contexto de navegación
-  const reArtLinea = /^(ART[IÍ]CULO\s+[\dÚUNICOPRIMEROSEGUNDOTERCERO][^\n]*)/i;
+  // Requiere número explícito O palabra clave (ÚNICO/PRIMERO/etc), excluye "reformado/derogado"
+  const reArtLinea = /^\*{0,2}(ART[IÍ]CULO\s+(?:\d+|ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO)[^\n]*?)\*{0,2}$/i;
   let artActual = '';
   const artPorLinea = lineasA.map(l => {
     const m = l.match(reArtLinea);
