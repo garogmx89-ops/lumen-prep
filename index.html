@@ -2015,7 +2015,7 @@ function renderDiff(){
   // Badge sidebar Cambios
   const bCamb = document.getElementById('nav-badge-cambios');
   if(bCamb){
-    const total = borrados + nRef;
+    const total = borrados + reformateados;
     bCamb.textContent = total > 0 ? total : '';
     bCamb.className = 'nav-badge' + (borrados > 0 ? ' warn' : total > 0 ? '' : '');
     bCamb.style.display = total > 0 ? '' : 'none';
