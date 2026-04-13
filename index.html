@@ -1298,13 +1298,13 @@ function renderPanelAyuda(modulo){
   }
 
   const itemsHtml = items.map(it =>
-    \`<div class="ayuda-item">
+    `<div class="ayuda-item">
       <div class="ayuda-item-dot" style="background:\${it.dot};"></div>
       <div>\${it.texto}</div>
-    </div>\`
+    </div>`
   ).join('');
 
-  return \`<div class="ayuda-panel" id="ayuda-\${modulo}">
+  return `<div class="ayuda-panel" id="ayuda-\${modulo}">
     <div class="ayuda-header" onclick="toggleAyuda('\${modulo}')">
       <div class="ayuda-semaforo" style="background:\${color};box-shadow:0 0 6px \${color}44;"></div>
       <div class="ayuda-titulo">Guía del módulo</div>
@@ -1314,7 +1314,7 @@ function renderPanelAyuda(modulo){
     <div class="ayuda-body\${colapsado?' collapsed':''}" id="ayuda-body-\${modulo}">
       \${itemsHtml}
     </div>
-  </div>\`;
+  </div>`;
 }
 
 function toggleAyuda(modulo){
