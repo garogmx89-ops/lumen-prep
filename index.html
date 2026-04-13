@@ -246,7 +246,7 @@ textarea:focus{border-color:var(--accent);}
 }
 
 /* ── VIEWER ── */
-#viewer{font-family:'DM Mono',monospace;font-size:12.5px;line-height:2;white-space:pre-wrap;word-break:break-word;cursor:text;user-select:text;}
+#viewer{font-family:'Outfit',sans-serif;font-size:13.5px;line-height:1.9;white-space:pre-wrap;word-break:break-word;cursor:text;user-select:text;}
 .hl-articulo{color:var(--art);font-weight:700;}
 .hl-fraccion{color:var(--frac);font-weight:600;}
 .hl-inciso{color:var(--inc);font-weight:600;}
@@ -640,16 +640,16 @@ textarea:focus{border-color:var(--accent);}
 /* Etapa proceso */
 .etapa-modal{position:fixed;inset:0;background:#00000099;z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
 .etapa-modal.hidden{display:none;}
-.etapa-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:640px;max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px #00000066;}
+.etapa-card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:640px;max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 24px 64px #00000088;}
 .etapa-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px;}
 .etapa-desc{font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;}
-.etapa-preview{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto;margin-bottom:16px;}
+.etapa-preview{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto;margin-bottom:16px;}
 .etapa-cambios{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;max-height:200px;overflow-y:auto;}
 .etapa-cambio-item{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-radius:6px;font-size:12px;}
 .etapa-cambio-item.ok{background:var(--diff-add-bg);border-left:3px solid var(--ok);}
 .etapa-cambio-item.warn{background:#f7c94f11;border-left:3px solid #f7c94f;}
 /* Vista marcada con números de línea */
-.doc-viewer-numbered{font-family:monospace;font-size:12px;line-height:1.6;}
+.doc-viewer-numbered{font-family:'Outfit',sans-serif;font-size:13px;line-height:1.7;}
 .doc-row{display:flex;align-items:baseline;gap:0;}
 .doc-linenum{min-width:3.2em;text-align:right;padding-right:10px;color:var(--text-faint);user-select:none;font-size:11px;flex-shrink:0;border-right:1px solid var(--border);margin-right:10px;}
 .doc-linecontent{flex:1;white-space:pre-wrap;word-break:break-word;}
@@ -665,11 +665,11 @@ textarea:focus{border-color:var(--accent);}
 
 /* Vista marcada Etapa 1 */
 .etapa-doc-viewer{
-  font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:2;
+  font-family:'Outfit',sans-serif;font-size:13px;line-height:1.8;
   white-space:pre-wrap;word-break:break-word;
   max-height:420px;overflow-y:auto;
   background:var(--bg);border:1px solid var(--border);
-  border-radius:6px;padding:16px;
+  border-radius:8px;padding:16px;
   cursor:default;user-select:text;
 }
 .marca-eliminar{
@@ -694,7 +694,7 @@ textarea:focus{border-color:var(--accent);}
 .etapa-leyenda-item{display:flex;align-items:center;gap:5px;color:var(--text-dim);}
 .etapa-stats-bar{
   display:flex;gap:12px;flex-wrap:wrap;
-  font-size:11px;font-family:'IBM Plex Mono',monospace;
+  font-size:11px;font-family:'DM Mono',monospace;
   padding:7px 12px;background:var(--surface2);
   border:1px solid var(--border);border-radius:6px;margin-bottom:10px;
 }
@@ -735,6 +735,7 @@ textarea:focus{border-color:var(--accent);}
   <div class="logo"><div class="logo-dot"></div>LUMEN <span>PREP</span></div>
   <div class="header-right">
     <div class="header-status" id="header-status">Sin documento cargado</div>
+    <button id="btn-nuevo-doc" onclick="limpiarTodo()" style="display:none;background:none;border:1px solid var(--border2);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:11px;color:var(--text-dim);font-family:'Outfit',sans-serif;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text-dim)'">+ Nuevo documento</button>
     <button class="theme-btn" onclick="toggleTema()" id="theme-btn">🌙</button>
   </div>
 </header>
@@ -2236,6 +2237,8 @@ function deshacerProcesado(){
     problemasResueltos:snap.problemasResueltos,aprobado:false});
   actualizarStats();renderVista();renderDiff();renderEstructura();renderJSON();renderProblemas();
   document.getElementById('panel-top-bar')?.classList.remove('hidden');
+  const btnNuevo = document.getElementById('btn-nuevo-doc');
+  if(btnNuevo) btnNuevo.style.display = '';
   if(!state.snapshots.length)document.getElementById('undo-banner').classList.remove('visible');
   toast('Procesado deshecho','success');
 }
@@ -3296,8 +3299,10 @@ function limpiarTodo(){
   const vcEl = document.getElementById('vista-content');
   if(wsEl) wsEl.style.display = 'flex';
   if(vcEl){ vcEl.style.display = 'none'; vcEl.innerHTML = ''; }
-  // Ocultar tabs superiores
+  // Ocultar tabs superiores y btn nuevo
   document.getElementById('panel-top-bar')?.classList.add('hidden');
+  const btnN = document.getElementById('btn-nuevo-doc');
+  if(btnN) btnN.style.display = 'none';
   const em=`<div class="empty-state"><div class="empty-state-icon">📋</div><p>Carga un nuevo documento.</p></div>`;
   ['cambios','log','estructura','json','problemas','validacion'].forEach(t=>document.getElementById(`pane-${t}`).innerHTML=em);
   // Resetear badge log en sidebar
