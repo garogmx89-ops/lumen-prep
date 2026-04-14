@@ -2383,7 +2383,37 @@ async function enviarALumen(){
       fechaPublicacion: extraerFechaPublicacion(state.textoOriginal)||'',
       ultimaReforma:  extraerUltimaReforma(state.textoOriginal)||'',
       estado:         'borrador_lumenprep',
-      articulos:      output.contenido.filter(e=>e.tipo==='articulo'),
+      articulos: (() => {
+        let secActual = '';
+        let capActual = '';
+        return output.contenido
+          .filter(e => e.tipo === 'articulo' || e.tipo === 'seccion' || e.tipo === 'capitulo')
+          .reduce((arts, item) => {
+            if (item.tipo === 'seccion') {
+              // Los elementos tipo:seccion incluyen tanto TÍTULO X como CAPÍTULO X
+              // Detectar si es un título superior (TÍTULO, LIBRO, PARTE) o un capítulo
+              const texto = (item.contenido || '').trim().toUpperCase();
+              if (/^(TÍTULO|TITULO|LIBRO|PARTE|SECCIÓN|SECCION)\s/.test(texto)) {
+                secActual = item.contenido || '';
+                capActual = ''; // reset capítulo al cambiar de título
+              } else if (/^(CAP[IÍ]TULO|CAPÍTULO)\s/i.test(texto)) {
+                capActual = item.contenido || '';
+              } else {
+                // Encabezado ambiguo — asignar como sección si no hay sección aún
+                if (!secActual) secActual = item.contenido || '';
+                else capActual = item.contenido || '';
+              }
+            } else if (item.tipo === 'capitulo') {
+              capActual = item.contenido || item.titulo || '';
+            } else if (item.tipo === 'articulo') {
+              arts.push(Object.assign({}, item, {
+                seccion:  secActual,
+                capitulo: capActual
+              }));
+            }
+            return arts;
+          }, []);
+      })(),
       introduccion:   output.contenido.find(e=>e.tipo==='introduccion')||null,
       transitorios:   output.contenido.filter(e=>e.tipo==='transitorio'),
     firmas:        output.contenido.filter(e=>e.tipo==='firma'),
