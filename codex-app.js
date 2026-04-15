@@ -2385,30 +2385,32 @@ async function enviarALumen(){
       estado:         'borrador_lumenprep',
       articulos: (() => {
         let secActual = '';
+        let secSubtitulo = '';  // ej. "DE LAS DISPOSICIONES GENERALES"
         let capActual = '';
+        let capNombre = '';     // ej. "De los lineamientos"
         return output.contenido
           .filter(e => e.tipo === 'articulo' || e.tipo === 'seccion' || e.tipo === 'capitulo')
           .reduce((arts, item) => {
-            if (item.tipo === 'seccion') {
-              // Los elementos tipo:seccion incluyen tanto TÍTULO X como CAPÍTULO X
-              // Detectar si es un título superior (TÍTULO, LIBRO, PARTE) o un capítulo
-              const texto = (item.contenido || '').trim().toUpperCase();
-              if (/^(TÍTULO|TITULO|LIBRO|PARTE|SECCIÓN|SECCION)\s/.test(texto)) {
-                secActual = item.contenido || '';
-                capActual = ''; // reset capítulo al cambiar de título
-              } else if (/^(CAP[IÍ]TULO|CAPÍTULO)\s/i.test(texto)) {
-                capActual = item.contenido || '';
-              } else {
-                // Encabezado ambiguo — asignar como sección si no hay sección aún
-                if (!secActual) secActual = item.contenido || '';
-                else capActual = item.contenido || '';
-              }
-            } else if (item.tipo === 'capitulo') {
-              capActual = item.contenido || item.titulo || '';
+            if (item.tipo === 'seccion' || item.tipo === 'capitulo') {
+              const lineas = (item.contenido || '').split('\n')
+                .map(l => l.trim()).filter(Boolean);
+              lineas.forEach(l => {
+                if (/^(T[ÍI]TULO|TITULO|LIBRO|PARTE|SECCI[ÓO]N)\s/i.test(l)) {
+                  secActual = l; secSubtitulo = ''; capActual = ''; capNombre = '';
+                } else if (/^CAP[IÍ]TULO\s/i.test(l)) {
+                  capActual = l; capNombre = '';
+                } else {
+                  // Línea de subtítulo/nombre
+                  if (!capActual && secActual) secSubtitulo = secSubtitulo || l;
+                  else if (capActual) capNombre = capNombre || l;
+                }
+              });
             } else if (item.tipo === 'articulo') {
               arts.push(Object.assign({}, item, {
-                seccion:  secActual,
-                capitulo: capActual
+                seccion:           secActual,
+                seccion_subtitulo: secSubtitulo,
+                capitulo:          capActual,
+                capitulo_nombre:   capNombre
               }));
             }
             return arts;
