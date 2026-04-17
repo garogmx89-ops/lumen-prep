@@ -2336,7 +2336,7 @@ function construirOutputFinal(){
 function extraerTituloLey(estructura){
   const intro = estructura.find(e=>e.tipo==='introduccion');
   if(!intro) return null;
-  const match = (intro.contenido||'').match(/^(LEY(?:\s+[A-ZÁÉÍÓÚÜÑ]+)+)/m);
+  const match = (intro.contenido||'').match(/^(LEY(?:[ \t]+[A-ZÁÉÍÓÚÜÑ]+)+)/m);
   return match ? match[1].trim() : null;
 }
 
