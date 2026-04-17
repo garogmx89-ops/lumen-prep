@@ -2283,6 +2283,19 @@ function detectarCorteArticulo(item, siguiente){
 // SPRINT 3 — JSON CON ESTADOS JURÍDICOS
 // ════════════════════════════════════════════════════════════════
 
+// Helper: reconstruye el texto completo de una fracción incluyendo incisos
+// Codex genera fracciones con { fraccion, contenido } o { fraccion, incisos[], introduccion? }
+// cuando hay incisos, fi.contenido se elimina (línea ~525)
+function _textoFraccion(fr) {
+  if (fr.contenido) return fr.contenido.trim();
+  if (fr.texto)     return fr.texto.trim();
+  if (fr.incisos && fr.incisos.length) {
+    const intro = fr.introduccion ? fr.introduccion.trim() + '\n' : '';
+    return intro + fr.incisos.map(i => `  ${i.inciso} ${(i.contenido||'').trim()}`).join('\n');
+  }
+  return '';
+}
+
 function construirOutputFinal(){
   return {
     meta:{
@@ -2323,7 +2336,7 @@ function construirOutputFinal(){
 function extraerTituloLey(estructura){
   const intro = estructura.find(e=>e.tipo==='introduccion');
   if(!intro) return null;
-  const match = (intro.contenido||'').match(/^(LEY\s+[A-ZÁÉÍÓÚÜÑ\s]+)/m);
+  const match = (intro.contenido||'').match(/^(LEY(?:\s+[A-ZÁÉÍÓÚÜÑ]+)+)/m);
   return match ? match[1].trim() : null;
 }
 
@@ -2406,7 +2419,15 @@ async function enviarALumen(){
                 }
               });
             } else if (item.tipo === 'articulo') {
+              // Normalizar fracciones: si tienen incisos, reconstruir contenido
+              // para que _transformarArticulo en Lumen pueda leerlas correctamente
+              const fraccionesNorm = (item.fracciones || []).map(fr => ({
+                fraccion: fr.fraccion || fr.numero || '',
+                contenido: _textoFraccion(fr),
+                ...(fr.introduccion ? { introduccion: fr.introduccion } : {})
+              }));
               arts.push(Object.assign({}, item, {
+                fracciones:        fraccionesNorm,
                 seccion:           secActual,
                 seccion_subtitulo: secSubtitulo,
                 capitulo:          capActual,
@@ -2511,7 +2532,7 @@ function construirContextoAgente(){
     if(a.fracciones && a.fracciones.length){
       for(const f of a.fracciones){
         if(f.estado==='derogado') continue;
-        ctx += '  ' + f.fraccion + ' ' + (f.contenido||'') + '\n';
+        ctx += '  ' + f.fraccion + ' ' + _textoFraccion(f) + '\n';
       }
     } else if(a.contenido){ ctx += a.contenido + '\n'; }
     ctx += '\n';
