@@ -174,8 +174,7 @@ function renderDiff(){
     bCamb.className = 'nav-badge' + (borrados > 0 ? ' warn' : total > 0 ? '' : '');
     bCamb.style.display = total > 0 ? '' : 'none';
   }
-  // Badge sidebar Cambios
-  const bCamb = document.getElementById('nav-badge-cambios');
+}
 
 function toggleBloquesDiff(bi){
   const body  = document.getElementById(`diff-bloque-body-${bi}`);
