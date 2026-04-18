@@ -2406,6 +2406,16 @@ async function obtenerUidActual(){
 async function enviarALumen(){
   if(!state.aprobado){ toast('Aprueba el documento antes de enviarlo','error'); return; }
   if(!window._dbReady){ toast('Sin conexión a Firestore','error'); return; }
+
+  // ── C3-02: Modal de confirmación ────────────────────────────────
+  const titulo = extraerTituloLey(state.estructura) || state.perfilActivo?.nombre || 'Documento sin título';
+  const totalArts = state.estructura.filter(e=>e.tipo==='articulo').length;
+  const totalTrans = state.estructura.filter(e=>e.tipo==='transitorio').length;
+  const perfil = state.perfilActivo?.nombre || 'Genérico';
+  const ambito = state.perfilActivo?.ambito || '—';
+  const confirmado = await _mostrarModalConfirmacionEnvio({ titulo, totalArts, totalTrans, perfil, ambito });
+  if(!confirmado) return;
+
   const btn = document.getElementById('btn-enviar-lumen');
   if(btn){ btn.disabled=true; btn.textContent='⏳ Enviando...'; }
   try{
@@ -2419,6 +2429,7 @@ async function enviarALumen(){
       fechaPublicacion: extraerFechaPublicacion(state.textoOriginal)||'',
       ultimaReforma:  extraerUltimaReforma(state.textoOriginal)||'',
       estado:         'borrador_lumenprep',
+      perfilVersion:  state.perfilActivo?.version || '1.0',  // C1-03
       articulos: (() => {
         let secActual = '';
         let secSubtitulo = '';  // ej. "DE LAS DISPOSICIONES GENERALES"
@@ -2485,6 +2496,15 @@ async function enviarALumen(){
     // ── Auto-embed: indexar artículos en Vectorize ──────────────
     _embedNorma(normaId, docLumen);
 
+    // ── C1-06: Bitácora de operaciones ──────────────────────────
+    _registrarOperacion('envio_lumen', {
+      normaId,
+      titulo: docLumen.titulo,
+      perfil: docLumen.perfilVersion,
+      articulos: docLumen.articulos.length,
+      transitorios: docLumen.transitorios.length
+    });
+
   }catch(e){
     toast('Error al enviar: '+e.message,'error');
     logErr('Error al enviar a Lumen', e.message);
@@ -2530,8 +2550,18 @@ async function _embedNorma(normaId, docLumen) {
   const ambito = docLumen.ambito || 'Federal';
   const total  = articulos.length;
 
+  // ── C1-04: Marcar embedParcial antes de empezar ──────────────
+  try {
+    const uid = localStorage.getItem('lumenprep_uid');
+    const docRef = window._doc(window._db, `usuarios/${uid}/normatividad/${normaId}`);
+    await window._updateDoc(docRef, { embedParcial: true, embeddingGenerado: false });
+  } catch(e) { console.warn('[embed] No se pudo marcar embedParcial:', e.message); }
+
   logOk('Auto-embed iniciado', `${total} artículos a indexar`, normaId.slice(0,8));
   toast(`Indexando ${total} artículos en RAG…`, '');
+
+  // ── C3-01: Barra de progreso del embed ───────────────────────
+  _renderBarraProgreso(0, total, '');
 
   let indexados = 0;
   let errores   = 0;
@@ -2541,6 +2571,9 @@ async function _embedNorma(normaId, docLumen) {
     const artId   = art.id || `art_${i}`;
     const artNum  = art.articulo_original || art.numero || `Artículo ${i + 1}`;
     const tipo    = art.tipo || 'articulo';
+
+    // Actualizar barra de progreso
+    _renderBarraProgreso(i + 1, total, artNum);
 
     // Texto completo: preferir contenido estructurado
     let texto = '';
@@ -2590,11 +2623,14 @@ async function _embedNorma(normaId, docLumen) {
     }
   }
 
-  // Marcar en Firestore que el embedding fue generado
+  // Ocultar barra de progreso
+  _renderBarraProgreso(total, total, '', true);
+
+  // Marcar en Firestore que el embedding fue generado (quita embedParcial)
   try {
     const uid    = localStorage.getItem('lumenprep_uid');
     const docRef = window._doc(window._db, `usuarios/${uid}/normatividad/${normaId}`);
-    await window._updateDoc(docRef, { embeddingGenerado: true });
+    await window._updateDoc(docRef, { embeddingGenerado: true, embedParcial: false });
   } catch(e) {
     console.warn('[embed] No se pudo marcar embeddingGenerado:', e.message);
   }
@@ -2606,6 +2642,11 @@ async function _embedNorma(normaId, docLumen) {
   logOk('Auto-embed completado', msg, normaId.slice(0,8));
   renderLog();
   toast(msg, errores === 0 ? 'success' : '');
+
+  // ── C1-06: Bitácora — registrar embed ─────────────────────────
+  _registrarOperacion('embed_completado', {
+    normaId, norma, indexados, errores, total, ambito
+  });
 
   // Guardar resultado del embed en state para verificación RAG
   state.embedResult = {
@@ -2622,6 +2663,116 @@ async function _embedNorma(normaId, docLumen) {
   _verificarRAG(normaId, norma, ambito, total);
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// C3-02 — MODAL DE CONFIRMACIÓN ANTES DE ENVIAR A LUMEN
+// ════════════════════════════════════════════════════════════════
+function _mostrarModalConfirmacionEnvio({ titulo, totalArts, totalTrans, perfil, ambito }) {
+  return new Promise(resolve => {
+    // Eliminar modal anterior si existe
+    document.getElementById('modal-confirm-envio')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-confirm-envio';
+    modal.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;
+      display:flex;align-items:center;justify-content:center;padding:20px;`;
+    modal.innerHTML = `
+      <div style="background:var(--surface1);border:1px solid var(--border2);border-radius:12px;
+                  max-width:480px;width:100%;padding:0;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+        <div style="background:var(--surface2);padding:16px 20px;border-bottom:1px solid var(--border);">
+          <div style="font-weight:700;font-size:15px;color:var(--text);">🚀 Confirmar envío a Lumen</div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">Revisa los datos antes de continuar</div>
+        </div>
+        <div style="padding:18px 20px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr><td style="color:var(--text-faint);padding:5px 0;width:120px;">Título</td>
+                <td style="color:var(--text);font-weight:600;">${escHtml(titulo)}</td></tr>
+            <tr><td style="color:var(--text-faint);padding:5px 0;">Perfil</td>
+                <td style="color:var(--text);">${escHtml(perfil)}</td></tr>
+            <tr><td style="color:var(--text-faint);padding:5px 0;">Ámbito</td>
+                <td style="color:var(--text);">${escHtml(ambito)}</td></tr>
+            <tr><td style="color:var(--text-faint);padding:5px 0;">Artículos</td>
+                <td style="color:var(--ok);font-weight:600;">${totalArts}</td></tr>
+            <tr><td style="color:var(--text-faint);padding:5px 0;">Transitorios</td>
+                <td style="color:var(--text);">${totalTrans}</td></tr>
+          </table>
+          <div style="margin-top:14px;padding:10px 12px;background:var(--surface2);border-radius:6px;
+                      font-size:11px;color:var(--text-faint);border-left:3px solid var(--frac);">
+            ℹ️ Se creará un borrador en Lumen y se iniciará la indexación automática en el RAG.
+            Este proceso puede tardar varios minutos.
+          </div>
+        </div>
+        <div style="padding:12px 20px 18px;display:flex;gap:10px;justify-content:flex-end;">
+          <button id="btn-modal-cancelar" class="btn btn-ghost" style="min-width:90px;">Cancelar</button>
+          <button id="btn-modal-confirmar" class="btn btn-approve" style="min-width:120px;background:var(--frac);border-color:var(--frac);">
+            ✅ Confirmar envío
+          </button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('btn-modal-confirmar').onclick = () => { modal.remove(); resolve(true); };
+    document.getElementById('btn-modal-cancelar').onclick  = () => { modal.remove(); resolve(false); };
+    modal.addEventListener('click', e => { if(e.target === modal){ modal.remove(); resolve(false); } });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// C3-01 — BARRA DE PROGRESO DEL EMBED
+// ════════════════════════════════════════════════════════════════
+function _renderBarraProgreso(actual, total, artActual, finalizar = false) {
+  // Buscar o crear el contenedor de barra en la pestaña validación
+  let wrap = document.getElementById('embed-progress-wrap');
+  if (!wrap) {
+    // Intentar insertarla debajo del botón enviar
+    const ref = document.getElementById('lumen-send-result');
+    if (!ref) return;
+    wrap = document.createElement('div');
+    wrap.id = 'embed-progress-wrap';
+    wrap.style.cssText = 'margin-top:10px;';
+    ref.parentNode.insertBefore(wrap, ref.nextSibling);
+  }
+
+  if (finalizar || actual >= total) {
+    wrap.innerHTML = '';
+    return;
+  }
+
+  const pct = total > 0 ? Math.round((actual / total) * 100) : 0;
+  wrap.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:11px;color:var(--text-dim);font-weight:600;">⚙️ Indexando en RAG…</span>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-faint);">${actual} / ${total} (${pct}%)</span>
+      </div>
+      <div style="background:var(--surface3);border-radius:4px;height:6px;overflow:hidden;">
+        <div style="background:var(--frac);width:${pct}%;height:100%;border-radius:4px;
+                    transition:width .3s ease;"></div>
+      </div>
+      ${artActual ? `<div style="font-size:10px;color:var(--text-faint);margin-top:5px;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(artActual)}</div>` : ''}
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// C1-06 — BITÁCORA DE OPERACIONES EN FIRESTORE
+// ════════════════════════════════════════════════════════════════
+async function _registrarOperacion(tipo, datos = {}) {
+  try {
+    const uid = localStorage.getItem('lumenprep_uid');
+    if (!uid) return;
+    const col = window._collection(window._db, `usuarios/${uid}/operaciones`);
+    await window._addDoc(col, {
+      tipo,
+      datos,
+      fecha: new Date().toISOString(),
+      fuente: 'lumen_codex'
+    });
+  } catch(e) {
+    console.warn('[bitácora] No se pudo registrar operación:', e.message);
+  }
+}
 
 // ════════════════════════════════════════════════════════════════
 // VERIFICACIÓN RAG — cierre de ciclo post-embed
