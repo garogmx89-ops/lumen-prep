@@ -166,9 +166,6 @@ function renderDiff(){
       ${bloquesHtml}
     </div>
     <div id="diff-results-wrap" style="display:none;flex:1;overflow:hidden;"></div>`;
-  const tC=document.getElementById('tab-cambios');
-  if(borrados>0){tC.textContent=`Cambios (${borrados})`;tC.style.color='#f7c94f';}
-  else{tC.textContent='Cambios ✓';tC.style.color='var(--frac)';}
   // Badge sidebar Cambios
   const bCamb = document.getElementById('nav-badge-cambios');
   if(bCamb){
@@ -176,6 +173,12 @@ function renderDiff(){
     bCamb.textContent = total > 0 ? total : '';
     bCamb.className = 'nav-badge' + (borrados > 0 ? ' warn' : total > 0 ? '' : '');
     bCamb.style.display = total > 0 ? '' : 'none';
+  }
+  // Actualizar label del nav-item en sidebar
+  const navCamb = document.getElementById('nav-cambios');
+  if(navCamb){
+    const label = navCamb.childNodes[1];
+    if(label) label.textContent = borrados > 0 ? ` Cambios` : ` Cambios ✓`;
   }
 }
 
@@ -583,12 +586,59 @@ function parsear(texto,perfil){
       if(zonaOriginal)
         estructura.push({tipo:'transitorio', contenido:zonaOriginal, estado:'procedimental', instruccion_agente:'Transitorios originales de la ley. Determinan vigencia y derogaciones al momento de la publicación.'});
     }
-    // Zona de decretos de reforma: historial acumulado de modificaciones
+    // Zona de decretos de reforma: separar en decretos individuales (C1-05)
     if(zonaHistorial)
-      estructura.push({tipo:'decreto_historial', contenido:zonaHistorial, estado:'historial', instruccion_agente:'Historial de decretos de reforma. Contexto histórico de modificaciones. NO es norma vigente de la ley — NUNCA usar para interpretar el texto actual.'});
+      estructura.push(..._separarDecretosHistorial(zonaHistorial));
   }
   return estructura;
 }
+// ════════════════════════════════════════════════════════════════
+// C1-05 — SEPARAR decreto_historial EN DECRETOS INDIVIDUALES
+// Cada DECRETO por el que se… se convierte en un objeto con:
+//   tipo:'decreto_historial', numero, fecha, titulo, transitorios[]
+// ════════════════════════════════════════════════════════════════
+function _separarDecretosHistorial(zonaHistorial) {
+  const bloques = zonaHistorial
+    .split(/(?=\nDECRETO por el que se|\nDECRETO que |\nDECRETO del )/)
+    .map(b => b.trim()).filter(Boolean);
+
+  // Si no hay separaciones reconocibles, fallback al bloque monolítico
+  if (bloques.length <= 1) {
+    return [{
+      tipo: 'decreto_historial',
+      contenido: zonaHistorial,
+      estado: 'historial',
+      instruccion_agente: 'Historial de decretos de reforma. Contexto histórico de modificaciones. NO es norma vigente — NUNCA usar para interpretar el texto actual.'
+    }];
+  }
+
+  return bloques.map((bloque, idx) => {
+    // Extraer fecha de publicación DOF del bloque (ej. "DOF 15-01-2026")
+    const mFecha = bloque.match(/DOF\s+(\d{2}-\d{2}-\d{4})/i);
+    const fecha  = mFecha ? mFecha[1] : '';
+
+    // Título = primera línea no vacía
+    const titulo = bloque.split('\n').map(l=>l.trim()).find(l=>l.length>5) || `Decreto ${idx+1}`;
+
+    // Separar transitorios propios del decreto (líneas que empiecen con ARTÍCULO PRIMERO/ÚNICO/SEGUNDO…)
+    // del cuerpo del decreto
+    const mTrans = bloque.match(/\n((?:ARTÍCULO\s+(?:PRIMERO|ÚNICO|SEGUNDO|TERCERO|CUARTO|QUINTO|SEXTO|SÉPTIMO|OCTAVO|NOVENO|DÉCIMO)[.\s-][\s\S]*))$/i);
+    const transitorios = mTrans ? mTrans[1].trim() : '';
+    const cuerpo       = mTrans ? bloque.slice(0, bloque.length - transitorios.length).trim() : bloque;
+
+    return {
+      tipo:      'decreto_historial',
+      numero:    idx + 1,
+      fecha,
+      titulo:    titulo.slice(0, 120),
+      contenido: cuerpo,
+      transitorios: transitorios || null,
+      estado:    'historial',
+      instruccion_agente: `Decreto de reforma #${idx+1}${fecha ? ' (DOF '+fecha+')' : ''}. Contexto histórico — NO es norma vigente. Sus transitorios pueden establecer condiciones de vigencia o derogaciones específicas de esa reforma.`
+    };
+  });
+}
+
 function detectarProblemas(estructura){
   const p=[];
   const arts=estructura.filter(e=>e.tipo==='articulo');
@@ -1469,13 +1519,15 @@ function switchTab(tab){
   state.tabActiva=tab;
   ['vista','cambios','log','estructura','json','problemas','validacion'].forEach(t=>{
     document.getElementById(`pane-${t}`).style.display=t===tab?'':'none';
-    document.getElementById(`tab-${t}`).classList.toggle('active',t===tab);
     const navEl = document.getElementById(`nav-${t}`);
     if(navEl) navEl.classList.toggle('active', t===tab);
   });
-  // Mostrar panel-top si hay documento procesado
-  if(state.textoLimpio) document.getElementById('panel-top-bar')?.classList.remove('hidden');
-  // Re-renderizar módulos lazy si hay datos pero el pane fue reseteado
+  // Mostrar topbar de contexto si hay documento
+  if(state.textoLimpio){
+    document.getElementById('panel-top-bar')?.classList.remove('hidden');
+    _actualizarTopbarContexto();
+  }
+  // Re-renderizar módulos lazy
   if(state.textoLimpio){
     if(tab==='estructura' && state.estructura.length) renderEstructura();
     if(tab==='cambios') renderDiff();
@@ -1483,7 +1535,20 @@ function switchTab(tab){
     if(tab==='json') renderJSON();
     if(tab==='problemas') renderProblemas();
   }
-  if(tab==='validacion')renderValidacion();
+  if(tab==='validacion') renderValidacion();
+}
+
+// Actualiza el topbar con título y meta del documento activo
+function _actualizarTopbarContexto(){
+  const titulo = extraerTituloLey(state.estructura) || state.perfilActivo?.nombre || 'Documento';
+  const arts   = state.estructura.filter(e=>e.tipo==='articulo').length;
+  const perfil = state.perfilActivo?.nombre || '—';
+  const tab    = state.tabActiva || 'vista';
+  const tabLabel = {vista:'Vista',cambios:'Cambios',log:'Log',estructura:'Estructura',json:'JSON',problemas:'Problemas',validacion:'Validar'}[tab] || tab;
+  const tituloEl = document.getElementById('topbar-doc-titulo');
+  const metaEl   = document.getElementById('topbar-doc-meta');
+  if(tituloEl) tituloEl.textContent = titulo;
+  if(metaEl)   metaEl.textContent   = `${perfil} · ${arts} artículos · ${tabLabel}`;
 }
 function actualizarStats(){
   const arts=state.estructura.filter(e=>e.tipo==='articulo');
@@ -1524,12 +1589,9 @@ function limpiarTodo(){
   // Resetear badge log en sidebar
   const navBadgeLog = document.getElementById('nav-badge-log');
   if(navBadgeLog){ navBadgeLog.style.display='none'; navBadgeLog.textContent=''; }
-  const tL=document.getElementById('tab-log');
-  if(tL){ tL.textContent='Log'; tL.style.color=''; }
   document.getElementById('stats-section').style.display='none';
   document.getElementById('panel-badges').innerHTML='';
   document.getElementById('undo-banner').classList.remove('visible');
-  ['tab-cambios','tab-log'].forEach(id=>{document.getElementById(id).textContent=id==='tab-cambios'?'Cambios':'Log';document.getElementById(id).style.color='';});
   mostrarEstado('Sin documento cargado');toast('Limpiado','success');
 }
 function setLoading(on){document.getElementById('loading-bar').classList.toggle('active',on);document.getElementById('btn-procesar').disabled=on;}
@@ -2405,23 +2467,46 @@ async function obtenerUidActual(){
 
 // ════════════════════════════════════════════════════════════════
 // C2-01 — JERARQUÍA NORMATIVA
-// Infiere el nivel jerárquico de una norma según su perfil/tipo
 // ════════════════════════════════════════════════════════════════
 function _inferirJerarquia(perfil) {
   if (!perfil) return 5;
-  const nombre = (perfil.nombre || '').toLowerCase();
-  const tipo   = (perfil.tipo   || '').toLowerCase();
-  const origen = (perfil.origen || '').toLowerCase();
-  const combined = nombre + ' ' + tipo + ' ' + origen;
-
-  if (/constituci[oó]n/.test(combined))                        return 1;
+  const combined = ((perfil.nombre||'') + ' ' + (perfil.tipo||'') + ' ' + (perfil.origen||'')).toLowerCase();
+  if (/constituci[oó]n/.test(combined))                            return 1;
   if (/ley\s+(federal|general|orgánica|org.nica)/.test(combined)) return 2;
-  if (/ley\s/.test(combined) && !/reglamento/.test(combined))  return 2;
-  if (/reglamento/.test(combined))                             return 3;
-  if (/nom\b|norma\s+oficial/.test(combined))                  return 4;
-  if (/lineamiento|acuerdo|circular|criterio/.test(combined))  return 5;
-  if (/estatal|municipal|pog\b/.test(combined))                return 6;
-  return 5; // default: lineamiento/acuerdo
+  if (/ley\s/.test(combined) && !/reglamento/.test(combined))      return 2;
+  if (/reglamento/.test(combined))                                 return 3;
+  if (/nom\b|norma\s+oficial/.test(combined))                      return 4;
+  if (/lineamiento|acuerdo|circular|criterio/.test(combined))      return 5;
+  if (/estatal|municipal|pog\b/.test(combined))                    return 6;
+  return 5;
+}
+
+// ════════════════════════════════════════════════════════════════
+// C2-06 — INSTRUCCIÓN DE AGENTE ESPECÍFICA POR TIPO DE ARTÍCULO
+// ════════════════════════════════════════════════════════════════
+function _inferirInstruccionAgente(item) {
+  if (item.estado === 'derogado')
+    return 'Artículo DEROGADO. Solo usar como contexto histórico. NO aplicar como norma vigente.';
+  if (item.estado === 'reservado')
+    return 'Artículo RESERVADO. Contenido pendiente de determinar por el legislador.';
+  const txt = ((item.contenido || '') + ' ' + (item.introduccion || '')).toLowerCase();
+  if (/para efectos de|se entenderá por|se entiende por|para los efectos|se considera|concepto de/.test(txt))
+    return 'Artículo de DEFINICIONES. Usar para interpretar términos en otros artículos. Citar cuando la consulta involucre definir conceptos legales.';
+  if (/tiene por objeto|objeto de la (ley|presente)|ámbito de aplicación|aplicará a|regirá/.test(txt))
+    return 'Artículo de OBJETO O ÁMBITO. Define el alcance de la norma. Citar para determinar si la ley aplica a un caso específico.';
+  if (/corresponde a|atribuciones|competencia|facultades|funciones de|tendrá a su cargo/.test(txt))
+    return 'Artículo de ATRIBUCIONES. Define competencias de autoridades. Citar cuando la consulta sea sobre quién tiene facultad para actuar.';
+  if (/queda prohibido|se prohíbe|están obligados|deberán|tendrán la obligación|no podrán/.test(txt))
+    return 'Artículo de OBLIGACIONES o PROHIBICIONES. Aplicar directamente cuando la consulta sea sobre qué se debe hacer o qué está prohibido.';
+  if (/tienen derecho|podrán acceder|tendrán acceso|gozarán de|derecho a/.test(txt))
+    return 'Artículo de DERECHOS. Define beneficios o prerrogativas. Citar para consultas sobre elegibilidad o derechos de beneficiarios.';
+  if (/sanción|multa|infracción|se sancionará|responsabilidad administrativa/.test(txt))
+    return 'Artículo de SANCIONES. Aplicar cuando la consulta involucre consecuencias por incumplimiento.';
+  if (/procedimiento|trámite|requisitos|solicitud|plazo de|días hábiles/.test(txt))
+    return 'Artículo de PROCEDIMIENTO. Describe pasos, requisitos o plazos. Citar para consultas sobre cómo realizar una gestión.';
+  if (/recursos|financiamiento|presupuesto|fondos|subsidio|apoyo económico/.test(txt))
+    return 'Artículo de RECURSOS O FINANCIAMIENTO. Usar para consultas sobre fuentes de financiamiento o subsidios.';
+  return 'Artículo normativo vigente. Aplicar como fundamento legal cuando sea relevante para la consulta.';
 }
 
 async function enviarALumen(){
@@ -2476,18 +2561,20 @@ async function enviarALumen(){
               });
             } else if (item.tipo === 'articulo') {
               // Normalizar fracciones: si tienen incisos, reconstruir contenido
-              // para que _transformarArticulo en Lumen pueda leerlas correctamente
               const fraccionesNorm = (item.fracciones || []).map(fr => ({
                 fraccion: fr.fraccion || fr.numero || '',
                 contenido: _textoFraccion(fr),
                 ...(fr.introduccion ? { introduccion: fr.introduccion } : {})
               }));
+              // C2-06: instruccion_agente específica por contenido del artículo
+              const instruccion = _inferirInstruccionAgente(item);
               arts.push(Object.assign({}, item, {
                 fracciones:        fraccionesNorm,
                 seccion:           secActual,
                 seccion_subtitulo: secSubtitulo,
                 capitulo:          capActual,
-                capitulo_nombre:   capNombre
+                capitulo_nombre:   capNombre,
+                instruccion_agente: instruccion
               }));
             }
             return arts;
@@ -2496,7 +2583,7 @@ async function enviarALumen(){
       introduccion:   output.contenido.find(e=>e.tipo==='introduccion')||null,
       transitorios:   output.contenido.filter(e=>e.tipo==='transitorio'),
     firmas:        output.contenido.filter(e=>e.tipo==='firma'),
-    decreto_historial: output.contenido.find(e=>e.tipo==='decreto_historial')||null,
+    decreto_historial: output.contenido.filter(e=>e.tipo==='decreto_historial') || [],
       meta:           output.meta,
       hashContenido:  state.hashActual||'',
       temas:          state.temasGenerados||[],
@@ -2625,7 +2712,7 @@ async function _embedNorma(normaId, docLumen) {
             numero:     String(art.numero || ''),
             tipo,
             ambito,
-            texto:      texto.slice(0, 500)
+            texto:      texto.slice(0, 1500)
           }
         })
       });
