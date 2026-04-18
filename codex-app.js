@@ -526,6 +526,19 @@ function parsear(texto,perfil){
         }
         item.fracciones.push(fi);
       }
+      // Ensamblar contenido completo para RAG e indexación
+      let contenidoEnsamblado = item.introduccion ? item.introduccion + '\n' : '';
+      for(const fr of item.fracciones){
+        contenidoEnsamblado += '\n' + fr.fraccion + ' ';
+        if(fr.incisos && fr.incisos.length>0){
+          if(fr.introduccion) contenidoEnsamblado += fr.introduccion + '\n';
+          for(const inc of fr.incisos)
+            contenidoEnsamblado += '\n' + inc.inciso + ' ' + inc.contenido;
+        } else {
+          contenidoEnsamblado += (fr.contenido||'');
+        }
+      }
+      item.contenido = contenidoEnsamblado.trim();
     }else{item.contenido=resto;}
     estructura.push(item);
 
@@ -1620,108 +1633,6 @@ let etapaState = {textoPost1:'', cambios1:[], cambios2:[]};
 // Registro de fragmentos protegidos por el usuario
 let fragmentosProtegidos = new Set();
 
-// ── VALIDACIÓN DE INTEGRIDAD EN ETAPA 1 ────────────────────────────────────────
-// Compara el texto original del .docx contra el texto que quedará después de la
-// limpieza estructural (líneas marcadas para eliminar). Detecta si el perfil está
-// borrando texto normativo real, no solo encabezados/pie de página.
-function calcularIntegridadEtapa1(textoOriginal, lineasEliminar) {
-  const lineas = textoOriginal.split('\n');
-  const totalPalabras = contarPalabras(textoOriginal);
-
-  // Caso limpio: no se elimina nada
-  if (lineasEliminar.size === 0) {
-    return { modo: 'limpio', totalLineas: lineas.length, totalPalabras, lineasEliminadas: 0, palabrasEliminadas: 0, pct: 0 };
-  }
-
-  // Calcular palabras en las líneas que SÍ se van a eliminar
-  const textoEliminado = lineas
-    .filter((_, i) => lineasEliminar.has(i))
-    .join('\n');
-  const palabrasEliminadas = contarPalabras(textoEliminado);
-  const pct = totalPalabras > 0 ? Math.round((palabrasEliminadas / totalPalabras) * 100) : 0;
-
-  // Clasificar las líneas eliminadas: ¿parecen ruido o contenido normativo?
-  // Señales de contenido normativo: empieza con ARTÍCULO, contiene fracciones, etc.
-  const PATRON_NORMATIVO = /^(ARTÍCULO|Artículo|TÍTULO|CAPÍTULO|SECCIÓN|TRANSITORIO|PRIMERO|SEGUNDO|TERCERO)/i;
-  const lineasSospechosas = [...lineasEliminar]
-    .map(i => lineas[i] || '')
-    .filter(l => l.trim().length > 20 && PATRON_NORMATIVO.test(l.trim()));
-
-  return {
-    modo: 'conEliminaciones',
-    totalLineas: lineas.length,
-    totalPalabras,
-    lineasEliminadas: lineasEliminar.size,
-    palabrasEliminadas,
-    pct,
-    lineasSospechosas
-  };
-}
-
-function renderIntegridadEtapa1(resultado) {
-  const el = document.getElementById('etapa1-integridad');
-  if (!el) return;
-
-  // Caso sin eliminaciones: mensaje compacto positivo, sin ocupar espacio innecesario
-  if (resultado.modo === 'limpio') {
-    el.innerHTML = `
-      <div style="background:var(--ok-bg,#34c98a18);border:1px solid #34c98a55;border-left:3px solid var(--ok);
-                  border-radius:6px;padding:8px 14px;margin-bottom:8px;font-size:12px;
-                  display:flex;align-items:center;gap:8px;">
-        <span>✅</span>
-        <span style="color:var(--text-dim);">
-          <strong style="color:var(--ok);">Sin eliminaciones.</strong>
-          El perfil conserva el documento íntegro
-          (${resultado.totalPalabras.toLocaleString()} palabras · ${resultado.totalLineas.toLocaleString()} líneas).
-          Revisa la pestaña <strong>🗑 Texto eliminado</strong> para confirmarlo visualmente.
-        </span>
-      </div>`;
-    return;
-  }
-
-  // Caso con eliminaciones: semáforo basado en % de palabras eliminadas
-  // y alerta adicional si hay líneas que parecen contenido normativo
-  const UMBRAL_OK   = 3;  // hasta 3% eliminado es razonable (encabezados)
-  const UMBRAL_WARN = 10; // 3-10% merece revisión
-
-  const { pct, palabrasEliminadas, lineasEliminadas, totalPalabras, lineasSospechosas } = resultado;
-
-  let color, icono, label, desc;
-  if (pct <= UMBRAL_OK) {
-    color = 'var(--ok)'; icono = '✅';
-    label = 'Eliminación dentro de rango normal';
-    desc  = `Se eliminarán ${lineasEliminadas} línea(s) — ${palabrasEliminadas.toLocaleString()} palabras (${pct}% del total). Proporción consistente con encabezados y pie de página.`;
-  } else if (pct <= UMBRAL_WARN) {
-    color = 'var(--warn-text)'; icono = '⚠️';
-    label = 'Revisar texto eliminado';
-    desc  = `Se eliminarán ${lineasEliminadas} línea(s) — ${palabrasEliminadas.toLocaleString()} palabras (${pct}% del total). Revisa la pestaña 🗑 Texto eliminado antes de continuar.`;
-  } else {
-    color = 'var(--err-text)'; icono = '🔴';
-    label = 'Posible pérdida de contenido normativo';
-    desc  = `Se eliminarán ${lineasEliminadas} línea(s) — ${palabrasEliminadas.toLocaleString()} palabras (${pct}% del total). Porcentaje elevado. Revisa cuidadosamente antes de aprobar.`;
-  }
-
-  // Alerta adicional si hay líneas que parecen artículos o transitorios
-  const alertaSospechosas = lineasSospechosas.length > 0
-    ? `<div style="margin-top:8px;padding:6px 10px;background:var(--err-bg);border-radius:4px;font-size:11px;color:var(--err-text);">
-        ⚠ <strong>${lineasSospechosas.length} línea(s) eliminada(s) parecen contenido normativo:</strong>
-        ${lineasSospechosas.slice(0,3).map(l =>
-          `<div style="font-family:monospace;margin-top:3px;opacity:0.85;">"${escHtml(l.trim().substring(0,80))}${l.trim().length > 80 ? '…' : ''}"</div>`
-        ).join('')}
-      </div>`
-    : '';
-
-  el.innerHTML = `
-    <div style="background:${pct <= UMBRAL_OK ? 'var(--ok-bg,#34c98a18)' : pct <= UMBRAL_WARN ? '#f7c94f18' : 'var(--err-bg)'};
-                border:1px solid ${pct <= UMBRAL_OK ? '#34c98a55' : pct <= UMBRAL_WARN ? '#f7c94f55' : 'var(--err-border,#f8717155)'};
-                border-left:3px solid ${color};
-                border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:12px;">
-      <div style="font-weight:700;color:${color};margin-bottom:4px;">${icono} ${escHtml(label)}</div>
-      <div style="color:var(--text-dim);">${escHtml(desc)}</div>
-      ${alertaSospechosas}
-    </div>`;
-}
-
 function mostrarPreviewEtapa1(texto, perfil){
   // Calcular preview: qué líneas se van a eliminar, SIN ejecutar la limpieza todavía
   const preview = calcularPreviewEtapa1(texto, perfil);
@@ -1790,10 +1701,6 @@ function mostrarPreviewEtapa1(texto, perfil){
         </div>`).join('');
     }
   }
-
-  // ── Integridad de contenido ─────────────────────────────────
-  const integridadResult = calcularIntegridadEtapa1(texto, preview.lineasEliminar);
-  renderIntegridadEtapa1(integridadResult);
 
   // Mostrar vista marcada por defecto
   switchVistaEtapa('marcada');
@@ -2085,101 +1992,21 @@ function actualizarContadorProtegidos(){
 }
 
 function switchVistaEtapa(modo){
-  const marcada   = document.getElementById('vista-marcada-container');
-  const lista     = document.getElementById('vista-lista-container');
-  const eliminado = document.getElementById('vista-eliminado-container');
+  const marcada = document.getElementById('vista-marcada-container');
+  const lista = document.getElementById('vista-lista-container');
   const btnM = document.getElementById('btn-vista-marcada');
   const btnL = document.getElementById('btn-vista-lista');
-  const btnE = document.getElementById('btn-vista-eliminado');
-
-  // Ocultar todo
-  if(marcada)   marcada.style.display   = 'none';
-  if(lista)     lista.style.display     = 'none';
-  if(eliminado) eliminado.style.display = 'none';
-
-  // Reset botones
-  [btnM, btnL, btnE].forEach(b => {
-    if(b){ b.style.background=''; b.style.color=''; b.style.borderColor=''; }
-  });
-
-  // Activar el seleccionado
   if(modo === 'marcada'){
     if(marcada) marcada.style.display = '';
+    if(lista)   lista.style.display = 'none';
     if(btnM){btnM.style.background='var(--accent)';btnM.style.color='#fff';btnM.style.borderColor='var(--accent)';}
-  } else if(modo === 'lista'){
-    if(lista) lista.style.display = '';
+    if(btnL){btnL.style.background='';btnL.style.color='';btnL.style.borderColor='';}
+  } else {
+    if(marcada) marcada.style.display = 'none';
+    if(lista)   lista.style.display = '';
     if(btnL){btnL.style.background='var(--accent)';btnL.style.color='#fff';btnL.style.borderColor='var(--accent)';}
-  } else if(modo === 'eliminado'){
-    if(eliminado) eliminado.style.display = '';
-    if(btnE){btnE.style.background='var(--accent)';btnE.style.color='#fff';btnE.style.borderColor='var(--accent)';}
-    renderTextoEliminadoEtapa1();
+    if(btnM){btnM.style.background='';btnM.style.color='';btnM.style.borderColor='';}
   }
-}
-
-// Renderiza todas las líneas que serán eliminadas, agrupadas en bloques contiguos
-// con una línea de contexto antes y después para juzgar si es ruido o contenido real
-function renderTextoEliminadoEtapa1(){
-  const el = document.getElementById('etapa1-eliminado');
-  if(!el) return;
-
-  const texto = etapaState.textoOriginalEtapa1 || '';
-  const lineasEliminar = etapaState.previewLineasEliminar || new Set();
-  const lineas = texto.split('\n');
-
-  if(lineasEliminar.size === 0){
-    el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--ok);font-size:13px;">
-      ✅ No se eliminará ningún texto — el documento no tiene ruido estructural detectado.
-    </div>`;
-    return;
-  }
-
-  // Agrupar índices en bloques contiguos (tolerando 1 línea vacía de separación)
-  const indices = [...lineasEliminar].sort((a,b) => a-b);
-  const bloques = [];
-  let bloqueActual = [indices[0]];
-  for(let i = 1; i < indices.length; i++){
-    if(indices[i] <= indices[i-1] + 2){
-      bloqueActual.push(indices[i]);
-    } else {
-      bloques.push(bloqueActual);
-      bloqueActual = [indices[i]];
-    }
-  }
-  bloques.push(bloqueActual);
-
-  let html = `<div style="padding:8px 4px;font-size:11px;color:var(--text-faint);margin-bottom:8px;">
-    Se eliminarán <strong style="color:var(--err-text);">${lineasEliminar.size} línea(s)</strong>
-    en <strong>${bloques.length} bloque(s)</strong>.
-    El contexto en gris muestra las líneas adyacentes que <em>sí</em> se conservan.
-  </div>`;
-
-  bloques.forEach((bloque, bi) => {
-    const inicio = bloque[0];
-    const fin    = bloque[bloque.length - 1];
-
-    const ctxAntes = inicio > 0 && !lineasEliminar.has(inicio - 1)
-      ? `<div style="font-family:monospace;font-size:11px;color:var(--text-faint);padding:2px 8px;border-left:2px solid var(--surface3);opacity:0.6;">${escHtml(lineas[inicio - 1] || '')}</div>`
-      : '';
-
-    const lineasBloque = bloque.map(i =>
-      `<div style="font-family:monospace;font-size:11px;background:var(--err-bg);color:var(--err-text);
-        padding:3px 8px;border-left:3px solid var(--err-text,#f87171);text-decoration:line-through;
-        word-break:break-all;">${escHtml(lineas[i] || '(línea vacía)')}</div>`
-    ).join('');
-
-    const ctxDespues = fin < lineas.length - 1 && !lineasEliminar.has(fin + 1)
-      ? `<div style="font-family:monospace;font-size:11px;color:var(--text-faint);padding:2px 8px;border-left:2px solid var(--surface3);opacity:0.6;">${escHtml(lineas[fin + 1] || '')}</div>`
-      : '';
-
-    html += `<div style="border:1px solid var(--err-border,#f8717133);border-radius:6px;margin-bottom:10px;overflow:hidden;">
-      <div style="background:var(--surface2);padding:3px 10px;font-size:10px;color:var(--text-faint);border-bottom:1px solid var(--surface3);">
-        Bloque ${bi + 1} · línea${bloque.length > 1 ? 's' : ''} ${inicio + 1}${bloque.length > 1 ? '–' + (fin + 1) : ''}
-      </div>
-      ${ctxAntes}${lineasBloque}${ctxDespues}
-    </div>`;
-  });
-
-  el.innerHTML = html;
 }
 
 function cancelarEtapa1(){
