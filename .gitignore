@@ -67,3 +67,14 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# ── CREDENCIALES Y ARCHIVOS LOCALES — NUNCA SUBIR ─────────
+serviceAccount.json
+*.json.key
+
+# Wrangler / Cloudflare (contiene tokens de autenticación)
+.wrangler/
+
+# Archivos de trabajo local
+respuesta.txt
+indexar.mjs

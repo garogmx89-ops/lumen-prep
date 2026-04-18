@@ -2451,18 +2451,138 @@ async function enviarALumen(){
     const uid = await obtenerUidActual();
     if(!uid){ toast('No se detectó usuario — ingresa tu UID de Lumen','error'); return; }
     const colRef = window._collection(window._db, `usuarios/${uid}/normatividad`);
-    await window._addDoc(colRef, docLumen);
+    const docRef = await window._addDoc(colRef, docLumen);
+    const normaId = docRef.id;
     const el = document.getElementById('lumen-send-result');
     if(el){ el.textContent='✅ Borrador creado en Lumen: "'+docLumen.titulo+'"'; el.classList.add('visible'); }
     logOk('Enviado a Lumen','"'+docLumen.titulo+'"', uid.slice(0,8));
     renderLog();
     toast('Documento enviado a Lumen','success');
+
+    // ── Auto-embed: indexar artículos en Vectorize ──────────────
+    _embedNorma(normaId, docLumen);
+
   }catch(e){
     toast('Error al enviar: '+e.message,'error');
     logErr('Error al enviar a Lumen', e.message);
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='🚀 Enviar a Lumen como borrador'; }
   }
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUTO-EMBED — indexar artículos en Vectorize tras envío a Lumen
+// ════════════════════════════════════════════════════════════════
+async function _embedNorma(normaId, docLumen) {
+  const WORKER_URL   = 'https://lumen-briefing.garogmx89.workers.dev';
+  const LOTE         = 20;
+  const PAUSA_ART    = 1200;  // ms entre artículos
+  const PAUSA_LOTE   = 3000;  // ms entre lotes
+
+  const articulos = [
+    // Preámbulo si existe
+    ...(docLumen.introduccion ? [{
+      id:      'preambulo',
+      numero:  '_preambulo',
+      articulo_original: 'Artículo_preámbulo',
+      tipo:    'articulo',
+      texto:   (docLumen.introduccion.contenido || '').slice(0, 1000)
+    }] : []),
+    // Artículos normales
+    ...docLumen.articulos,
+    // Transitorios
+    ...docLumen.transitorios.map((t, i) => ({
+      ...t,
+      numero: t.numero || `T${i + 1}`,
+      tipo:   'transitorio'
+    }))
+  ].filter(a => {
+    const texto = a.contenido || a.introduccion || a.texto || '';
+    return texto.trim().length > 0;
+  });
+
+  if (!articulos.length) return;
+
+  const norma  = docLumen.titulo || 'Norma';
+  const ambito = docLumen.ambito || 'Federal';
+  const total  = articulos.length;
+
+  logOk('Auto-embed iniciado', `${total} artículos a indexar`, normaId.slice(0,8));
+  toast(`Indexando ${total} artículos en RAG…`, '');
+
+  let indexados = 0;
+  let errores   = 0;
+
+  for (let i = 0; i < articulos.length; i++) {
+    const art     = articulos[i];
+    const artId   = art.id || `art_${i}`;
+    const artNum  = art.articulo_original || art.numero || `Artículo ${i + 1}`;
+    const tipo    = art.tipo || 'articulo';
+
+    // Texto completo: preferir contenido estructurado
+    let texto = '';
+    if (art.introduccion) texto += art.introduccion + '\n';
+    if (art.fracciones && art.fracciones.length) {
+      art.fracciones.forEach(f => {
+        texto += (f.fraccion || f.numero || '') + ' ' + (f.contenido || f.txt || '') + '\n';
+      });
+    }
+    if (!texto.trim()) texto = art.contenido || art.texto || '';
+    texto = texto.replace(/§NOTA§[\s\S]*?§\/NOTA§/g, '').trim().slice(0, 1000);
+
+    if (!texto) { continue; }
+
+    try {
+      const res = await fetch(`${WORKER_URL}/embed`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:       `${normaId}_${artId}`,
+          text:     `${norma} — ${artNum}\n\n${texto}`,
+          metadata: {
+            normaId,
+            articuloId: artId,
+            norma:      norma.toUpperCase(),
+            articulo:   artNum,
+            numero:     String(art.numero || ''),
+            tipo,
+            ambito,
+            texto:      texto.slice(0, 500)
+          }
+        })
+      });
+      if (res.ok) { indexados++; }
+      else        { errores++; console.warn('[embed] Error HTTP', res.status, artNum); }
+    } catch(e) {
+      errores++;
+      console.warn('[embed] Error:', artNum, e.message);
+    }
+
+    // Pausa entre artículos
+    await new Promise(r => setTimeout(r, PAUSA_ART));
+
+    // Pausa extra entre lotes
+    if ((i + 1) % LOTE === 0 && i + 1 < articulos.length) {
+      await new Promise(r => setTimeout(r, PAUSA_LOTE));
+    }
+  }
+
+  // Marcar en Firestore que el embedding fue generado
+  try {
+    const uid    = localStorage.getItem('lumenprep_uid');
+    const docRef = window._doc(window._db, `usuarios/${uid}/normatividad/${normaId}`);
+    await window._updateDoc(docRef, { embeddingGenerado: true });
+  } catch(e) {
+    console.warn('[embed] No se pudo marcar embeddingGenerado:', e.message);
+  }
+
+  const msg = errores === 0
+    ? `✅ ${indexados} artículos indexados en RAG`
+    : `⚠ ${indexados} indexados, ${errores} errores`;
+
+  logOk('Auto-embed completado', msg, normaId.slice(0,8));
+  renderLog();
+  toast(msg, errores === 0 ? 'success' : '');
 }
 
 
