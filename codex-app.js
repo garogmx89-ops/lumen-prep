@@ -174,14 +174,8 @@ function renderDiff(){
     bCamb.className = 'nav-badge' + (borrados > 0 ? ' warn' : total > 0 ? '' : '');
     bCamb.style.display = total > 0 ? '' : 'none';
   }
-  // Actualizar label del nav-item en sidebar
-  const navCamb = document.getElementById('nav-cambios');
-  if(navCamb){
-    const label = navCamb.childNodes[1];
-    if(label) label.textContent = borrados > 0 ? ` Cambios` : ` Cambios ✓`;
-  }
-}
-
+  // Badge sidebar Cambios
+  const bCamb = document.getElementById('nav-badge-cambios');
 
 function toggleBloquesDiff(bi){
   const body  = document.getElementById(`diff-bloque-body-${bi}`);
@@ -709,9 +703,8 @@ function renderVista(){
   const vc = document.getElementById('vista-content');
   if(ws) ws.style.display = 'none';
   if(vc){ vc.style.display = ''; vc.innerHTML = _ayudaVista+`<div id="viewer">${t}</div>`; }
-  // Mostrar tabs superiores
+  // Mostrar topbar — la actualización de contexto la hace el llamador
   document.getElementById('panel-top-bar')?.classList.remove('hidden');
-  _actualizarTopbarContexto();
 }
 
 
@@ -1544,7 +1537,7 @@ function switchTab(tab){
 function _actualizarTopbarContexto(){
   const tituloEl = document.getElementById('topbar-doc-titulo');
   const metaEl   = document.getElementById('topbar-doc-meta');
-  if(!tituloEl || !metaEl) return; // elementos aún no en DOM
+  if(!tituloEl || !metaEl) return;
   const titulo = extraerTituloLey(state.estructura) || state.perfilActivo?.nombre || 'Documento';
   const arts   = state.estructura.filter(e=>e.tipo==='articulo').length;
   const perfil = state.perfilActivo?.nombre || '—';
