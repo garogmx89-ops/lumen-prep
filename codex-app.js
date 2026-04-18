@@ -1290,6 +1290,14 @@ async function renderValidacion(){
     </div>
   </div>`;
 
+  // Verificación RAG — se rellena por _renderRAGVerificacion() cuando el embed termina
+  html += `<div id="rag-verificacion-container">`;
+  // Si hay resultado previo en state, renderizarlo inline
+  if (state.ragVerificacion) {
+    // Se llenará cuando el DOM esté listo vía _renderRAGVerificacion()
+  }
+  html += `</div>`;
+
   if(state.aprobado){
     html+=`<div class="approve-box aprobado">
       <div class="aprobado-badge">✓ Documento aprobado</div>
@@ -1311,6 +1319,8 @@ async function renderValidacion(){
   }
   el.innerHTML=_ayudaVal+html;
   renderTemas();
+  // Rellenar verificación RAG si hay resultado en state
+  if(state.ragVerificacion) _renderRAGVerificacion();
 }
 
 function aprobarDocumento(){
@@ -2596,8 +2606,206 @@ async function _embedNorma(normaId, docLumen) {
   logOk('Auto-embed completado', msg, normaId.slice(0,8));
   renderLog();
   toast(msg, errores === 0 ? 'success' : '');
+
+  // Guardar resultado del embed en state para verificación RAG
+  state.embedResult = {
+    normaId,
+    norma,
+    ambito,
+    totalEsperados: total,
+    indexados,
+    errores,
+    fecha: new Date().toISOString()
+  };
+
+  // Lanzar verificación automática en segundo plano
+  _verificarRAG(normaId, norma, ambito, total);
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// VERIFICACIÓN RAG — cierre de ciclo post-embed
+// ════════════════════════════════════════════════════════════════
+async function _verificarRAG(normaId, norma, ambito, totalEsperados) {
+  const WORKER_URL = 'https://lumen-briefing.garogmx89.workers.dev';
+
+  // Resultado inicial (se actualizará con las tres verificaciones)
+  state.ragVerificacion = {
+    normaId, norma, ambito,
+    totalEsperados,
+    estado: 'verificando',
+    checks: []
+  };
+  // Actualizar UI si la pestaña validacion está visible
+  _renderRAGVerificacion();
+
+  const checks = [];
+
+  // ── Check 1: artículos en Firestore con contenido ──────────────────────────
+  try {
+    const uid    = localStorage.getItem('lumenprep_uid');
+    const col    = window._collection(window._db, `usuarios/${uid}/normatividad/${normaId}/articulos`);
+    const snap   = await window._getDocs(col);
+    let sinContenido = 0;
+    let breves = 0;
+    snap.forEach(doc => {
+      const d = doc.data();
+      const txt = d.contenido || d.introduccion || d.texto || '';
+      if (!txt.trim()) sinContenido++;
+      else if (txt.trim().length < 30) breves++;
+    });
+    const total = snap.size;
+    const ok    = sinContenido === 0;
+    checks.push({
+      id:    'firestore',
+      label: 'Artículos en Firestore',
+      ok,
+      valor: `${total - sinContenido}/${total} con contenido`,
+      detalle: sinContenido > 0
+        ? `⚠ ${sinContenido} artículo(s) sin contenido — re-procesa y re-envía`
+        : breves > 0
+          ? `ℹ ${breves} artículo(s) con contenido muy breve (<30 chars) — verifica`
+          : 'Todos los artículos tienen contenido completo',
+      warn: breves > 0 && sinContenido === 0
+    });
+  } catch(e) {
+    checks.push({ id:'firestore', label:'Artículos en Firestore', ok:false, valor:'Error', detalle: e.message });
+  }
+
+  // ── Check 2: búsqueda semántica de prueba ──────────────────────────────────
+  try {
+    // Elegir un fragmento representativo del artículo 1 para la prueba
+    const art1 = state.estructura.find(e => e.tipo === 'articulo' && /ARTÍCULO\s+1[.\-]/i.test(e.articulo));
+    const queryPrueba = art1
+      ? (art1.contenido || art1.introduccion || '').slice(0, 80).trim()
+      : `artículos ${norma}`;
+
+    const res  = await fetch(`${WORKER_URL}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: queryPrueba, topK: 3, ambito })
+    });
+    const data = await res.json();
+    const resultados = data.results || data.matches || [];
+    const encontro   = resultados.some(r =>
+      (r.metadata?.normaId === normaId) ||
+      (r.metadata?.norma || '').toUpperCase().includes(norma.toUpperCase().slice(0,10))
+    );
+    checks.push({
+      id:    'busqueda',
+      label: 'Búsqueda semántica de prueba',
+      ok:    encontro,
+      valor: encontro ? `${resultados.length} resultado(s)` : 'Sin resultados de esta norma',
+      detalle: encontro
+        ? `El agente encontró fragmentos de esta ley al consultar — indexación confirmada`
+        : `No se encontraron resultados para esta norma. Puede ser demora de Vectorize — intenta verificar de nuevo en 1 min`
+    });
+  } catch(e) {
+    checks.push({ id:'busqueda', label:'Búsqueda semántica de prueba', ok:false, valor:'Error', detalle: e.message });
+  }
+
+  // ── Check 3: cobertura de indexación ──────────────────────────────────────
+  const indexados   = state.embedResult?.indexados || 0;
+  const pctCobertura = totalEsperados > 0 ? Math.round((indexados / totalEsperados) * 100) : 0;
+  const coberturaOk  = pctCobertura >= 95;
+  checks.push({
+    id:    'cobertura',
+    label: 'Cobertura de indexación',
+    ok:    coberturaOk,
+    valor: `${indexados}/${totalEsperados} (${pctCobertura}%)`,
+    detalle: coberturaOk
+      ? 'Cobertura completa — todos los artículos fueron enviados a Vectorize'
+      : `${totalEsperados - indexados} artículo(s) no indexados — revisa errores en el log`
+  });
+
+  // ── Guardar resultado final ────────────────────────────────────────────────
+  const todoOk = checks.every(c => c.ok);
+  state.ragVerificacion = {
+    normaId, norma, ambito,
+    totalEsperados,
+    estado:   todoOk ? 'ok' : 'error',
+    checks,
+    fecha:    new Date().toISOString()
+  };
+
+  _renderRAGVerificacion();
+  renderLog();
+
+  if (todoOk) {
+    logOk('Verificación RAG completa', `${norma} — todos los checks pasaron`, '✅');
+    toast(`✅ Verificación RAG: ${norma} lista para consultas`, 'success');
+  } else {
+    const fallidos = checks.filter(c => !c.ok).length;
+    logWarn('Verificación RAG con problemas', `${fallidos} check(s) fallaron`, '⚠');
+    toast(`⚠ Verificación RAG: ${fallidos} problema(s) detectado(s)`, '');
+  }
+}
+
+function _renderRAGVerificacion() {
+  // Buscar el contenedor en el DOM — solo existe si la pestaña validación está visible
+  const el = document.getElementById('rag-verificacion-container');
+  if (!el) return;
+
+  const v = state.ragVerificacion;
+  if (!v) { el.innerHTML = ''; return; }
+
+  if (v.estado === 'verificando') {
+    el.innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--surface3);border-radius:8px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--text-dim);">
+          🔍 Verificando integridad RAG…
+        </div>
+        <div style="font-size:12px;color:var(--text-faint);">Consultando Firestore y Vectorize — esto toma unos segundos.</div>
+      </div>`;
+    return;
+  }
+
+  const { norma, checks, fecha, estado } = v;
+  const todoOk  = estado === 'ok';
+  const fechaFmt = fecha ? new Date(fecha).toLocaleString('es-MX') : '';
+
+  let html = `
+    <div style="border:1px solid ${todoOk ? '#34c98a55' : 'var(--err-border,#f8717155)'};
+                border-left:3px solid ${todoOk ? 'var(--ok)' : 'var(--err-text)'};
+                border-radius:8px;overflow:hidden;margin-bottom:12px;">
+      <div style="background:${todoOk ? 'var(--ok-bg,#34c98a18)' : 'var(--err-bg)'};
+                  padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <div>
+          <span style="font-weight:700;font-size:13px;color:${todoOk ? 'var(--ok)' : 'var(--err-text)'};">
+            ${todoOk ? '✅' : '⚠️'} Verificación RAG — ${escHtml(norma)}
+          </span>
+          ${fechaFmt ? `<span style="font-size:10px;color:var(--text-faint);margin-left:8px;">${fechaFmt}</span>` : ''}
+        </div>
+        <button class="btn btn-ghost" onclick="_relanzarVerificacionRAG()" 
+                style="font-size:10px;padding:3px 10px;">🔄 Re-verificar</button>
+      </div>`;
+
+  for (const c of checks) {
+    const color  = c.ok ? 'var(--ok)' : c.warn ? 'var(--warn-text)' : 'var(--err-text)';
+    const icono  = c.ok ? '✅' : c.warn ? '⚠️' : '❌';
+    html += `
+      <div style="padding:10px 16px;border-top:1px solid var(--surface3);display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:14px;margin-top:1px;">${icono}</span>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:600;color:var(--text-dim);">${escHtml(c.label)}</span>
+            <span style="font-size:11px;font-family:monospace;background:var(--surface2);
+                         color:${color};border-radius:3px;padding:1px 6px;">${escHtml(c.valor)}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:3px;">${escHtml(c.detalle)}</div>
+        </div>
+      </div>`;
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function _relanzarVerificacionRAG() {
+  const v = state.ragVerificacion;
+  if (!v) return;
+  _verificarRAG(v.normaId, v.norma, v.ambito, v.totalEsperados);
+}
 
 // ════════════════════════════════════════════════════════════════
 // SPRINT 5 — AGENTE IA / TEMAS
