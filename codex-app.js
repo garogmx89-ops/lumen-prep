@@ -1620,6 +1620,103 @@ let etapaState = {textoPost1:'', cambios1:[], cambios2:[]};
 // Registro de fragmentos protegidos por el usuario
 let fragmentosProtegidos = new Set();
 
+// ── VALIDACIÓN DE INTEGRIDAD EN ETAPA 1 ────────────────────────────────────────
+// Compara el texto original del .docx contra el texto que quedará después de la
+// limpieza estructural (líneas marcadas para eliminar). Detecta si el perfil está
+// borrando texto normativo real, no solo encabezados/pie de página.
+function calcularIntegridadEtapa1(textoOriginal, lineasEliminar) {
+  const N = 8; // palabras por fragmento
+  const PASO = 3; // analizar 1 de cada 3 (eficiencia)
+  const UMBRAL_OK = 97;
+  const UMBRAL_WARN = 90;
+
+  // Construir texto limpio: solo líneas que NO se van a eliminar
+  const lineas = textoOriginal.split('\n');
+  const textoLimpio = lineas
+    .filter((_, i) => !lineasEliminar.has(i))
+    .join(' ');
+
+  // Normalizar ambos textos para comparación
+  function norm(t) {
+    return t
+      .replace(/§NOTA§.*?§\/NOTA§/gs, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  const original = norm(textoOriginal);
+  const limpio   = norm(textoLimpio);
+
+  // Generar n-gramas del original
+  const palabras = original.split(/\s+/).filter(p => p.length > 2);
+  const ngramas = [];
+  for (let i = 0; i <= palabras.length - N; i += PASO) {
+    ngramas.push(palabras.slice(i, i + N).join(' '));
+  }
+
+  if (ngramas.length === 0) return { cobertura: 100, perdidos: [], total: 0 };
+
+  const perdidos = [];
+  let encontrados = 0;
+  for (const ng of ngramas) {
+    if (limpio.includes(ng)) encontrados++;
+    else perdidos.push(ng);
+  }
+
+  const cobertura = Math.round((encontrados / ngramas.length) * 100);
+  return { cobertura, perdidos, total: ngramas.length };
+}
+
+function renderIntegridadEtapa1(resultado) {
+  const el = document.getElementById('etapa1-integridad');
+  if (!el) return;
+
+  const { cobertura, perdidos, total } = resultado;
+  if (total === 0) { el.innerHTML = ''; return; }
+
+  const UMBRAL_OK   = 97;
+  const UMBRAL_WARN = 90;
+
+  let color, icono, label, desc;
+  if (cobertura >= UMBRAL_OK) {
+    color = 'var(--ok)'; icono = '✅';
+    label = 'Integridad verificada';
+    desc  = `El perfil no elimina texto normativo relevante (${cobertura}% de fragmentos conservados).`;
+  } else if (cobertura >= UMBRAL_WARN) {
+    color = 'var(--warn-text)'; icono = '⚠️';
+    label = 'Revisar limpieza';
+    desc  = `${cobertura}% de fragmentos conservados. Algunos textos podrían perderse — revisa las líneas marcadas.`;
+  } else {
+    color = 'var(--err-text)'; icono = '🔴';
+    label = 'Posible pérdida de contenido';
+    desc  = `Solo ${cobertura}% de fragmentos conservados. El perfil puede estar eliminando texto normativo. Revisa antes de continuar.`;
+  }
+
+  // Muestra hasta 5 ejemplos de fragmentos no encontrados
+  const ejemplos = perdidos.slice(0, 5);
+  const masInfo  = perdidos.length > 5
+    ? `<div style="font-size:10px;color:var(--text-faint);margin-top:4px;">...y ${perdidos.length - 5} fragmentos más no encontrados</div>`
+    : '';
+  const listaEjemplos = ejemplos.length > 0
+    ? `<div style="margin-top:8px;font-size:11px;color:var(--text-faint);">
+        <div style="margin-bottom:4px;font-weight:600;">Fragmentos no encontrados (muestra):</div>
+        ${ejemplos.map(e => `<div style="font-family:monospace;background:var(--surface2);border-radius:3px;padding:2px 6px;margin-bottom:2px;color:var(--err-text);">"${escHtml(e)}"</div>`).join('')}
+        ${masInfo}
+       </div>`
+    : '';
+
+  el.innerHTML = `
+    <div style="background:${cobertura >= UMBRAL_OK ? 'var(--ok-bg,#34c98a18)' : cobertura >= UMBRAL_WARN ? '#f7c94f18' : 'var(--err-bg)'};
+                border:1px solid ${cobertura >= UMBRAL_OK ? '#34c98a55' : cobertura >= UMBRAL_WARN ? '#f7c94f55' : 'var(--err-border,#f8717155)'};
+                border-left:3px solid ${color};
+                border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:12px;">
+      <div style="font-weight:700;color:${color};margin-bottom:4px;">${icono} ${escHtml(label)}</div>
+      <div style="color:var(--text-dim);">${escHtml(desc)}</div>
+      ${listaEjemplos}
+    </div>`;
+}
+
 function mostrarPreviewEtapa1(texto, perfil){
   // Calcular preview: qué líneas se van a eliminar, SIN ejecutar la limpieza todavía
   const preview = calcularPreviewEtapa1(texto, perfil);
@@ -1688,6 +1785,10 @@ function mostrarPreviewEtapa1(texto, perfil){
         </div>`).join('');
     }
   }
+
+  // ── Integridad de contenido ─────────────────────────────────
+  const integridadResult = calcularIntegridadEtapa1(texto, preview.lineasEliminar);
+  renderIntegridadEtapa1(integridadResult);
 
   // Mostrar vista marcada por defecto
   switchVistaEtapa('marcada');
@@ -1979,21 +2080,101 @@ function actualizarContadorProtegidos(){
 }
 
 function switchVistaEtapa(modo){
-  const marcada = document.getElementById('vista-marcada-container');
-  const lista = document.getElementById('vista-lista-container');
+  const marcada   = document.getElementById('vista-marcada-container');
+  const lista     = document.getElementById('vista-lista-container');
+  const eliminado = document.getElementById('vista-eliminado-container');
   const btnM = document.getElementById('btn-vista-marcada');
   const btnL = document.getElementById('btn-vista-lista');
+  const btnE = document.getElementById('btn-vista-eliminado');
+
+  // Ocultar todo
+  if(marcada)   marcada.style.display   = 'none';
+  if(lista)     lista.style.display     = 'none';
+  if(eliminado) eliminado.style.display = 'none';
+
+  // Reset botones
+  [btnM, btnL, btnE].forEach(b => {
+    if(b){ b.style.background=''; b.style.color=''; b.style.borderColor=''; }
+  });
+
+  // Activar el seleccionado
   if(modo === 'marcada'){
     if(marcada) marcada.style.display = '';
-    if(lista)   lista.style.display = 'none';
     if(btnM){btnM.style.background='var(--accent)';btnM.style.color='#fff';btnM.style.borderColor='var(--accent)';}
-    if(btnL){btnL.style.background='';btnL.style.color='';btnL.style.borderColor='';}
-  } else {
-    if(marcada) marcada.style.display = 'none';
-    if(lista)   lista.style.display = '';
+  } else if(modo === 'lista'){
+    if(lista) lista.style.display = '';
     if(btnL){btnL.style.background='var(--accent)';btnL.style.color='#fff';btnL.style.borderColor='var(--accent)';}
-    if(btnM){btnM.style.background='';btnM.style.color='';btnM.style.borderColor='';}
+  } else if(modo === 'eliminado'){
+    if(eliminado) eliminado.style.display = '';
+    if(btnE){btnE.style.background='var(--accent)';btnE.style.color='#fff';btnE.style.borderColor='var(--accent)';}
+    renderTextoEliminadoEtapa1();
   }
+}
+
+// Renderiza todas las líneas que serán eliminadas, agrupadas en bloques contiguos
+// con una línea de contexto antes y después para juzgar si es ruido o contenido real
+function renderTextoEliminadoEtapa1(){
+  const el = document.getElementById('etapa1-eliminado');
+  if(!el) return;
+
+  const texto = etapaState.textoOriginalEtapa1 || '';
+  const lineasEliminar = etapaState.previewLineasEliminar || new Set();
+  const lineas = texto.split('\n');
+
+  if(lineasEliminar.size === 0){
+    el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--ok);font-size:13px;">
+      ✅ No se eliminará ningún texto — el documento no tiene ruido estructural detectado.
+    </div>`;
+    return;
+  }
+
+  // Agrupar índices en bloques contiguos (tolerando 1 línea vacía de separación)
+  const indices = [...lineasEliminar].sort((a,b) => a-b);
+  const bloques = [];
+  let bloqueActual = [indices[0]];
+  for(let i = 1; i < indices.length; i++){
+    if(indices[i] <= indices[i-1] + 2){
+      bloqueActual.push(indices[i]);
+    } else {
+      bloques.push(bloqueActual);
+      bloqueActual = [indices[i]];
+    }
+  }
+  bloques.push(bloqueActual);
+
+  let html = `<div style="padding:8px 4px;font-size:11px;color:var(--text-faint);margin-bottom:8px;">
+    Se eliminarán <strong style="color:var(--err-text);">${lineasEliminar.size} línea(s)</strong>
+    en <strong>${bloques.length} bloque(s)</strong>.
+    El contexto en gris muestra las líneas adyacentes que <em>sí</em> se conservan.
+  </div>`;
+
+  bloques.forEach((bloque, bi) => {
+    const inicio = bloque[0];
+    const fin    = bloque[bloque.length - 1];
+
+    const ctxAntes = inicio > 0 && !lineasEliminar.has(inicio - 1)
+      ? `<div style="font-family:monospace;font-size:11px;color:var(--text-faint);padding:2px 8px;border-left:2px solid var(--surface3);opacity:0.6;">${escHtml(lineas[inicio - 1] || '')}</div>`
+      : '';
+
+    const lineasBloque = bloque.map(i =>
+      `<div style="font-family:monospace;font-size:11px;background:var(--err-bg);color:var(--err-text);
+        padding:3px 8px;border-left:3px solid var(--err-text,#f87171);text-decoration:line-through;
+        word-break:break-all;">${escHtml(lineas[i] || '(línea vacía)')}</div>`
+    ).join('');
+
+    const ctxDespues = fin < lineas.length - 1 && !lineasEliminar.has(fin + 1)
+      ? `<div style="font-family:monospace;font-size:11px;color:var(--text-faint);padding:2px 8px;border-left:2px solid var(--surface3);opacity:0.6;">${escHtml(lineas[fin + 1] || '')}</div>`
+      : '';
+
+    html += `<div style="border:1px solid var(--err-border,#f8717133);border-radius:6px;margin-bottom:10px;overflow:hidden;">
+      <div style="background:var(--surface2);padding:3px 10px;font-size:10px;color:var(--text-faint);border-bottom:1px solid var(--surface3);">
+        Bloque ${bi + 1} · línea${bloque.length > 1 ? 's' : ''} ${inicio + 1}${bloque.length > 1 ? '–' + (fin + 1) : ''}
+      </div>
+      ${ctxAntes}${lineasBloque}${ctxDespues}
+    </div>`;
+  });
+
+  el.innerHTML = html;
 }
 
 function cancelarEtapa1(){

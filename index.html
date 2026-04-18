@@ -1175,6 +1175,7 @@ textarea:focus{border-color:var(--accent);}
       <div style="display:flex;gap:6px;">
         <button class="btn btn-ghost" id="btn-vista-marcada" onclick="switchVistaEtapa('marcada')" style="font-size:11px;background:var(--accent);color:#fff;border-color:var(--accent);">📄 Vista marcada</button>
         <button class="btn btn-ghost" id="btn-vista-lista" onclick="switchVistaEtapa('lista')" style="font-size:11px;">📋 Lista de cambios</button>
+        <button class="btn btn-ghost" id="btn-vista-eliminado" onclick="switchVistaEtapa('eliminado')" style="font-size:11px;">🗑 Texto eliminado</button>
       </div>
     </div>
     <div class="etapa-desc" style="margin-bottom:12px;">
@@ -1191,6 +1192,9 @@ textarea:focus{border-color:var(--accent);}
     <!-- ALERTAS DE COMPATIBILIDAD CON PERFIL -->
     <div id="etapa1-alertas-perfil"></div>
 
+    <!-- INTEGRIDAD DE CONTENIDO -->
+    <div id="etapa1-integridad"></div>
+
     <!-- VISTA MARCADA -->
     <div id="vista-marcada-container">
       <div class="etapa-leyenda">
@@ -1204,6 +1208,11 @@ textarea:focus{border-color:var(--accent);}
     <!-- VISTA LISTA (oculta por defecto) -->
     <div id="vista-lista-container" style="display:none;">
       <div class="etapa-cambios" id="etapa1-cambios"></div>
+    </div>
+
+    <!-- VISTA TEXTO ELIMINADO (oculta por defecto) -->
+    <div id="vista-eliminado-container" style="display:none;">
+      <div class="etapa-doc-viewer" id="etapa1-eliminado"></div>
     </div>
 
     <div class="etapa-footer">
