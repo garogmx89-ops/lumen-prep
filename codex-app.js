@@ -2403,6 +2403,27 @@ async function obtenerUidActual(){
   });
 }
 
+// ════════════════════════════════════════════════════════════════
+// C2-01 — JERARQUÍA NORMATIVA
+// Infiere el nivel jerárquico de una norma según su perfil/tipo
+// ════════════════════════════════════════════════════════════════
+function _inferirJerarquia(perfil) {
+  if (!perfil) return 5;
+  const nombre = (perfil.nombre || '').toLowerCase();
+  const tipo   = (perfil.tipo   || '').toLowerCase();
+  const origen = (perfil.origen || '').toLowerCase();
+  const combined = nombre + ' ' + tipo + ' ' + origen;
+
+  if (/constituci[oó]n/.test(combined))                        return 1;
+  if (/ley\s+(federal|general|orgánica|org.nica)/.test(combined)) return 2;
+  if (/ley\s/.test(combined) && !/reglamento/.test(combined))  return 2;
+  if (/reglamento/.test(combined))                             return 3;
+  if (/nom\b|norma\s+oficial/.test(combined))                  return 4;
+  if (/lineamiento|acuerdo|circular|criterio/.test(combined))  return 5;
+  if (/estatal|municipal|pog\b/.test(combined))                return 6;
+  return 5; // default: lineamiento/acuerdo
+}
+
 async function enviarALumen(){
   if(!state.aprobado){ toast('Aprueba el documento antes de enviarlo','error'); return; }
   if(!window._dbReady){ toast('Sin conexión a Firestore','error'); return; }
@@ -2430,6 +2451,7 @@ async function enviarALumen(){
       ultimaReforma:  extraerUltimaReforma(state.textoOriginal)||'',
       estado:         'borrador_lumenprep',
       perfilVersion:  state.perfilActivo?.version || '1.0',  // C1-03
+      jerarquia:      _inferirJerarquia(state.perfilActivo),  // C2-01
       articulos: (() => {
         let secActual = '';
         let secSubtitulo = '';  // ej. "DE LAS DISPOSICIONES GENERALES"
