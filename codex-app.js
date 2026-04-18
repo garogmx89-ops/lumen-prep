@@ -1625,95 +1625,100 @@ let fragmentosProtegidos = new Set();
 // limpieza estructural (líneas marcadas para eliminar). Detecta si el perfil está
 // borrando texto normativo real, no solo encabezados/pie de página.
 function calcularIntegridadEtapa1(textoOriginal, lineasEliminar) {
-  const N = 8; // palabras por fragmento
-  const PASO = 3; // analizar 1 de cada 3 (eficiencia)
-  const UMBRAL_OK = 97;
-  const UMBRAL_WARN = 90;
-
-  // Construir texto limpio: solo líneas que NO se van a eliminar
   const lineas = textoOriginal.split('\n');
-  const textoLimpio = lineas
-    .filter((_, i) => !lineasEliminar.has(i))
-    .join(' ');
+  const totalPalabras = contarPalabras(textoOriginal);
 
-  // Normalizar ambos textos para comparación
-  function norm(t) {
-    return t
-      .replace(/§NOTA§.*?§\/NOTA§/gs, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
+  // Caso limpio: no se elimina nada
+  if (lineasEliminar.size === 0) {
+    return { modo: 'limpio', totalLineas: lineas.length, totalPalabras, lineasEliminadas: 0, palabrasEliminadas: 0, pct: 0 };
   }
 
-  const original = norm(textoOriginal);
-  const limpio   = norm(textoLimpio);
+  // Calcular palabras en las líneas que SÍ se van a eliminar
+  const textoEliminado = lineas
+    .filter((_, i) => lineasEliminar.has(i))
+    .join('\n');
+  const palabrasEliminadas = contarPalabras(textoEliminado);
+  const pct = totalPalabras > 0 ? Math.round((palabrasEliminadas / totalPalabras) * 100) : 0;
 
-  // Generar n-gramas del original
-  const palabras = original.split(/\s+/).filter(p => p.length > 2);
-  const ngramas = [];
-  for (let i = 0; i <= palabras.length - N; i += PASO) {
-    ngramas.push(palabras.slice(i, i + N).join(' '));
-  }
+  // Clasificar las líneas eliminadas: ¿parecen ruido o contenido normativo?
+  // Señales de contenido normativo: empieza con ARTÍCULO, contiene fracciones, etc.
+  const PATRON_NORMATIVO = /^(ARTÍCULO|Artículo|TÍTULO|CAPÍTULO|SECCIÓN|TRANSITORIO|PRIMERO|SEGUNDO|TERCERO)/i;
+  const lineasSospechosas = [...lineasEliminar]
+    .map(i => lineas[i] || '')
+    .filter(l => l.trim().length > 20 && PATRON_NORMATIVO.test(l.trim()));
 
-  if (ngramas.length === 0) return { cobertura: 100, perdidos: [], total: 0 };
-
-  const perdidos = [];
-  let encontrados = 0;
-  for (const ng of ngramas) {
-    if (limpio.includes(ng)) encontrados++;
-    else perdidos.push(ng);
-  }
-
-  const cobertura = Math.round((encontrados / ngramas.length) * 100);
-  return { cobertura, perdidos, total: ngramas.length };
+  return {
+    modo: 'conEliminaciones',
+    totalLineas: lineas.length,
+    totalPalabras,
+    lineasEliminadas: lineasEliminar.size,
+    palabrasEliminadas,
+    pct,
+    lineasSospechosas
+  };
 }
 
 function renderIntegridadEtapa1(resultado) {
   const el = document.getElementById('etapa1-integridad');
   if (!el) return;
 
-  const { cobertura, perdidos, total } = resultado;
-  if (total === 0) { el.innerHTML = ''; return; }
-
-  const UMBRAL_OK   = 97;
-  const UMBRAL_WARN = 90;
-
-  let color, icono, label, desc;
-  if (cobertura >= UMBRAL_OK) {
-    color = 'var(--ok)'; icono = '✅';
-    label = 'Integridad verificada';
-    desc  = `El perfil no elimina texto normativo relevante (${cobertura}% de fragmentos conservados).`;
-  } else if (cobertura >= UMBRAL_WARN) {
-    color = 'var(--warn-text)'; icono = '⚠️';
-    label = 'Revisar limpieza';
-    desc  = `${cobertura}% de fragmentos conservados. Algunos textos podrían perderse — revisa las líneas marcadas.`;
-  } else {
-    color = 'var(--err-text)'; icono = '🔴';
-    label = 'Posible pérdida de contenido';
-    desc  = `Solo ${cobertura}% de fragmentos conservados. El perfil puede estar eliminando texto normativo. Revisa antes de continuar.`;
+  // Caso sin eliminaciones: mensaje compacto positivo, sin ocupar espacio innecesario
+  if (resultado.modo === 'limpio') {
+    el.innerHTML = `
+      <div style="background:var(--ok-bg,#34c98a18);border:1px solid #34c98a55;border-left:3px solid var(--ok);
+                  border-radius:6px;padding:8px 14px;margin-bottom:8px;font-size:12px;
+                  display:flex;align-items:center;gap:8px;">
+        <span>✅</span>
+        <span style="color:var(--text-dim);">
+          <strong style="color:var(--ok);">Sin eliminaciones.</strong>
+          El perfil conserva el documento íntegro
+          (${resultado.totalPalabras.toLocaleString()} palabras · ${resultado.totalLineas.toLocaleString()} líneas).
+          Revisa la pestaña <strong>🗑 Texto eliminado</strong> para confirmarlo visualmente.
+        </span>
+      </div>`;
+    return;
   }
 
-  // Muestra hasta 5 ejemplos de fragmentos no encontrados
-  const ejemplos = perdidos.slice(0, 5);
-  const masInfo  = perdidos.length > 5
-    ? `<div style="font-size:10px;color:var(--text-faint);margin-top:4px;">...y ${perdidos.length - 5} fragmentos más no encontrados</div>`
-    : '';
-  const listaEjemplos = ejemplos.length > 0
-    ? `<div style="margin-top:8px;font-size:11px;color:var(--text-faint);">
-        <div style="margin-bottom:4px;font-weight:600;">Fragmentos no encontrados (muestra):</div>
-        ${ejemplos.map(e => `<div style="font-family:monospace;background:var(--surface2);border-radius:3px;padding:2px 6px;margin-bottom:2px;color:var(--err-text);">"${escHtml(e)}"</div>`).join('')}
-        ${masInfo}
-       </div>`
+  // Caso con eliminaciones: semáforo basado en % de palabras eliminadas
+  // y alerta adicional si hay líneas que parecen contenido normativo
+  const UMBRAL_OK   = 3;  // hasta 3% eliminado es razonable (encabezados)
+  const UMBRAL_WARN = 10; // 3-10% merece revisión
+
+  const { pct, palabrasEliminadas, lineasEliminadas, totalPalabras, lineasSospechosas } = resultado;
+
+  let color, icono, label, desc;
+  if (pct <= UMBRAL_OK) {
+    color = 'var(--ok)'; icono = '✅';
+    label = 'Eliminación dentro de rango normal';
+    desc  = `Se eliminarán ${lineasEliminadas} línea(s) — ${palabrasEliminadas.toLocaleString()} palabras (${pct}% del total). Proporción consistente con encabezados y pie de página.`;
+  } else if (pct <= UMBRAL_WARN) {
+    color = 'var(--warn-text)'; icono = '⚠️';
+    label = 'Revisar texto eliminado';
+    desc  = `Se eliminarán ${lineasEliminadas} línea(s) — ${palabrasEliminadas.toLocaleString()} palabras (${pct}% del total). Revisa la pestaña 🗑 Texto eliminado antes de continuar.`;
+  } else {
+    color = 'var(--err-text)'; icono = '🔴';
+    label = 'Posible pérdida de contenido normativo';
+    desc  = `Se eliminarán ${lineasEliminadas} línea(s) — ${palabrasEliminadas.toLocaleString()} palabras (${pct}% del total). Porcentaje elevado. Revisa cuidadosamente antes de aprobar.`;
+  }
+
+  // Alerta adicional si hay líneas que parecen artículos o transitorios
+  const alertaSospechosas = lineasSospechosas.length > 0
+    ? `<div style="margin-top:8px;padding:6px 10px;background:var(--err-bg);border-radius:4px;font-size:11px;color:var(--err-text);">
+        ⚠ <strong>${lineasSospechosas.length} línea(s) eliminada(s) parecen contenido normativo:</strong>
+        ${lineasSospechosas.slice(0,3).map(l =>
+          `<div style="font-family:monospace;margin-top:3px;opacity:0.85;">"${escHtml(l.trim().substring(0,80))}${l.trim().length > 80 ? '…' : ''}"</div>`
+        ).join('')}
+      </div>`
     : '';
 
   el.innerHTML = `
-    <div style="background:${cobertura >= UMBRAL_OK ? 'var(--ok-bg,#34c98a18)' : cobertura >= UMBRAL_WARN ? '#f7c94f18' : 'var(--err-bg)'};
-                border:1px solid ${cobertura >= UMBRAL_OK ? '#34c98a55' : cobertura >= UMBRAL_WARN ? '#f7c94f55' : 'var(--err-border,#f8717155)'};
+    <div style="background:${pct <= UMBRAL_OK ? 'var(--ok-bg,#34c98a18)' : pct <= UMBRAL_WARN ? '#f7c94f18' : 'var(--err-bg)'};
+                border:1px solid ${pct <= UMBRAL_OK ? '#34c98a55' : pct <= UMBRAL_WARN ? '#f7c94f55' : 'var(--err-border,#f8717155)'};
                 border-left:3px solid ${color};
                 border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:12px;">
       <div style="font-weight:700;color:${color};margin-bottom:4px;">${icono} ${escHtml(label)}</div>
       <div style="color:var(--text-dim);">${escHtml(desc)}</div>
-      ${listaEjemplos}
+      ${alertaSospechosas}
     </div>`;
 }
 
