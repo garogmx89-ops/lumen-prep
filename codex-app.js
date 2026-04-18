@@ -396,6 +396,7 @@ function deshacerProcesado(){
     problemasResueltos:snap.problemasResueltos,aprobado:false});
   actualizarStats();renderVista();renderDiff();renderEstructura();renderJSON();renderProblemas();
   document.getElementById('panel-top-bar')?.classList.remove('hidden');
+  _actualizarTopbarContexto();
   const btnNuevo = document.getElementById('btn-nuevo-doc');
   if(btnNuevo) btnNuevo.style.display = '';
   if(!state.snapshots.length)document.getElementById('undo-banner').classList.remove('visible');
@@ -710,6 +711,7 @@ function renderVista(){
   if(vc){ vc.style.display = ''; vc.innerHTML = _ayudaVista+`<div id="viewer">${t}</div>`; }
   // Mostrar tabs superiores
   document.getElementById('panel-top-bar')?.classList.remove('hidden');
+  _actualizarTopbarContexto();
 }
 
 
@@ -1540,15 +1542,16 @@ function switchTab(tab){
 
 // Actualiza el topbar con título y meta del documento activo
 function _actualizarTopbarContexto(){
+  const tituloEl = document.getElementById('topbar-doc-titulo');
+  const metaEl   = document.getElementById('topbar-doc-meta');
+  if(!tituloEl || !metaEl) return; // elementos aún no en DOM
   const titulo = extraerTituloLey(state.estructura) || state.perfilActivo?.nombre || 'Documento';
   const arts   = state.estructura.filter(e=>e.tipo==='articulo').length;
   const perfil = state.perfilActivo?.nombre || '—';
   const tab    = state.tabActiva || 'vista';
   const tabLabel = {vista:'Vista',cambios:'Cambios',log:'Log',estructura:'Estructura',json:'JSON',problemas:'Problemas',validacion:'Validar'}[tab] || tab;
-  const tituloEl = document.getElementById('topbar-doc-titulo');
-  const metaEl   = document.getElementById('topbar-doc-meta');
-  if(tituloEl) tituloEl.textContent = titulo;
-  if(metaEl)   metaEl.textContent   = `${perfil} · ${arts} artículos · ${tabLabel}`;
+  tituloEl.textContent = titulo;
+  metaEl.textContent   = `${perfil} · ${arts} artículos · ${tabLabel}`;
 }
 function actualizarStats(){
   const arts=state.estructura.filter(e=>e.tipo==='articulo');
@@ -2224,6 +2227,7 @@ async function finalizarProcesado(textoLimpio){
     logInfo('Hash',`SHA-256: ${state.hashActual.slice(0,16)}...`,'');
     actualizarStats(); renderVista(); renderDiff(); renderEstructura(); renderJSON(); renderProblemas(); renderLog();
     document.getElementById('panel-top-bar')?.classList.remove('hidden');
+    _actualizarTopbarContexto();
     const _btnN = document.getElementById('btn-nuevo-doc'); if(_btnN) _btnN.style.display='';
     document.getElementById('stats-section').style.display='block';
     mostrarEstado(`${arts} artículos${state.perfilActivo?' · '+state.perfilActivo.nombre:''}`);
